@@ -29,4 +29,10 @@ go.work.sum
 
 # Editor/IDE
 # .idea/
-# .vscode/
+.vscode/
+
+build/bin
+node_modules
+frontend/dist
+frontend/build
+
