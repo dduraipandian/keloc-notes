@@ -1,9 +1,18 @@
 <script lang="ts">
-	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
-
-	let { children } = $props();
+ import './layout.css';
+ import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+ import AppSidebar from "$lib/components/Sidebar.svelte";
+ 
+ let { children } = $props();
+ let open = $state(true);
 </script>
-
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
-{@render children()}
+ 
+<div class="dark min-h-screen bg-background text-foreground">
+ <Sidebar.Provider bind:open>
+  <AppSidebar />
+  <main class="flex-1 overflow-auto">
+   <Sidebar.Trigger />
+   {@render children?.()}
+  </main>
+ </Sidebar.Provider>
+</div>
