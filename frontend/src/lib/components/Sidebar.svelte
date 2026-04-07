@@ -2,6 +2,7 @@
 	import Folder from '@lucide/svelte/icons/folder';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FolderPlus from '@lucide/svelte/icons/folder-plus';
+	import Trash from '@lucide/svelte/icons/trash';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Collapsible } from 'bits-ui';
 
@@ -94,11 +95,31 @@
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
+		<Sidebar.Group>
+			<Sidebar.GroupContent>
+				<Sidebar.Menu>
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton class="pr-8">
+							{#snippet child({ props })}
+								<div {...props}>
+									<div style="width: 0.5rem" class="shrink-0"></div>
+									<Trash class="size-5 shrink-0 text-muted-foreground/70" color="#dc5a5a" />
+									<span class="flex-1 truncate text-left text-xs">Recently Deleted</span>
+								</div>
+							{/snippet}
+						</Sidebar.MenuButton>
+						<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
+							>0</Sidebar.MenuBadge
+						>
+					</Sidebar.MenuItem>
+				</Sidebar.Menu>
+			</Sidebar.GroupContent>
+		</Sidebar.Group>
 	</Sidebar.Content>
 
 	<Sidebar.Footer class="border-t-0 p-4">
 		<button class="flex items-center gap-2 text-sm text-foreground/80 hover:text-foreground">
-			<FolderPlus class="size-4" />
+			<FolderPlus class="size-5" />
 			<span>New Folder</span>
 		</button>
 	</Sidebar.Footer>
@@ -115,7 +136,7 @@
 							<ChevronRight
 								class="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
 							/>
-							<Folder class="size-4 shrink-0 text-muted-foreground/70" />
+							<Folder class="size-5 shrink-0 text-muted-foreground/70" color="#3e9392" />
 							<span class="flex-1 truncate text-left">{item.title}</span>
 						</Sidebar.MenuButton>
 						<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
@@ -139,7 +160,7 @@
 					<a href={item.url} {...props}>
 						<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
 						<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-						<Folder class="size-4 shrink-0 text-muted-foreground/70" />
+						<Folder class="size-5 shrink-0 text-muted-foreground/70" color="#3e9392" />
 						<span class="flex-1 truncate text-left">{item.title}</span>
 					</a>
 				{/snippet}
