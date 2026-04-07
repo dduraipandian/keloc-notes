@@ -101,11 +101,10 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton class="pr-8">
 							{#snippet child({ props })}
-								<div {...props}>
-									<div style="width: 0.5rem" class="shrink-0"></div>
-									<Trash class="size-5 shrink-0 text-muted-foreground/70" color="#dc5a5a" />
-									<span class="flex-1 truncate text-left text-xs">Recently Deleted</span>
-								</div>
+								<!-- svelte-ignore a11y_invalid_attribute -->
+								<a href="#" {...props}>
+									<Trash color="#dc5a5a" /> <span class="truncate text-left">Recently Deleted</span>
+								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
 						<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
@@ -118,10 +117,11 @@
 	</Sidebar.Content>
 
 	<Sidebar.Footer class="border-t-0 p-4">
-		<button class="flex items-center gap-2 text-sm text-foreground/80 hover:text-foreground">
-			<FolderPlus class="size-5" />
+		<!-- svelte-ignore a11y_invalid_attribute -->
+		<a href="#" class="flex items-center gap-2 text-sm text-foreground/80 hover:text-foreground">
+			<FolderPlus class="size-5" color="#3e9392" />
 			<span>New Folder</span>
-		</button>
+		</a>
 	</Sidebar.Footer>
 </Sidebar.Root>
 
@@ -136,8 +136,7 @@
 							<ChevronRight
 								class="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
 							/>
-							<Folder class="size-5 shrink-0 text-muted-foreground/70" color="#3e9392" />
-							<span class="flex-1 truncate text-left">{item.title}</span>
+							<Folder color="#3e9392" /> <span class="truncate text-left">{item.title}</span>
 						</Sidebar.MenuButton>
 						<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
 							>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
@@ -160,8 +159,7 @@
 					<a href={item.url} {...props}>
 						<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
 						<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-						<Folder class="size-5 shrink-0 text-muted-foreground/70" color="#3e9392" />
-						<span class="flex-1 truncate text-left">{item.title}</span>
+						<Folder color="#3e9392" /> <span class="truncate text-left">{item.title}</span>
 					</a>
 				{/snippet}
 			</Sidebar.MenuButton>
