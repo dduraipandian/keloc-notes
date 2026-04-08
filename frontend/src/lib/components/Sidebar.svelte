@@ -13,6 +13,8 @@
 		items?: FolderItem[];
 	};
 
+	const folderColor = 'grey';
+
 	// Mock data representing the Apple Notes screenshot hierarchy
 	const items: FolderItem[] = [
 		{
@@ -117,11 +119,22 @@
 	</Sidebar.Content>
 
 	<Sidebar.Footer class="border-t-0 p-4">
-		<!-- svelte-ignore a11y_invalid_attribute -->
-		<a href="#" class="flex items-center gap-2 text-sm text-foreground/80 hover:text-foreground">
-			<FolderPlus class="size-5" color="#3e9392" />
-			<span>New Folder</span>
-		</a>
+		<Sidebar.Menu>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton>
+					{#snippet child({ props })}
+						<!-- svelte-ignore a11y_invalid_attribute -->
+						<a
+							href="#"
+							class="flex items-center gap-2 text-sm text-foreground/80 hover:text-foreground"
+						>
+							<span>New Folder</span>
+							<FolderPlus class="ml-auto size-5" color="#3e9392" />
+						</a>
+					{/snippet}
+				</Sidebar.MenuButton>
+			</Sidebar.MenuItem>
+		</Sidebar.Menu>
 	</Sidebar.Footer>
 </Sidebar.Root>
 
@@ -136,7 +149,7 @@
 							<ChevronRight
 								class="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
 							/>
-							<Folder color="#3e9392" /> <span class="truncate text-left">{item.title}</span>
+							<Folder color={folderColor} /> <span class="truncate text-left">{item.title}</span>
 						</Sidebar.MenuButton>
 						<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
 							>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
@@ -159,7 +172,7 @@
 					<a href={item.url} {...props}>
 						<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
 						<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-						<Folder color="#3e9392" /> <span class="truncate text-left">{item.title}</span>
+						<Folder color={folderColor} /> <span class="truncate text-left">{item.title}</span>
 					</a>
 				{/snippet}
 			</Sidebar.MenuButton>
