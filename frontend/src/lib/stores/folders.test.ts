@@ -214,6 +214,20 @@ describe('FolderStore', () => {
 			expect(folderStore.items[0].items?.[0].id).toBe('f1');
 		});
 
+		it('should move a folder to a specific index at root', () => {
+			const f1 = { id: 'f1', title: 'F1', url: '#' };
+			const f2 = { id: 'f2', title: 'F2', url: '#' };
+			const f3 = { id: 'f3', title: 'F3', url: '#' };
+			folderStore.items = [f1, f2, f3];
+			(folderStore as any).isInitialized = true;
+
+			folderStore.moveFolder('f3', null, 1); // Move F3 between F1 and F2
+
+			expect(folderStore.items[0].id).toBe('f1');
+			expect(folderStore.items[1].id).toBe('f3');
+			expect(folderStore.items[2].id).toBe('f2');
+		});
+
 		it('should not allow circular moves', () => {
 			const child: FolderItem = { id: 'child', title: 'Child', url: '#' };
 			const parent: FolderItem = { id: 'parent', title: 'Parent', url: '#', items: [child] };

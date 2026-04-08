@@ -37,6 +37,10 @@ class FolderStore {
 		}
 	}
 
+	getItemById(id: string): FolderItem | null {
+		return this.findItemById(this.items, id);
+	}
+
 	private findItemById(items: FolderItem[], id: string): FolderItem | null {
 		for (const item of items) {
 			if (item.id === id) return item;
@@ -140,7 +144,7 @@ class FolderStore {
 		this.persist();
 	}
 
-	moveFolder(sourceId: string, targetParentId: string | null) {
+	moveFolder(sourceId: string, targetParentId: string | null, targetIndex: number = -1) {
 		if (sourceId === targetParentId) return;
 
 		// 1. Find the item
@@ -162,14 +166,22 @@ class FolderStore {
 		// 5. Remove from current position (silently)
 		this.deleteFolder(sourceId, false);
 
-		// 6. Insert into target
+		// 6. Insert into target at specific index
 		if (targetParentId === null) {
-			this.items.push(clonedItem);
+			if (targetIndex === -1 || targetIndex >= this.items.length) {
+				this.items.push(clonedItem);
+			} else {
+				this.items.splice(targetIndex, 0, clonedItem);
+			}
 		} else {
 			const targetParent = this.findItemById(this.items, targetParentId);
 			if (targetParent) {
 				if (!targetParent.items) targetParent.items = [];
-				targetParent.items.push(clonedItem);
+				if (targetIndex === -1 || targetIndex >= targetParent.items.length) {
+					targetParent.items.push(clonedItem);
+				} else {
+					targetParent.items.splice(targetIndex, 0, clonedItem);
+				}
 				targetParent.isOpen = true; // Open the new parent
 			}
 		}
