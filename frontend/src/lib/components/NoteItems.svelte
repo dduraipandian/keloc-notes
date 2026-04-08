@@ -2,10 +2,8 @@
 	import Search from '@lucide/svelte/icons/search';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
-	import FileText from '@lucide/svelte/icons/file-text';
+	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import { Separator } from '$lib/components/ui/separator/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
@@ -63,7 +61,7 @@
 				onclick={() => notesStore.createNote(folderStore.selectedItem?.id ?? null)}
 				title="New Note"
 			>
-				<Plus size={16} />
+				<SquarePen size={16} />
 			</button>
 			<button
 				class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
@@ -87,7 +85,7 @@
 				/>
 			</div>
 		</div>
-		<div class="custom-scrollbar flex-1 overflow-y-auto px-3 pb-8">
+		<div class="custom-scrollbar flex-1 overflow-y-auto px-4 pb-8">
 			{#each sections() as [label, notes]}
 				<Item.Group>
 					<Item.Header class="mt-6 px-3">
