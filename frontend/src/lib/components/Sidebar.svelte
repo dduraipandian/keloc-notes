@@ -11,12 +11,13 @@
 		url: string;
 		badge?: number;
 		items?: FolderItem[];
+		isOpen?: boolean;
 	};
 
 	const folderColor = 'grey';
 
 	// Mock data representing the Apple Notes screenshot hierarchy
-	const items: FolderItem[] = [
+	let items: FolderItem[] = $state([
 		{
 			title: 'All iCloud',
 			url: '#',
@@ -45,6 +46,7 @@
 			title: 'Work',
 			url: '#',
 			badge: 11,
+			isOpen: true,
 			items: [
 				{
 					title: 'Engineering Dashboard',
@@ -60,6 +62,7 @@
 					title: 'Learnings',
 					url: '#',
 					badge: 15,
+					isOpen: false,
 					items: [
 						{
 							title: 'Svelte',
@@ -79,7 +82,7 @@
 				}
 			]
 		}
-	];
+	]);
 </script>
 
 <Sidebar.Root collapsible="icon" class="border-r-0">
@@ -140,14 +143,21 @@
 
 {#snippet MenuItemSnippet(item: FolderItem, depth: number)}
 	{#if item.items && item.items.length > 0}
-		<Collapsible.Root class="group/collapsible" open={true}>
+		<Collapsible.Root
+			class="group/collapsible"
+			bind:open={() => item.isOpen ?? false, (v) => (item.isOpen = v)}
+		>
 			<Sidebar.MenuItem>
 				<Collapsible.Trigger class="w-full">
 					{#snippet child({ props })}
 						<Sidebar.MenuButton class="pr-8" {...props}>
 							<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
 							<ChevronRight
-								class="size-3.5 shrink-0 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+								size={14}
+								class={[
+									'shrink-0 transition-transform duration-200',
+									item.isOpen ? 'rotate-90' : ''
+								]}
 							/>
 							<Folder color={folderColor} /> <span class="truncate text-left">{item.title}</span>
 						</Sidebar.MenuButton>
