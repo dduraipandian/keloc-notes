@@ -111,6 +111,26 @@ describe('FolderStore', () => {
 			expect(folderStore.selectedItem?.id).toBe('saved');
 		});
 
+		it('should throw error when initialization fails', async () => {
+			vi.mocked(idb.loadFolderState).mockRejectedValue(new Error('DB Error'));
+
+			await expect(folderStore.init()).rejects.toThrow('DB Error');
+			expect((folderStore as any).isInitialized).toBe(false);
+		});
+
+		it('should be idempotent (multiple init calls)', async () => {
+			vi.mocked(idb.loadFolderState).mockResolvedValue({
+				items: [{ id: '1', title: '1', url: '#' }],
+				selectedId: null
+			});
+
+			await folderStore.init();
+			await folderStore.init();
+
+			expect(idb.loadFolderState).toHaveBeenCalledTimes(1);
+			expect(folderStore.items.length).toBe(1);
+		});
+
 		it('should save state on selectItem', async () => {
 			(folderStore as any).isInitialized = true;
 			const item: FolderItem = { id: 'item', title: 'Item', url: '#' };
@@ -164,6 +184,64 @@ describe('FolderStore', () => {
 			folderStore.persist();
 
 			expect(idb.saveFolderState).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('Complex Tree Operations (Edge Cases)', () => {
+		it('should correctly delete a deeply nested folder', () => {
+			// Construct 5 level deep tree
+			const tree: FolderItem = {
+				id: 'L1', title: 'L1', url: '#',
+				items: [{
+					id: 'L2', title: 'L2', url: '#',
+					items: [{
+						id: 'L3', title: 'L3', url: '#',
+						items: [{
+							id: 'L4', title: 'L4', url: '#',
+							items: [{ id: 'L5', title: 'L5', url: '#' }]
+						}]
+					}]
+				}]
+			};
+			folderStore.items = [tree];
+			(folderStore as any).isInitialized = true;
+
+			folderStore.deleteFolder('L3');
+
+			expect(folderStore.items[0].items?.length).toBe(0);
+			expect(folderStore.items.length).toBe(1);
+		});
+
+		it('should clear selection if its parent is deleted', () => {
+			const leaf: FolderItem = { id: 'leaf', title: 'Leaf', url: '#' };
+			const parent: FolderItem = { 
+				id: 'parent', title: 'Parent', url: '#', 
+				items: [leaf] 
+			};
+			folderStore.items = [parent];
+			(folderStore as any).isInitialized = true;
+			
+			folderStore.selectItem(folderStore.items[0].items![0]);
+			expect(folderStore.selectedItem?.id).toBe('leaf');
+
+			folderStore.deleteFolder('parent');
+
+			expect(folderStore.items.length).toBe(0);
+			expect(folderStore.selectedItem).toBeNull();
+		});
+
+		it('should find item in deeply nested tree', () => {
+			const target: FolderItem = { id: 'target', title: 'Target', url: '#' };
+			const tree: FolderItem[] = [{
+				id: 'root', title: 'Root', url: '#',
+				items: [{
+					id: 'mid', title: 'Mid', url: '#',
+					items: [target]
+				}]
+			}];
+
+			const found = (folderStore as any).findItemById(tree, 'target');
+			expect(found).toEqual(target);
 		});
 	});
 });

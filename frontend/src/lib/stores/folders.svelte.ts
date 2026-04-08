@@ -22,15 +22,19 @@ class FolderStore {
 	async init() {
 		if (this.isInitialized) return;
 
-		const savedState = await loadFolderState();
-		if (savedState) {
-			this.items = savedState.items;
-			if (savedState.selectedId) {
-				this.selectedItem = this.findItemById(this.items, savedState.selectedId);
+		try {
+			const savedState = await loadFolderState();
+			if (savedState) {
+				this.items = savedState.items;
+				if (savedState.selectedId) {
+					this.selectedItem = this.findItemById(this.items, savedState.selectedId);
+				}
 			}
+			this.isInitialized = true;
+		} catch (error) {
+			console.error('Failed to load folders from storage:', error);
+			throw error;
 		}
-
-		this.isInitialized = true;
 	}
 
 	private findItemById(items: FolderItem[], id: string): FolderItem | null {
