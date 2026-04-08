@@ -17,7 +17,7 @@
 
 	const folderColor = 'grey';
 
-	let selectedItemId = $state<string | null>(null);
+	let selectedItem = $state<FolderItem | null>(null);
 
 	// Mock data representing the Apple Notes screenshot hierarchy
 	let items: FolderItem[] = $state([
@@ -98,6 +98,15 @@
 			]
 		}
 	]);
+
+	function createNewFolder() {
+		if (!selectedItem) {
+			console.log('Creating new folder at root');
+			return;
+		}
+		let item: FolderItem = selectedItem;
+		console.log(item.title);
+	}
 </script>
 
 <Sidebar.Root collapsible="icon" class="border-r-0">
@@ -145,6 +154,7 @@
 						<a
 							href="#"
 							class="flex items-center gap-2 text-sm text-foreground/80 hover:text-foreground"
+							onclick={() => createNewFolder()}
 						>
 							<span>New Folder</span>
 							<FolderPlus class="ml-auto size-5" color="#3e9392" />
@@ -168,10 +178,10 @@
 						<Sidebar.MenuButton
 							class="pr-8"
 							{...props}
-							isActive={item.id === selectedItemId}
+							isActive={item.id === selectedItem?.id}
 							onclick={(e) => {
 								(props as any).onclick?.(e);
-								selectedItemId = item.id;
+								selectedItem = item;
 							}}
 						>
 							<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
@@ -202,9 +212,9 @@
 		<Sidebar.MenuItem>
 			<Sidebar.MenuButton
 				class="pr-8"
-				isActive={item.id === selectedItemId}
+				isActive={item.id === selectedItem?.id}
 				onclick={() => {
-					selectedItemId = item.id;
+					selectedItem = item;
 				}}
 			>
 				{#snippet child({ props })}
