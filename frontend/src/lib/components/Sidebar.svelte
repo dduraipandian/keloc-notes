@@ -4,7 +4,7 @@
 	import FolderPlus from '@lucide/svelte/icons/folder-plus';
 	import Trash from '@lucide/svelte/icons/trash';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import { Collapsible } from 'bits-ui';
+	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 
 	type FolderItem = {
 		title: string;
