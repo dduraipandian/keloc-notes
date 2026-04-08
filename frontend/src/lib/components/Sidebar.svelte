@@ -102,10 +102,20 @@
 	function createNewFolder() {
 		if (!selectedItem) {
 			console.log('Creating new folder at root');
+			items.unshift({
+				id: crypto.randomUUID(),
+				title: 'New Folder',
+				url: '#'
+			});
 			return;
 		}
 		let item: FolderItem = selectedItem;
 		console.log(item.title);
+		item.items?.unshift({
+			id: crypto.randomUUID(),
+			title: 'New Folder',
+			url: '#'
+		});
 	}
 </script>
 
