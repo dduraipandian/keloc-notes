@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import AppSidebar from '$lib/components/sidebar.svelte';
+	import AppSidebar from '$lib/components/Sidebar.svelte';
 
 	let { children } = $props();
 

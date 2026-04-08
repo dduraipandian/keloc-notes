@@ -22,6 +22,39 @@
 		node.focus();
 		node.select();
 	}
+
+	let draggedId = $state<string | null>(null);
+	let dragOverId = $state<string | null>(null);
+
+	function handleDragStart(e: DragEvent, id: string) {
+		if (e.dataTransfer) {
+			e.dataTransfer.setData('text/plain', id);
+			e.dataTransfer.effectAllowed = 'move';
+		}
+		draggedId = id;
+	}
+
+	function handleDragOver(e: DragEvent, id: string | null) {
+		e.preventDefault();
+		if (e.dataTransfer) {
+			e.dataTransfer.dropEffect = 'move';
+		}
+		dragOverId = id;
+	}
+
+	function handleDragLeave() {
+		dragOverId = null;
+	}
+
+	function handleDrop(e: DragEvent, targetParentId: string | null) {
+		e.preventDefault();
+		const id = e.dataTransfer?.getData('text/plain') || draggedId;
+		if (id && id !== targetParentId) {
+			folderStore.moveFolder(id, targetParentId);
+		}
+		draggedId = null;
+		dragOverId = null;
+	}
 </script>
 
 <Sidebar.Root collapsible="icon" class="border-r-0">
@@ -36,6 +69,26 @@
 					{#each folderStore.items as item (item.id)}
 						{@render MenuItemSnippet(item, 0)}
 					{/each}
+					<!-- Root Drop Zone -->
+					<div 
+						class={[
+							"h-8 rounded-md border-2 border-dashed border-transparent transition-colors mt-2",
+							dragOverId === 'root' && "border-accent bg-accent/20"
+						]}
+						ondragover={(e: DragEvent) => handleDragOver(e, 'root')}
+						ondragleave={handleDragLeave}
+						ondrop={(e: DragEvent) => handleDrop(e, null)}
+						role="listitem"
+					>
+						<span 
+							class={[
+								"flex h-full items-center justify-center text-[10px] text-muted-foreground/50 opacity-0 transition-opacity group-hover:opacity-100",
+								dragOverId === 'root' && "opacity-100"
+							]}
+						>
+							Drop here to move to root
+						</span>
+					</div>
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
@@ -94,17 +147,25 @@
 		>
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
-					<Sidebar.MenuItem>
+					<Sidebar.MenuItem draggable="true">
 						<Collapsible.Trigger class="w-full">
 							{#snippet child({ props })}
 								<Sidebar.MenuButton
-									class="pr-8"
+									class={[
+										"pr-8 transition-colors",
+										dragOverId === item.id && "bg-accent/50",
+										draggedId === item.id && "opacity-50"
+									]}
 									{...props}
 									isActive={item.id === folderStore.selectedItem?.id}
 									onclick={(e) => {
 										(props as any).onclick?.(e);
 										folderStore.selectItem(item);
 									}}
+									ondragstart={(e) => handleDragStart(e as any, item.id)}
+									ondragover={(e) => handleDragOver(e as any, item.id)}
+									ondragleave={handleDragLeave}
+									ondrop={(e) => handleDrop(e as any, item.id)}
 								>
 									<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
 									<ChevronRight
@@ -148,13 +209,21 @@
 	{:else}
 		<ContextMenu.Root>
 			<ContextMenu.Trigger>
-				<Sidebar.MenuItem>
+				<Sidebar.MenuItem draggable="true">
 					<Sidebar.MenuButton
-						class="pr-8"
+						class={[
+							"pr-8 transition-colors",
+							dragOverId === item.id && "bg-accent/50",
+							draggedId === item.id && "opacity-50"
+						]}
 						isActive={item.id === folderStore.selectedItem?.id}
 						onclick={() => {
 							folderStore.selectItem(item);
 						}}
+						ondragstart={(e) => handleDragStart(e as any, item.id)}
+						ondragover={(e) => handleDragOver(e as any, item.id)}
+						ondragleave={handleDragLeave}
+						ondrop={(e) => handleDrop(e as any, item.id)}
 					>
 						{#snippet child({ props })}
 							<a href={item.url} {...props}>

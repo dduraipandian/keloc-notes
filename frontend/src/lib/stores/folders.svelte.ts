@@ -48,6 +48,12 @@ class FolderStore {
 		return null;
 	}
 
+	private isChildOf(parentId: string, potentialChildId: string): boolean {
+		const parent = this.findItemById(this.items, parentId);
+		if (!parent || !parent.items) return false;
+		return this.findItemById(parent.items, potentialChildId) !== null;
+	}
+
 	persist() {
 		if (!this.isInitialized) return;
 		saveFolderState({
@@ -93,7 +99,7 @@ class FolderStore {
 		this.startRename(newFolder.id);
 	}
 
-	deleteFolder(id: string) {
+	deleteFolder(id: string, shouldPersist = true) {
 		const removeRecursive = (list: FolderItem[]): FolderItem[] => {
 			return list
 				.filter((item) => item.id !== id)
@@ -107,13 +113,18 @@ class FolderStore {
 
 		this.items = removeRecursive(this.items);
 
-		if (this.selectedItem?.id === id) {
+		// If selectedItem is gone (either it was deleted or its parent was), clear it
+		if (this.selectedItem && !this.findItemById(this.items, this.selectedItem.id)) {
 			this.selectedItem = null;
 		}
+
 		if (this.editingId === id) {
 			this.editingId = null;
 		}
-		this.persist();
+
+		if (shouldPersist) {
+			this.persist();
+		}
 	}
 
 	renameFolder(id: string, newTitle: string) {
@@ -126,6 +137,48 @@ class FolderStore {
 	}
 	openFolder(folder: FolderItem) {
 		folder.isOpen = !folder.isOpen;
+		this.persist();
+	}
+
+	moveFolder(sourceId: string, targetParentId: string | null) {
+		if (sourceId === targetParentId) return;
+
+		// 1. Find the item
+		const item = this.findItemById(this.items, sourceId);
+		if (!item) return;
+
+		// 2. Prevent moving a parent into its own child
+		if (targetParentId && this.isChildOf(sourceId, targetParentId)) {
+			console.warn('Cannot move a folder into its own subtree');
+			return;
+		}
+
+		// 3. Track if it was selected
+		const wasSelected = this.selectedItem?.id === sourceId;
+
+		// 4. Create a snapshot of the item
+		const clonedItem = $state.snapshot(item);
+
+		// 5. Remove from current position (silently)
+		this.deleteFolder(sourceId, false);
+
+		// 6. Insert into target
+		if (targetParentId === null) {
+			this.items.push(clonedItem);
+		} else {
+			const targetParent = this.findItemById(this.items, targetParentId);
+			if (targetParent) {
+				if (!targetParent.items) targetParent.items = [];
+				targetParent.items.push(clonedItem);
+				targetParent.isOpen = true; // Open the new parent
+			}
+		}
+
+		// 7. Restore selection if it moved
+		if (wasSelected) {
+			this.selectedItem = this.findItemById(this.items, sourceId);
+		}
+
 		this.persist();
 	}
 }

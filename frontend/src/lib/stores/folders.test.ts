@@ -187,6 +187,47 @@ describe('FolderStore', () => {
 		});
 	});
 
+	describe('Move Operations (DnD)', () => {
+		it('should move a folder to the root', () => {
+			const child: FolderItem = { id: 'child', title: 'Child', url: '#' };
+			const parent: FolderItem = { id: 'parent', title: 'Parent', url: '#', items: [child] };
+			folderStore.items = [parent];
+			(folderStore as any).isInitialized = true;
+
+			folderStore.moveFolder('child', null);
+
+			expect(folderStore.items.length).toBe(2);
+			expect(folderStore.items[1].id).toBe('child');
+			expect(folderStore.items[0].items?.length).toBe(0);
+		});
+
+		it('should move a folder into another folder', () => {
+			const f1: FolderItem = { id: 'f1', title: 'F1', url: '#' };
+			const f2: FolderItem = { id: 'f2', title: 'F2', url: '#' };
+			folderStore.items = [f1, f2];
+			(folderStore as any).isInitialized = true;
+
+			folderStore.moveFolder('f1', 'f2');
+
+			expect(folderStore.items.length).toBe(1);
+			expect(folderStore.items[0].id).toBe('f2');
+			expect(folderStore.items[0].items?.[0].id).toBe('f1');
+		});
+
+		it('should not allow circular moves', () => {
+			const child: FolderItem = { id: 'child', title: 'Child', url: '#' };
+			const parent: FolderItem = { id: 'parent', title: 'Parent', url: '#', items: [child] };
+			folderStore.items = [parent];
+			(folderStore as any).isInitialized = true;
+
+			folderStore.moveFolder('parent', 'child');
+
+			// Should do nothing
+			expect(folderStore.items[0].id).toBe('parent');
+			expect(folderStore.items[0].items?.[0].id).toBe('child');
+		});
+	});
+
 	describe('Complex Tree Operations (Edge Cases)', () => {
 		it('should correctly delete a deeply nested folder', () => {
 			// Construct 5 level deep tree
@@ -208,7 +249,7 @@ describe('FolderStore', () => {
 
 			folderStore.deleteFolder('L3');
 
-			expect(folderStore.items[0].items?.length).toBe(0);
+			expect(folderStore.items[0].items![0].items?.length).toBe(0);
 			expect(folderStore.items.length).toBe(1);
 		});
 
