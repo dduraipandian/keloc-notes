@@ -85,7 +85,12 @@
 	{#if item.items && item.items.length > 0}
 		<Collapsible.Root
 			class="group/collapsible"
-			bind:open={() => item.isOpen ?? false, (v) => (item.isOpen = v)}
+			bind:open={
+				() => item.isOpen ?? false,
+				(v) => {
+					folderStore.openFolder(item);
+				}
+			}
 		>
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
@@ -113,7 +118,7 @@
 									{#if folderStore.editingId === item.id}
 										<input
 											bind:value={item.title}
-											class="h-6 w-full rounded-sm bg-background px-1 text-foreground outline-none ring-1 ring-ring"
+											class="h-6 w-full rounded-sm bg-background px-1 text-foreground ring-1 ring-ring outline-none"
 											use:focusAndSelect
 											onkeydown={(e) => handleRenameKeyDown(e, item)}
 											onblur={() => folderStore.renameFolder(item.id, item.title)}
@@ -159,7 +164,7 @@
 								{#if folderStore.editingId === item.id}
 									<input
 										bind:value={item.title}
-										class="h-6 w-full rounded-sm bg-background px-1 text-foreground outline-none ring-1 ring-ring"
+										class="h-6 w-full rounded-sm bg-background px-1 text-foreground ring-1 ring-ring outline-none"
 										use:focusAndSelect
 										onkeydown={(e) => handleRenameKeyDown(e, item)}
 										onblur={() => folderStore.renameFolder(item.id, item.title)}

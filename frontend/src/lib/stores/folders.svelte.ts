@@ -7,17 +7,54 @@ export type FolderItem = {
 	isOpen?: boolean;
 };
 
+import { loadFolderState, saveFolderState } from './idb';
+
 class FolderStore {
 	items = $state<FolderItem[]>([]);
 	selectedItem = $state<FolderItem | null>(null);
 	editingId = $state<string | null>(null);
+	private isInitialized = false;
 
 	constructor(initialItems: FolderItem[] = []) {
 		this.items = initialItems;
 	}
 
+	async init() {
+		if (this.isInitialized) return;
+
+		const savedState = await loadFolderState();
+		if (savedState) {
+			this.items = savedState.items;
+			if (savedState.selectedId) {
+				this.selectedItem = this.findItemById(this.items, savedState.selectedId);
+			}
+		}
+
+		this.isInitialized = true;
+	}
+
+	private findItemById(items: FolderItem[], id: string): FolderItem | null {
+		for (const item of items) {
+			if (item.id === id) return item;
+			if (item.items) {
+				const found = this.findItemById(item.items, id);
+				if (found) return found;
+			}
+		}
+		return null;
+	}
+
+	persist() {
+		if (!this.isInitialized) return;
+		saveFolderState({
+			items: $state.snapshot(this.items),
+			selectedId: this.selectedItem?.id ?? null
+		});
+	}
+
 	selectItem(item: FolderItem | null) {
 		this.selectedItem = item;
+		this.persist();
 	}
 
 	startRename(id: string) {
@@ -72,19 +109,26 @@ class FolderStore {
 		if (this.editingId === id) {
 			this.editingId = null;
 		}
+		this.persist();
 	}
 
 	renameFolder(id: string, newTitle: string) {
 		if (newTitle.trim() === '') return;
-		
-		// The title is already updated via bind:value usually, 
+
+		// The title is already updated via bind:value usually,
 		// but we can ensure coordination here if needed.
 		this.editingId = null;
+		this.persist();
+	}
+	openFolder(folder: FolderItem) {
+		folder.isOpen = !folder.isOpen;
+		this.persist();
 	}
 }
 
 // Initial mock data
-const initialMockData: FolderItem[] = [
+const initialMockData: FolderItem[] = [];
+const initialMockData1: FolderItem[] = [
 	{
 		id: 'all-icloud',
 		title: 'All iCloud',
