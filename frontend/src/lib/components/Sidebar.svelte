@@ -7,6 +7,7 @@
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 
 	type FolderItem = {
+		id: string;
 		title: string;
 		url: string;
 		badge?: number;
@@ -16,64 +17,78 @@
 
 	const folderColor = 'grey';
 
+	let selectedItemId = $state<string | null>(null);
+
 	// Mock data representing the Apple Notes screenshot hierarchy
 	let items: FolderItem[] = $state([
 		{
+			id: 'all-icloud',
 			title: 'All iCloud',
 			url: '#',
 			badge: 111
 		},
 		{
+			id: 'notes',
 			title: 'Notes',
 			url: '#',
 			badge: 40
 		},
 		{
+			id: 'algorithms',
 			title: 'Algorithms',
 			url: '#'
 		},
 		{
+			id: 'engineering-concepts',
 			title: 'Engineering Concepts',
 			url: '#',
 			badge: 1
 		},
 		{
+			id: 'personal',
 			title: 'Personal',
 			url: '#',
 			badge: 8
 		},
 		{
+			id: 'work',
 			title: 'Work',
 			url: '#',
 			badge: 11,
 			isOpen: true,
 			items: [
 				{
+					id: 'engineering-dashboard',
 					title: 'Engineering Dashboard',
 					url: '#',
 					badge: 1
 				},
 				{
+					id: 'esentire',
 					title: 'eSentire',
 					url: '#',
 					badge: 4
 				},
 				{
+					id: 'learnings',
 					title: 'Learnings',
 					url: '#',
 					badge: 15,
 					isOpen: false,
 					items: [
 						{
+							id: 'svelte',
 							title: 'Svelte',
 							url: '#'
 						},
 						{
+							id: 'security-fixes',
 							title: 'Security fixes',
 							url: '#',
 							badge: 2
 						},
 						{
+							id: 'golang',
 							title: 'Golang',
 							url: '#',
 							badge: 16
@@ -150,7 +165,15 @@
 			<Sidebar.MenuItem>
 				<Collapsible.Trigger class="w-full">
 					{#snippet child({ props })}
-						<Sidebar.MenuButton class="pr-8" {...props}>
+						<Sidebar.MenuButton
+							class="pr-8"
+							{...props}
+							isActive={item.id === selectedItemId}
+							onclick={(e) => {
+								(props as any).onclick?.(e);
+								selectedItemId = item.id;
+							}}
+						>
 							<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
 							<ChevronRight
 								size={14}
@@ -177,7 +200,13 @@
 		</Collapsible.Root>
 	{:else}
 		<Sidebar.MenuItem>
-			<Sidebar.MenuButton class="pr-8">
+			<Sidebar.MenuButton
+				class="pr-8"
+				isActive={item.id === selectedItemId}
+				onclick={() => {
+					selectedItemId = item.id;
+				}}
+			>
 				{#snippet child({ props })}
 					<a href={item.url} {...props}>
 						<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
