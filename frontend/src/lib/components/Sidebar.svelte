@@ -5,6 +5,7 @@
 	import Trash from '@lucide/svelte/icons/trash';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
+	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
 	type FolderItem = {
 		id: string;
@@ -182,62 +183,82 @@
 			class="group/collapsible"
 			bind:open={() => item.isOpen ?? false, (v) => (item.isOpen = v)}
 		>
-			<Sidebar.MenuItem>
-				<Collapsible.Trigger class="w-full">
-					{#snippet child({ props })}
-						<Sidebar.MenuButton
-							class="pr-8"
-							{...props}
-							isActive={item.id === selectedItem?.id}
-							onclick={(e) => {
-								(props as any).onclick?.(e);
-								selectedItem = item;
-							}}
-						>
-							<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
-							<ChevronRight
-								size={14}
-								class={[
-									'shrink-0 transition-transform duration-200',
-									item.isOpen ? 'rotate-90' : ''
-								]}
-							/>
-							<Folder color={folderColor} /> <span class="truncate text-left">{item.title}</span>
-						</Sidebar.MenuButton>
-						<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
-							>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
-						>
-					{/snippet}
-				</Collapsible.Trigger>
-				<Collapsible.Content>
-					<Sidebar.MenuSub class="m-0 border-l-0 p-0">
-						{#each item.items as subItem (subItem.title)}
-							{@render MenuItemSnippet(subItem, depth + 1)}
-						{/each}
-					</Sidebar.MenuSub>
-				</Collapsible.Content>
-			</Sidebar.MenuItem>
+			<ContextMenu.Root>
+				<ContextMenu.Trigger>
+					<Sidebar.MenuItem>
+						<Collapsible.Trigger class="w-full">
+							{#snippet child({ props })}
+								<Sidebar.MenuButton
+									class="pr-8"
+									{...props}
+									isActive={item.id === selectedItem?.id}
+									onclick={(e) => {
+										(props as any).onclick?.(e);
+										selectedItem = item;
+									}}
+								>
+									<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
+									<ChevronRight
+										size={14}
+										class={[
+											'shrink-0 transition-transform duration-200',
+											item.isOpen ? 'rotate-90' : ''
+										]}
+									/>
+									<Folder color={folderColor} />
+									<span class="truncate text-left">{item.title}</span>
+								</Sidebar.MenuButton>
+								<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
+									>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
+								>
+							{/snippet}
+						</Collapsible.Trigger>
+						<Collapsible.Content>
+							<Sidebar.MenuSub class="m-0 border-l-0 p-0">
+								{#each item.items as subItem (subItem.title)}
+									{@render MenuItemSnippet(subItem, depth + 1)}
+								{/each}
+							</Sidebar.MenuSub>
+						</Collapsible.Content>
+					</Sidebar.MenuItem>
+				</ContextMenu.Trigger>
+				{@render ContextMenuContentSnippet(item)}
+			</ContextMenu.Root>
 		</Collapsible.Root>
 	{:else}
-		<Sidebar.MenuItem>
-			<Sidebar.MenuButton
-				class="pr-8"
-				isActive={item.id === selectedItem?.id}
-				onclick={() => {
-					selectedItem = item;
-				}}
-			>
-				{#snippet child({ props })}
-					<a href={item.url} {...props}>
-						<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
-						<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-						<Folder color={folderColor} /> <span class="truncate text-left">{item.title}</span>
-					</a>
-				{/snippet}
-			</Sidebar.MenuButton>
-			<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
-				>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
-			>
-		</Sidebar.MenuItem>
+		<ContextMenu.Root>
+			<ContextMenu.Trigger>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton
+						class="pr-8"
+						isActive={item.id === selectedItem?.id}
+						onclick={() => {
+							selectedItem = item;
+						}}
+					>
+						{#snippet child({ props })}
+							<a href={item.url} {...props}>
+								<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
+								<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
+								<Folder color={folderColor} /> <span class="truncate text-left">{item.title}</span>
+							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+					<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
+						>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
+					>
+				</Sidebar.MenuItem>
+			</ContextMenu.Trigger>
+			{@render ContextMenuContentSnippet(item)}
+		</ContextMenu.Root>
 	{/if}
+{/snippet}
+
+{#snippet ContextMenuContentSnippet(item: FolderItem)}
+	<ContextMenu.Content
+		class="dark rounded-sm bg-card text-xs tracking-wider text-muted-foreground/70"
+	>
+		<ContextMenu.Item>Rename</ContextMenu.Item>
+		<ContextMenu.Item>Delete</ContextMenu.Item>
+	</ContextMenu.Content>
 {/snippet}
