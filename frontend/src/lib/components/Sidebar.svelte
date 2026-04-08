@@ -19,6 +19,51 @@
 	const folderColor = 'grey';
 
 	let selectedItem = $state<FolderItem | null>(null);
+	let editingId = $state<string | null>(null);
+
+	function startRename(id: string) {
+		setTimeout(() => {
+			editingId = id;
+		}, 0);
+	}
+
+	function deleteFolder(id: string) {
+		const removeRecursive = (list: FolderItem[]): FolderItem[] => {
+			return list
+				.filter((item) => item.id !== id)
+				.map((item) => {
+					if (item.items) {
+						return { ...item, items: removeRecursive(item.items) };
+					}
+					return item;
+				});
+		};
+		items = removeRecursive(items);
+		if (selectedItem?.id === id) {
+			selectedItem = null;
+		}
+		if (editingId === id) {
+			editingId = null;
+		}
+	}
+
+	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
+		if (e.key === 'Enter') {
+			if (item.title.trim() === '') {
+				// Don't allow empty names - maybe revert or show error
+				// For now, let's just not save if empty
+				return;
+			}
+			editingId = null;
+		} else if (e.key === 'Escape') {
+			editingId = null;
+		}
+	}
+
+	function focusAndSelect(node: HTMLInputElement) {
+		node.focus();
+		node.select();
+	}
 
 	// Mock data representing the Apple Notes screenshot hierarchy
 	let items: FolderItem[] = $state([
@@ -101,22 +146,28 @@
 	]);
 
 	function createNewFolder() {
-		if (!selectedItem) {
-			console.log('Creating new folder at root');
-			items.unshift({
-				id: crypto.randomUUID(),
-				title: 'New Folder',
-				url: '#'
-			});
-			return;
-		}
-		let item: FolderItem = selectedItem;
-		console.log(item.title);
-		item.items?.unshift({
+		const newFolder: FolderItem = {
 			id: crypto.randomUUID(),
 			title: 'New Folder',
 			url: '#'
-		});
+		};
+
+		if (!selectedItem) {
+			console.log('Creating new folder at root');
+			items.unshift(newFolder);
+			selectedItem = newFolder;
+			editingId = newFolder.id;
+			return;
+		}
+		
+		if (!selectedItem.items) {
+			selectedItem.items = [];
+		}
+		
+		selectedItem.items.unshift(newFolder);
+		selectedItem.isOpen = true; // Open the parent folder
+		selectedItem = newFolder;
+		editingId = newFolder.id;
 	}
 </script>
 
@@ -129,7 +180,7 @@
 			>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
-					{#each items as item (item.title)}
+					{#each items as item (item.id)}
 						{@render MenuItemSnippet(item, 0)}
 					{/each}
 				</Sidebar.Menu>
@@ -206,7 +257,22 @@
 										]}
 									/>
 									<Folder color={folderColor} />
-									<span class="truncate text-left">{item.title}</span>
+									{#if editingId === item.id}
+										<input
+											bind:value={item.title}
+											class="h-6 w-full rounded-sm bg-background px-1 text-foreground outline-none ring-1 ring-ring"
+											use:focusAndSelect
+											onkeydown={(e) => handleRenameKeyDown(e, item)}
+											onblur={() => {
+												if (item.title.trim() !== '') {
+													editingId = null;
+												}
+											}}
+											onclick={(e) => e.stopPropagation()}
+										/>
+									{:else}
+										<span class="truncate text-left">{item.title}</span>
+									{/if}
 								</Sidebar.MenuButton>
 								<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
 									>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
@@ -215,7 +281,7 @@
 						</Collapsible.Trigger>
 						<Collapsible.Content>
 							<Sidebar.MenuSub class="m-0 border-l-0 p-0">
-								{#each item.items as subItem (subItem.title)}
+								{#each item.items as subItem (subItem.id)}
 									{@render MenuItemSnippet(subItem, depth + 1)}
 								{/each}
 							</Sidebar.MenuSub>
@@ -240,7 +306,23 @@
 							<a href={item.url} {...props}>
 								<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
 								<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-								<Folder color={folderColor} /> <span class="truncate text-left">{item.title}</span>
+								<Folder color={folderColor} />
+								{#if editingId === item.id}
+									<input
+										bind:value={item.title}
+										class="h-6 w-full rounded-sm bg-background px-1 text-foreground outline-none ring-1 ring-ring"
+										use:focusAndSelect
+										onkeydown={(e) => handleRenameKeyDown(e, item)}
+										onblur={() => {
+											if (item.title.trim() !== '') {
+												editingId = null;
+											}
+										}}
+										onclick={(e) => e.stopPropagation()}
+									/>
+								{:else}
+									<span class="truncate text-left">{item.title}</span>
+								{/if}
 							</a>
 						{/snippet}
 					</Sidebar.MenuButton>
@@ -258,7 +340,7 @@
 	<ContextMenu.Content
 		class="dark rounded-sm bg-card text-xs tracking-wider text-muted-foreground/70"
 	>
-		<ContextMenu.Item>Rename</ContextMenu.Item>
-		<ContextMenu.Item>Delete</ContextMenu.Item>
+		<ContextMenu.Item onSelect={() => startRename(item.id)}>Rename</ContextMenu.Item>
+		<ContextMenu.Item onSelect={() => deleteFolder(item.id)}>Delete</ContextMenu.Item>
 	</ContextMenu.Content>
 {/snippet}
