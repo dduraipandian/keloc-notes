@@ -7,7 +7,6 @@
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
-	import { Header } from './ui/item';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
 
@@ -204,14 +203,14 @@
 
 {#snippet ContextMenuContentSnippet(item: FolderItem)}
 	<ContextMenu.Content
-		class="dark min-w-[160px] rounded-xl border-border/10 bg-card/95 p-1 shadow-2xl backdrop-blur-xl"
+		class="dark min-w-[160px] rounded-md border-border/10 bg-card/95 p-1 shadow-2xl backdrop-blur-xl"
 	>
 		<ContextMenu.Item
-			class="rounded-lg px-3 py-2 text-[13px]"
+			class="rounded-sm px-3 py-1 text-[13px]"
 			onSelect={() => folderStore.startRename(item.id)}>Rename</ContextMenu.Item
 		>
 		<ContextMenu.Item
-			class="rounded-lg px-3 py-2 text-[13px] text-destructive focus:text-destructive"
+			class="rounded-sm px-3 py-1 text-[13px] text-destructive focus:text-destructive"
 			onSelect={() => folderStore.deleteFolder(item.id)}>Delete</ContextMenu.Item
 		>
 	</ContextMenu.Content>

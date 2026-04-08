@@ -1,12 +1,12 @@
 <script lang="ts">
 	import Search from '@lucide/svelte/icons/search';
-	import Plus from '@lucide/svelte/icons/plus';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
+	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
 	let searchQuery = $state('');
 
@@ -66,6 +66,8 @@
 			<button
 				class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
 				title="Trash"
+				onclick={() =>
+					notesStore.selectedNoteId ? notesStore.deleteNote(notesStore.selectedNoteId) : null}
 			>
 				<Trash2 size={16} />
 			</button>
@@ -97,31 +99,47 @@
 					</Item.Header>
 					{#each notes as note, i (note.id)}
 						{@const isSelected = notesStore.selectedNoteId === note.id}
-						<Item.Root
-							variant={isSelected ? 'muted' : 'default'}
-							class="rounded-md"
-							onclick={() => notesStore.selectNote(note.id)}
-						>
-							<Item.Content>
-								<Item.Title class="flex w-full items-center gap-2 overflow-hidden">
-									<span class="flex-1 truncate text-sm font-semibold text-foreground/90">
-										{note.title || 'Untitled Note'}
-									</span>
-									<span class="shrink-0 text-[10px] text-muted-foreground/50 tabular-nums">
-										{getTime(note.updatedAt)}
-									</span>
-								</Item.Title>
-								<Item.Description>
-									{note.content || 'No additional text'}
-								</Item.Description>
-							</Item.Content>
-						</Item.Root>
+						<ContextMenu.Root>
+							<ContextMenu.Trigger>
+								<Item.Root
+									variant={isSelected ? 'muted' : 'default'}
+									class="rounded-md"
+									onclick={() => notesStore.selectNote(note.id)}
+								>
+									<Item.Content>
+										<Item.Title class="flex w-full items-center gap-2 overflow-hidden">
+											<span class="flex-1 truncate text-sm font-semibold text-foreground/90">
+												{note.title || 'Untitled Note'}
+											</span>
+											<span class="shrink-0 text-[10px] text-muted-foreground/50 tabular-nums">
+												{getTime(note.updatedAt)}
+											</span>
+										</Item.Title>
+										<Item.Description>
+											{note.content || 'No additional text'}
+										</Item.Description>
+									</Item.Content>
+								</Item.Root>
+							</ContextMenu.Trigger>
+							{@render ContextMenuContentSnippet(note)}
+						</ContextMenu.Root>
 					{/each}
 				</Item.Group>
 			{/each}
 		</div>
 	</div>
 </aside>
+
+{#snippet ContextMenuContentSnippet(note: NoteItem)}
+	<ContextMenu.Content
+		class="dark min-w-[160px] rounded-md border-border/10 bg-card/95 p-1 shadow-2xl backdrop-blur-xl"
+	>
+		<ContextMenu.Item
+			class="rounded-sm px-5 py-1 text-[13px] text-destructive focus:text-destructive"
+			onSelect={() => notesStore.deleteNote(note.id)}>Delete</ContextMenu.Item
+		>
+	</ContextMenu.Content>
+{/snippet}
 
 <style>
 	.custom-scrollbar::-webkit-scrollbar {
