@@ -36,18 +36,6 @@ class FolderStore {
 			throw error;
 		}
 	}
-
-	private findItemById(items: FolderItem[], id: string): FolderItem | null {
-		for (const item of items) {
-			if (item.id === id) return item;
-			if (item.items) {
-				const found = this.findItemById(item.items, id);
-				if (found) return found;
-			}
-		}
-		return null;
-	}
-
 	persist() {
 		if (!this.isInitialized) return;
 		saveFolderState({
@@ -93,37 +81,66 @@ class FolderStore {
 		this.startRename(newFolder.id);
 	}
 
-	deleteFolder(id: string) {
-		const removeRecursive = (list: FolderItem[]): FolderItem[] => {
-			return list
-				.filter((item) => item.id !== id)
-				.map((item) => {
-					if (item.items) {
-						return { ...item, items: removeRecursive(item.items) };
-					}
-					return item;
-				});
-		};
+	deleteFolder(id: string, shouldPersist: boolean = true) {
+		const wasSelected = this.selectedItem?.id === id;
+		const isChildSelected = this.selectedItem && this.isChildOf(id, this.selectedItem.id);
 
-		this.items = removeRecursive(this.items);
+		this.items = this.filterItems(this.items, id);
 
-		if (this.selectedItem?.id === id) {
+		if (wasSelected || isChildSelected) {
 			this.selectedItem = null;
 		}
+
 		if (this.editingId === id) {
 			this.editingId = null;
 		}
-		this.persist();
+
+		if (shouldPersist) {
+			this.persist();
+		}
+	}
+
+	private filterItems(items: FolderItem[], id: string): FolderItem[] {
+		return items.filter((item) => {
+			if (item.id === id) return false;
+			if (item.items) {
+				item.items = this.filterItems(item.items, id);
+			}
+			return true;
+		});
+	}
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.findItemById(this.items, parentId);
+		if (!parent || !parent.items) return false;
+		return this.findInChildren(parent.items, childId);
+	}
+
+	private findInChildren(items: FolderItem[], id: string): boolean {
+		for (const item of items) {
+			if (item.id === id) return true;
+			if (item.items && this.findInChildren(item.items, id)) return true;
+		}
+		return false;
+	}
+
+	private findItemById(items: FolderItem[], id: string): FolderItem | null {
+		for (const item of items) {
+			if (item.id === id) return item;
+			if (item.items) {
+				const found = this.findItemById(item.items, id);
+				if (found) return found;
+			}
+		}
+		return null;
 	}
 
 	renameFolder(id: string, newTitle: string) {
 		if (newTitle.trim() === '') return;
-
-		// The title is already updated via bind:value usually,
-		// but we can ensure coordination here if needed.
 		this.editingId = null;
 		this.persist();
 	}
+
 	openFolder(folder: FolderItem) {
 		folder.isOpen = !folder.isOpen;
 		this.persist();

@@ -8,7 +8,7 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 
-	const folderColor = 'grey';
+	const folderColor = '#dcb15a'; // Apple-style gold/folder color
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
@@ -24,12 +24,12 @@
 	}
 </script>
 
-<Sidebar.Root collapsible="icon" class="border-r-0">
-	<Sidebar.Content>
+<Sidebar.Root collapsible="none" class="border-r-0 bg-sidebar/40 w-64 h-full">
+	<Sidebar.Content class="px-2 pt-8">
 		<Sidebar.Group>
 			<Sidebar.GroupLabel
-				class="text-xs font-semibold tracking-wider text-muted-foreground/70 uppercase"
-				>Folders</Sidebar.GroupLabel
+				class="text-[10px] font-bold tracking-[0.15em] text-muted-foreground/40 uppercase mb-2 px-4"
+				>iCloud</Sidebar.GroupLabel
 			>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
@@ -39,19 +39,20 @@
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
-		<Sidebar.Group>
+
+		<Sidebar.Group class="mt-4">
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
 					<Sidebar.MenuItem>
-						<Sidebar.MenuButton class="pr-8">
+						<Sidebar.MenuButton class="px-4 py-2 hover:bg-accent/20 rounded-lg group transition-none">
 							{#snippet child({ props })}
-								<!-- svelte-ignore a11y_invalid_attribute -->
-								<a href="#" {...props}>
-									<Trash color="#dc5a5a" /> <span class="truncate text-left">Recently Deleted</span>
+								<a href="#" class="flex items-center gap-2.5" {...props}>
+									<Trash size={16} class="text-destructive/70" /> 
+                                    <span class="text-[13px] font-medium text-foreground/70 group-hover:text-foreground">Recently Deleted</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-						<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
+						<Sidebar.MenuBadge class="ml-auto text-[11px] text-muted-foreground/40 tabular-nums font-normal"
 							>0</Sidebar.MenuBadge
 						>
 					</Sidebar.MenuItem>
@@ -60,19 +61,18 @@
 		</Sidebar.Group>
 	</Sidebar.Content>
 
-	<Sidebar.Footer class="border-t-0 p-4">
+	<Sidebar.Footer class="border-t-0 p-4 pb-6 mt-auto">
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>
-				<Sidebar.MenuButton>
+				<Sidebar.MenuButton class="transition-none hover:bg-transparent px-2">
 					{#snippet child({ props })}
-						<!-- svelte-ignore a11y_invalid_attribute -->
 						<a
 							href="#"
-							class="flex items-center gap-2 text-sm text-foreground/80 hover:text-foreground"
-							onclick={() => folderStore.createFolder()}
+							class="flex items-center gap-2 text-[13px] font-medium text-foreground/80 hover:text-foreground group"
+							onclick={(e) => { e.preventDefault(); folderStore.createFolder(); }}
 						>
+							<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
 							<span>New Folder</span>
-							<FolderPlus class="ml-auto size-5" color="#3e9392" />
 						</a>
 					{/snippet}
 				</Sidebar.MenuButton>
@@ -98,7 +98,10 @@
 						<Collapsible.Trigger class="w-full">
 							{#snippet child({ props })}
 								<Sidebar.MenuButton
-									class="pr-8"
+									class={[
+										"px-4 py-2 transition-none rounded-lg h-9",
+										item.id === folderStore.selectedItem?.id ? "bg-accent text-foreground shadow-sm" : "hover:bg-accent/20 text-foreground/70 hover:text-foreground"
+									]}
 									{...props}
 									isActive={item.id === folderStore.selectedItem?.id}
 									onclick={(e) => {
@@ -106,29 +109,29 @@
 										folderStore.selectItem(item);
 									}}
 								>
-									<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
+									<div style="width: {depth * 0.75}rem" class="shrink-0"></div>
 									<ChevronRight
 										size={14}
 										class={[
-											'shrink-0 transition-transform duration-200',
+											'shrink-0 text-muted-foreground/40 transition-transform duration-200',
 											item.isOpen ? 'rotate-90' : ''
 										]}
 									/>
-									<Folder color={folderColor} />
+									<Folder size={16} style="color: {folderColor}" class="opacity-80" />
 									{#if folderStore.editingId === item.id}
 										<input
 											bind:value={item.title}
-											class="h-6 w-full rounded-sm bg-background px-1 text-foreground ring-1 ring-ring outline-none"
+											class="h-6 w-full rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
 											use:focusAndSelect
 											onkeydown={(e) => handleRenameKeyDown(e, item)}
 											onblur={() => folderStore.renameFolder(item.id, item.title)}
 											onclick={(e) => e.stopPropagation()}
 										/>
 									{:else}
-										<span class="truncate text-left">{item.title}</span>
+										<span class="truncate text-left text-[13px] font-medium">{item.title}</span>
 									{/if}
 								</Sidebar.MenuButton>
-								<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
+								<Sidebar.MenuBadge class="ml-auto text-[11px] text-muted-foreground/40 tabular-nums font-normal"
 									>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
 								>
 							{/snippet}
@@ -149,34 +152,37 @@
 		<ContextMenu.Root>
 			<ContextMenu.Trigger>
 				<Sidebar.MenuItem>
-					<Sidebar.MenuButton
-						class="pr-8"
+<Sidebar.MenuButton
+						class={[
+                            "px-4 py-2 transition-none rounded-lg h-9",
+                            item.id === folderStore.selectedItem?.id ? "bg-accent text-foreground shadow-sm" : "hover:bg-accent/20 text-foreground/70 hover:text-foreground"
+                        ]}
 						isActive={item.id === folderStore.selectedItem?.id}
 						onclick={() => {
 							folderStore.selectItem(item);
 						}}
 					>
 						{#snippet child({ props })}
-							<a href={item.url} {...props}>
-								<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
+							<div class="flex items-center w-full" {...props}>
+								<div style="width: {depth * 0.75}rem" class="shrink-0"></div>
 								<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-								<Folder color={folderColor} />
+								<Folder size={16} style="color: {folderColor}" class="opacity-80" />
 								{#if folderStore.editingId === item.id}
 									<input
 										bind:value={item.title}
-										class="h-6 w-full rounded-sm bg-background px-1 text-foreground ring-1 ring-ring outline-none"
+										class="h-6 w-full rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
 										use:focusAndSelect
 										onkeydown={(e) => handleRenameKeyDown(e, item)}
 										onblur={() => folderStore.renameFolder(item.id, item.title)}
 										onclick={(e) => e.stopPropagation()}
 									/>
 								{:else}
-									<span class="truncate text-left">{item.title}</span>
+									<span class="truncate text-left text-[13px] font-medium ml-2">{item.title}</span>
 								{/if}
-							</a>
+							</div>
 						{/snippet}
 					</Sidebar.MenuButton>
-					<Sidebar.MenuBadge class="ml-auto text-[10px] text-muted-foreground/60 tabular-nums"
+					<Sidebar.MenuBadge class="ml-auto text-[11px] text-muted-foreground/40 tabular-nums font-normal"
 						>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
 					>
 				</Sidebar.MenuItem>
@@ -188,9 +194,9 @@
 
 {#snippet ContextMenuContentSnippet(item: FolderItem)}
 	<ContextMenu.Content
-		class="dark rounded-sm bg-card text-xs tracking-wider text-muted-foreground/70"
+		class="dark min-w-[160px] rounded-xl bg-card/95 backdrop-blur-xl border-border/10 p-1 shadow-2xl"
 	>
-		<ContextMenu.Item onSelect={() => folderStore.startRename(item.id)}>Rename</ContextMenu.Item>
-		<ContextMenu.Item onSelect={() => folderStore.deleteFolder(item.id)}>Delete</ContextMenu.Item>
+		<ContextMenu.Item class="rounded-lg text-[13px] px-3 py-2" onSelect={() => folderStore.startRename(item.id)}>Rename</ContextMenu.Item>
+		<ContextMenu.Item class="rounded-lg text-[13px] px-3 py-2 text-destructive focus:text-destructive" onSelect={() => folderStore.deleteFolder(item.id)}>Delete</ContextMenu.Item>
 	</ContextMenu.Content>
 {/snippet}
