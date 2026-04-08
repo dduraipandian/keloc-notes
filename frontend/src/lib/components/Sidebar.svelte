@@ -6,168 +6,21 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
-
-	type FolderItem = {
-		id: string;
-		title: string;
-		url: string;
-		badge?: number;
-		items?: FolderItem[];
-		isOpen?: boolean;
-	};
+	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 
 	const folderColor = 'grey';
 
-	let selectedItem = $state<FolderItem | null>(null);
-	let editingId = $state<string | null>(null);
-
-	function startRename(id: string) {
-		setTimeout(() => {
-			editingId = id;
-		}, 0);
-	}
-
-	function deleteFolder(id: string) {
-		const removeRecursive = (list: FolderItem[]): FolderItem[] => {
-			return list
-				.filter((item) => item.id !== id)
-				.map((item) => {
-					if (item.items) {
-						return { ...item, items: removeRecursive(item.items) };
-					}
-					return item;
-				});
-		};
-		items = removeRecursive(items);
-		if (selectedItem?.id === id) {
-			selectedItem = null;
-		}
-		if (editingId === id) {
-			editingId = null;
-		}
-	}
-
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
-			if (item.title.trim() === '') {
-				// Don't allow empty names - maybe revert or show error
-				// For now, let's just not save if empty
-				return;
-			}
-			editingId = null;
+			folderStore.renameFolder(item.id, item.title);
 		} else if (e.key === 'Escape') {
-			editingId = null;
+			folderStore.cancelRename();
 		}
 	}
 
 	function focusAndSelect(node: HTMLInputElement) {
 		node.focus();
 		node.select();
-	}
-
-	// Mock data representing the Apple Notes screenshot hierarchy
-	let items: FolderItem[] = $state([
-		{
-			id: 'all-icloud',
-			title: 'All iCloud',
-			url: '#',
-			badge: 111
-		},
-		{
-			id: 'notes',
-			title: 'Notes',
-			url: '#',
-			badge: 40
-		},
-		{
-			id: 'algorithms',
-			title: 'Algorithms',
-			url: '#'
-		},
-		{
-			id: 'engineering-concepts',
-			title: 'Engineering Concepts',
-			url: '#',
-			badge: 1
-		},
-		{
-			id: 'personal',
-			title: 'Personal',
-			url: '#',
-			badge: 8
-		},
-		{
-			id: 'work',
-			title: 'Work',
-			url: '#',
-			badge: 11,
-			isOpen: true,
-			items: [
-				{
-					id: 'engineering-dashboard',
-					title: 'Engineering Dashboard',
-					url: '#',
-					badge: 1
-				},
-				{
-					id: 'esentire',
-					title: 'eSentire',
-					url: '#',
-					badge: 4
-				},
-				{
-					id: 'learnings',
-					title: 'Learnings',
-					url: '#',
-					badge: 15,
-					isOpen: false,
-					items: [
-						{
-							id: 'svelte',
-							title: 'Svelte',
-							url: '#'
-						},
-						{
-							id: 'security-fixes',
-							title: 'Security fixes',
-							url: '#',
-							badge: 2
-						},
-						{
-							id: 'golang',
-							title: 'Golang',
-							url: '#',
-							badge: 16
-						}
-					]
-				}
-			]
-		}
-	]);
-
-	function createNewFolder() {
-		const newFolder: FolderItem = {
-			id: crypto.randomUUID(),
-			title: 'New Folder',
-			url: '#'
-		};
-
-		if (!selectedItem) {
-			console.log('Creating new folder at root');
-			items.unshift(newFolder);
-			selectedItem = newFolder;
-			editingId = newFolder.id;
-			return;
-		}
-		
-		if (!selectedItem.items) {
-			selectedItem.items = [];
-		}
-		
-		selectedItem.items.unshift(newFolder);
-		selectedItem.isOpen = true; // Open the parent folder
-		selectedItem = newFolder;
-		editingId = newFolder.id;
 	}
 </script>
 
@@ -180,7 +33,7 @@
 			>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
-					{#each items as item (item.id)}
+					{#each folderStore.items as item (item.id)}
 						{@render MenuItemSnippet(item, 0)}
 					{/each}
 				</Sidebar.Menu>
@@ -216,7 +69,7 @@
 						<a
 							href="#"
 							class="flex items-center gap-2 text-sm text-foreground/80 hover:text-foreground"
-							onclick={() => createNewFolder()}
+							onclick={() => folderStore.createFolder()}
 						>
 							<span>New Folder</span>
 							<FolderPlus class="ml-auto size-5" color="#3e9392" />
@@ -242,10 +95,10 @@
 								<Sidebar.MenuButton
 									class="pr-8"
 									{...props}
-									isActive={item.id === selectedItem?.id}
+									isActive={item.id === folderStore.selectedItem?.id}
 									onclick={(e) => {
 										(props as any).onclick?.(e);
-										selectedItem = item;
+										folderStore.selectItem(item);
 									}}
 								>
 									<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
@@ -257,17 +110,13 @@
 										]}
 									/>
 									<Folder color={folderColor} />
-									{#if editingId === item.id}
+									{#if folderStore.editingId === item.id}
 										<input
 											bind:value={item.title}
 											class="h-6 w-full rounded-sm bg-background px-1 text-foreground outline-none ring-1 ring-ring"
 											use:focusAndSelect
 											onkeydown={(e) => handleRenameKeyDown(e, item)}
-											onblur={() => {
-												if (item.title.trim() !== '') {
-													editingId = null;
-												}
-											}}
+											onblur={() => folderStore.renameFolder(item.id, item.title)}
 											onclick={(e) => e.stopPropagation()}
 										/>
 									{:else}
@@ -297,9 +146,9 @@
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton
 						class="pr-8"
-						isActive={item.id === selectedItem?.id}
+						isActive={item.id === folderStore.selectedItem?.id}
 						onclick={() => {
-							selectedItem = item;
+							folderStore.selectItem(item);
 						}}
 					>
 						{#snippet child({ props })}
@@ -307,17 +156,13 @@
 								<div style="width: {depth * 0.5}rem" class="shrink-0"></div>
 								<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
 								<Folder color={folderColor} />
-								{#if editingId === item.id}
+								{#if folderStore.editingId === item.id}
 									<input
 										bind:value={item.title}
 										class="h-6 w-full rounded-sm bg-background px-1 text-foreground outline-none ring-1 ring-ring"
 										use:focusAndSelect
 										onkeydown={(e) => handleRenameKeyDown(e, item)}
-										onblur={() => {
-											if (item.title.trim() !== '') {
-												editingId = null;
-											}
-										}}
+										onblur={() => folderStore.renameFolder(item.id, item.title)}
 										onclick={(e) => e.stopPropagation()}
 									/>
 								{:else}
@@ -340,7 +185,7 @@
 	<ContextMenu.Content
 		class="dark rounded-sm bg-card text-xs tracking-wider text-muted-foreground/70"
 	>
-		<ContextMenu.Item onSelect={() => startRename(item.id)}>Rename</ContextMenu.Item>
-		<ContextMenu.Item onSelect={() => deleteFolder(item.id)}>Delete</ContextMenu.Item>
+		<ContextMenu.Item onSelect={() => folderStore.startRename(item.id)}>Rename</ContextMenu.Item>
+		<ContextMenu.Item onSelect={() => folderStore.deleteFolder(item.id)}>Delete</ContextMenu.Item>
 	</ContextMenu.Content>
 {/snippet}
