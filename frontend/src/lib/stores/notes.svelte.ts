@@ -1,4 +1,5 @@
 import { loadNotesState, saveNotesState } from './idb';
+import type { FolderType } from './folders.svelte';
 
 export type NoteItem = {
 	id: string;
@@ -45,10 +46,14 @@ class NotesStore {
 		return this.allNotes.find((n) => n.id === this.selectedNoteId) ?? null;
 	}
 
-	getNotesForFolder(folderId: string | null): NoteItem[] {
+	getNotesForFolder(folderId: string | null, folderType?: FolderType): NoteItem[] {
 		return this.allNotes
-			.filter((n) => n.folderId === folderId)
+			.filter((n) => (folderType === 'all' ? true : n.folderId === folderId))
 			.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+	}
+	getNoteCountForFolder(folderId: string | null, folderType?: FolderType): number {
+		return this.allNotes.filter((n) => (folderType === 'all' ? true : n.folderId === folderId))
+			.length;
 	}
 
 	createNote(folderId: string | null) {

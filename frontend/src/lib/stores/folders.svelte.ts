@@ -1,7 +1,10 @@
+export type FolderType = 'all' | 'trash' | 'regular';
+
 export type FolderItem = {
 	id: string;
 	title: string;
 	url: string;
+	type?: FolderType;
 	badge?: number;
 	items?: FolderItem[];
 	isOpen?: boolean;
@@ -154,7 +157,7 @@ const initialMockData1: FolderItem[] = [
 		id: 'all-icloud',
 		title: 'All iCloud',
 		url: '#',
-		badge: 111
+		type: 'all'
 	},
 	{
 		id: 'notes',

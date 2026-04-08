@@ -12,7 +12,7 @@
 
 	const filteredNotes = $derived(
 		notesStore
-			.getNotesForFolder(folderStore.selectedItem?.id ?? null)
+			.getNotesForFolder(folderStore.selectedItem?.id ?? null, folderStore.selectedItem?.type)
 			.filter(
 				(n) =>
 					n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

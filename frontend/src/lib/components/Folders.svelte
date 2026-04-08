@@ -7,6 +7,7 @@
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
+	import { notesStore } from '$lib/stores/notes.svelte';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
 
@@ -138,7 +139,7 @@
 								</Sidebar.MenuButton>
 								<Sidebar.MenuBadge
 									class="ml-auto text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-									>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
+									>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
 								>
 							{/snippet}
 						</Collapsible.Trigger>
@@ -192,7 +193,7 @@
 					</Sidebar.MenuButton>
 					<Sidebar.MenuBadge
 						class="ml-auto text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-						>{item.badge ? item.badge : 0}</Sidebar.MenuBadge
+						>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
 					>
 				</Sidebar.MenuItem>
 			</ContextMenu.Trigger>
