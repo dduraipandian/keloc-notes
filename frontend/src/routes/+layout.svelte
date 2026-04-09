@@ -19,7 +19,7 @@
 	<Sidebar.Provider class="h-full">
 		<Folders />
 		<NoteItems />
-		<main class="flex-1 overflow-auto border-l border-sidebar-border/10 bg-card">
+		<main class="flex-1 border-l border-sidebar-border/10 bg-card">
 			{@render children?.()}
 		</main>
 	</Sidebar.Provider>

@@ -1,2 +1,86 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script lang="ts">
+	import { notesStore } from '$lib/stores/notes.svelte';
+
+	let selectedNote = $derived(notesStore.selectedNote);
+
+	function formatDate(dateStr: string) {
+		if (!dateStr) return '';
+		return new Date(dateStr).toLocaleDateString(undefined, {
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
+</script>
+
+{#if selectedNote}
+	<div class="flex h-full animate-in flex-col bg-card duration-500 fade-in">
+		<div class="custom-scrollbar flex-1 overflow-x-hidden overflow-y-auto">
+			<div class="mx-auto flex min-h-full w-full max-w-4xl flex-col px-12 pb-5">
+				<!-- Editor Header/Title -->
+				<div class="flex shrink-0 flex-col pt-10 pb-6">
+					<div
+						class="mb-4 flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] text-muted-foreground/30 uppercase"
+					>
+						<span>{formatDate(selectedNote.updatedAt)}</span>
+					</div>
+					<textarea
+						bind:value={selectedNote.title}
+						oninput={() => notesStore.updateNote(selectedNote!.id, { title: selectedNote!.title })}
+						placeholder="Note Title"
+						rows="1"
+						class="w-full resize-none bg-transparent text-4xl font-extrabold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/10"
+						spellcheck="false"
+						onkeydown={(e) => {
+							if (e.key === 'Enter') e.preventDefault();
+						}}
+					></textarea>
+				</div>
+
+				<!-- Main Editor Body -->
+				<div class="prose prose-lg flex max-w-none flex-1 flex-col dark:prose-invert">
+					<!-- Placeholder for future TipTap editor -->
+					<textarea
+						bind:value={selectedNote.content}
+						oninput={() =>
+							notesStore.updateNote(selectedNote!.id, { content: selectedNote!.content })}
+						placeholder="Start writing..."
+						class="w-full flex-1 resize-none bg-transparent leading-relaxed text-foreground/90 outline-none placeholder:text-muted-foreground/10"
+						spellcheck="false"
+					></textarea>
+				</div>
+			</div>
+		</div>
+	</div>
+{:else}
+	<div
+		class="flex h-full animate-in flex-col items-center justify-center bg-card/50 text-muted-foreground/20 duration-1000 zoom-in-95"
+	>
+		<div class="relative mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-accent/5">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="40"
+				height="40"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				class="opacity-10"
+			>
+				<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+				<polyline points="14 2 14 8 20 8" />
+			</svg>
+		</div>
+		<p class="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40">Select a note to view</p>
+	</div>
+{/if}
+
+<style>
+	textarea {
+		font-family: inherit;
+	}
+</style>
