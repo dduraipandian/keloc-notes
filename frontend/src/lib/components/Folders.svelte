@@ -10,6 +10,7 @@
 	import { notesStore } from '$lib/stores/notes.svelte';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
+	const menuButtonStyle = 'h-6 rounded-sm px-4 py-4 transition-none';
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
@@ -46,7 +47,7 @@
 			</Sidebar.MenuItem>
 		</Sidebar.Menu>
 	</Sidebar.Header>
-	<Sidebar.Content class="px-2 pt-0">
+	<Sidebar.Content class="pt-0">
 		<Sidebar.Group>
 			<Sidebar.GroupLabel
 				class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-muted-foreground/40 uppercase"
@@ -62,7 +63,7 @@
 		</Sidebar.Group>
 	</Sidebar.Content>
 
-	<Sidebar.Footer class="mt-auto border-t-0 p-4 pb-6">
+	<Sidebar.Footer class="mt-auto border-t-0 pb-6 pl-6">
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton class="px-2 transition-none hover:bg-transparent">
@@ -103,7 +104,7 @@
 							{#snippet child({ props })}
 								<Sidebar.MenuButton
 									class={[
-										'h-9 rounded-lg px-4 py-2 transition-none',
+										menuButtonStyle,
 										item.id === folderStore.selectedItem?.id
 											? 'bg-accent text-foreground shadow-sm'
 											: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
@@ -161,7 +162,7 @@
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton
 						class={[
-							'h-9 rounded-lg px-4 py-2 transition-none',
+							menuButtonStyle,
 							item.id === folderStore.selectedItem?.id
 								? 'bg-accent text-foreground shadow-sm'
 								: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
