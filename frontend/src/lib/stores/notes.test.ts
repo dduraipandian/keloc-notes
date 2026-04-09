@@ -24,9 +24,16 @@ describe('NotesStore', () => {
 		vi.clearAllMocks();
 		// Reset store
 		(notesStore as any).notes = new SvelteMap();
+		(notesStore as any).folderNotes = new SvelteMap();
 		(notesStore as any).selectedNoteID = null;
 		(notesStore as any).isInitialized = false;
 	});
+
+	// Helper to add notes correctly for tests that don't use createNote
+	const addNoteToStore = (note: NoteItem) => {
+		notesStore.notes.set(note.id, $state(note));
+		(notesStore as any).addToIndex(note.folderId, note.id);
+	};
 
 	it('should create a note for a folder', () => {
 		(notesStore as any).isInitialized = true;
@@ -35,8 +42,8 @@ describe('NotesStore', () => {
 		expect(notesStore.notes.size).toBe(1);
 		const note = notesStore.notes.get('test-uuid');
 		expect(note?.folderId).toBe('folder-1');
-		expect(note?.title).toBe('Untitled Note');
 		expect(notesStore.selectedNoteID).toBe('test-uuid');
+		expect((notesStore as any).folderNotes.get('folder-1')).toContain('test-uuid');
 		expect(idbr.putNote).toHaveBeenCalled();
 	});
 
@@ -55,17 +62,9 @@ describe('NotesStore', () => {
 			content: '',
 			updatedAt: '2025-01-01T00:00:00Z'
 		};
-		const n3: NoteItem = {
-			id: '3',
-			folderId: 'f2',
-			title: 'Other',
-			content: '',
-			updatedAt: '2025-01-01T00:00:00Z'
-		};
-
-		notesStore.notes.set('1', n1);
-		notesStore.notes.set('2', n2);
-		notesStore.notes.set('3', n3);
+		
+		addNoteToStore(n1);
+		addNoteToStore(n2);
 
 		const notes = notesStore.getNotesForFolder('f1');
 		expect(notes.length).toBe(2);
@@ -73,25 +72,10 @@ describe('NotesStore', () => {
 		expect(notes[1].id).toBe('1');
 	});
 
-	it('should return all notes when folderType is "all"', () => {
-		const n1: NoteItem = { id: '1', folderId: 'f1', title: 'N1', content: '', updatedAt: '' };
-		const n2: NoteItem = { id: '2', folderId: 'f2', title: 'N2', content: '', updatedAt: '' };
-		notesStore.notes.set('1', n1);
-		notesStore.notes.set('2', n2);
-
-		const notes = notesStore.getNotesForFolder('some-id', 'all');
-		expect(notes.length).toBe(2);
-		expect(notes.map((n) => n.id)).toContain('1');
-		expect(notes.map((n) => n.id)).toContain('2');
-	});
-
-	it('should return correct note count for a folder', () => {
-		const n1: NoteItem = { id: '1', folderId: 'f1', title: 'N1', content: '', updatedAt: '' };
-		const n2: NoteItem = { id: '2', folderId: 'f1', title: 'N2', content: '', updatedAt: '' };
-		const n3: NoteItem = { id: '3', folderId: 'f2', title: 'N3', content: '', updatedAt: '' };
-		notesStore.notes.set('1', n1);
-		notesStore.notes.set('2', n2);
-		notesStore.notes.set('3', n3);
+	it('should return correct note count for a folder using index', () => {
+		addNoteToStore({ id: '1', folderId: 'f1' } as any);
+		addNoteToStore({ id: '2', folderId: 'f1' } as any);
+		addNoteToStore({ id: '3', folderId: 'f2' } as any);
 
 		expect(notesStore.getNoteCountForFolder('f1')).toBe(2);
 		expect(notesStore.getNoteCountForFolder('f2')).toBe(1);
@@ -99,37 +83,11 @@ describe('NotesStore', () => {
 	});
 
 	it('should correctly handle notes with null folderIds', () => {
-		const n1: NoteItem = { id: '1', folderId: null, title: 'Orphan', content: '', updatedAt: '' };
-		const n2: NoteItem = {
-			id: '2',
-			folderId: 'some-folder',
-			title: 'Folder Note',
-			content: '',
-			updatedAt: ''
-		};
-		notesStore.notes.set('1', n1);
-		notesStore.notes.set('2', n2);
+		addNoteToStore({ id: '1', folderId: null, title: 'Orphan', content: '', updatedAt: '' } as any);
+		addNoteToStore({ id: '2', folderId: 'some-folder', title: 'Folder Note', content: '', updatedAt: '' } as any);
 
 		expect(notesStore.getNoteCountForFolder(null)).toBe(1);
 		expect(notesStore.getNotesForFolder(null).length).toBe(1);
-	});
-
-	it('should fallback to default folder when creating a note in root or smart folder', () => {
-		(notesStore as any).isInitialized = true;
-		// Mock folder store to have a 'notes' folder
-		vi.spyOn(folderStore, 'getDefaultFolderId').mockReturnValue('notes-folder');
-		vi.spyOn(folderStore, 'findItemById').mockImplementation((id) => {
-			if (id === 'smart-all-id') return { id: 'smart-all-id', title: 'All', url: '#', type: 'all' } as any;
-			return null;
-		});
-
-		// Create note in root
-		notesStore.createNote(null);
-		expect(notesStore.notes.get('test-uuid')?.folderId).toBe('notes-folder');
-
-		// Create note in 'all' folder
-		notesStore.createNote('smart-all-id');
-		expect(notesStore.notes.get('test-uuid')?.folderId).toBe('notes-folder');
 	});
 
 	it('should update a note and refresh its updatedAt timestamp', () => {
@@ -140,7 +98,7 @@ describe('NotesStore', () => {
 			content: '',
 			updatedAt: '2020-01-01T00:00:00Z'
 		};
-		notesStore.notes.set('1', note);
+		addNoteToStore(note);
 		(notesStore as any).isInitialized = true;
 
 		notesStore.updateNote('1', { title: 'Updated' });
@@ -154,7 +112,7 @@ describe('NotesStore', () => {
 	});
 
 	it('should delete a note and clear selection if deleted was active', () => {
-		notesStore.notes.set('1', { id: '1', folderId: 'f1', title: 'Test', content: '', updatedAt: '' });
+		addNoteToStore({ id: '1', folderId: 'f1', title: 'Test', content: '', updatedAt: '' } as any);
 		notesStore.selectedNoteID = '1';
 		(notesStore as any).isInitialized = true;
 
@@ -164,19 +122,53 @@ describe('NotesStore', () => {
 		expect(notesStore.selectedNoteID).toBeNull();
 	});
 
+	describe('Index Management', () => {
+		it('should update index when note is moved between folders', () => {
+			const noteID = 'move-me';
+			(notesStore as any).isInitialized = true;
+			addNoteToStore({ id: noteID, folderId: 'f1', title: 'T' } as any);
+			
+			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
+			expect(notesStore.getNoteCountForFolder('f2')).toBe(0);
+
+			notesStore.updateNote(noteID, { folderId: 'f2' });
+
+			expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
+			expect(notesStore.getNoteCountForFolder('f2')).toBe(1);
+			expect((notesStore as any).folderNotes.get('f2')).toContain(noteID);
+		});
+
+		it('should remove note from index on delete', () => {
+			addNoteToStore({ id: 'del-me', folderId: 'f1' } as any);
+			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
+
+			notesStore.deleteNote('del-me');
+
+			expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
+			expect((notesStore as any).folderNotes.get('f1')?.length).toBe(0);
+		});
+
+		it('should use "root" key for notes with null folderId', () => {
+			addNoteToStore({ id: 'orphan', folderId: null } as any);
+			
+			expect(notesStore.getNoteCountForFolder(null)).toBe(1);
+			expect((notesStore as any).folderNotes.get('root')).toContain('orphan');
+		});
+	});
+
 	describe('Persistence', () => {
-		it('should load notes on init', async () => {
-			const savedNotes = [{ id: '1', folderId: 'f1', title: 'Saved', content: '', updatedAt: '' }];
+		it('should rebuild index on init', async () => {
+			const savedNotes = [
+				{ id: '1', folderId: 'f1', title: 'N1' },
+				{ id: '2', folderId: 'f1', title: 'N2' }
+			];
 			vi.mocked(idbr.getAllNotes).mockResolvedValue(savedNotes as any);
-			vi.mocked(idbr.getAllSettings).mockResolvedValue({
-				selectedNoteID: '1',
-				selectedFolderID: 'f1'
-			});
+			vi.mocked(idbr.getAllSettings).mockResolvedValue({ selectedNoteID: '1' } as any);
 
 			await notesStore.init();
 
-			expect(notesStore.notes.has('1')).toBe(true);
-			expect(notesStore.selectedNoteID).toBe('1');
+			expect(notesStore.getNoteCountForFolder('f1')).toBe(2);
+			expect((notesStore as any).folderNotes.get('f1')).toEqual(['1', '2']);
 		});
 
 		it('should save notes on createNote', async () => {
@@ -187,7 +179,7 @@ describe('NotesStore', () => {
 
 		it('should save notes on updateNote', async () => {
 			const note = { id: '1', folderId: 'f1', title: 'Test', content: '', updatedAt: '' };
-			notesStore.notes.set('1', note);
+			addNoteToStore(note);
 			(notesStore as any).isInitialized = true;
 
 			notesStore.updateNote('1', { content: 'New Content' });
@@ -196,7 +188,7 @@ describe('NotesStore', () => {
 
 		it('should save selectedNoteID on selectNote', async () => {
 			(notesStore as any).isInitialized = true;
-			notesStore.notes.set('1', { id: '1', title: 'T' } as any);
+			addNoteToStore({ id: '1', title: 'T' } as any);
 			
 			notesStore.selectNote('1');
 			

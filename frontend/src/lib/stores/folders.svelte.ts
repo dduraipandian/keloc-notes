@@ -70,7 +70,6 @@ class FolderStore {
 
 		const folder = this.folders.get(id);
 		if (folder) {
-			console.log('Saving ID 1:', id, $state.snapshot(folder));
 			putFolder($state.snapshot(folder));
 		}
 		putSetting('selectedFolderID', this.selectedFolderID);
@@ -172,9 +171,7 @@ class FolderStore {
 		this.editingId = null;
 		const folder = this.folders.get(id);
 
-		console.log('Saving ID:', id, newTitle, $state.snapshot(folder));
 		if (folder && newTitle.trim() !== '') {
-			console.log('Saving ID 2:', id, newTitle, $state.snapshot(folder));
 			folder.title = newTitle;
 			this.persist(id);
 		}

@@ -13,27 +13,55 @@ export type NoteItem = {
 };
 
 class NotesStore {
-	allNotes = $state<NoteItem[]>([]);
 	notes = new SvelteMap<NoteID, NoteItem>();
 	folderNotes = new SvelteMap<FolderID, NoteID[]>();
 	selectedNoteID = $state<NoteID | null>(null);
 	private isInitialized = false;
 
 	constructor(initialNotes: NoteItem[] = []) {
-		this.allNotes = initialNotes;
+		if (initialNotes.length > 0) {
+			initialNotes.forEach((n) => {
+				let ns = $state(n);
+				this.notes.set(n.id, ns);
+				this.addToIndex(n.folderId, n.id);
+			});
+		}
+	}
+
+	private addToIndex(folderId: string | null, noteId: NoteID) {
+		const fid = folderId ?? 'root';
+		if (!this.folderNotes.has(fid)) {
+			let n = $state([]);
+			this.folderNotes.set(fid, n);
+		}
+		this.folderNotes.get(fid)!.push(noteId);
+	}
+
+	private removeFromIndex(folderId: string | null, noteId: NoteID) {
+		const fid = folderId ?? 'root';
+		const notes = this.folderNotes.get(fid);
+		if (notes) {
+			const index = notes.indexOf(noteId);
+			if (index !== -1) {
+				notes.splice(index, 1);
+			}
+		}
 	}
 
 	async init() {
 		if (this.isInitialized) return;
 
 		try {
-			const allNotes = await getAllNotes();
+			const allNotesData = await getAllNotes();
 			const settings = await getAllSettings();
 
-			if (allNotes) {
-				allNotes.forEach((note) => {
+			if (allNotesData) {
+				this.notes.clear();
+				this.folderNotes.clear();
+				allNotesData.forEach((note) => {
 					let n = $state(note);
 					this.notes.set(note.id, n);
+					this.addToIndex(note.folderId, note.id);
 				});
 				if (settings && settings.selectedNoteID) {
 					this.selectedNoteID = settings.selectedNoteID;
@@ -62,21 +90,35 @@ class NotesStore {
 	}
 
 	getNotesForFolder(folderId: string | null, folderType?: FolderType): NoteItem[] {
-		return Array.from(this.notes.values())
-			.filter((n) => (folderType === 'all' ? true : n.folderId === folderId))
+		let noteIds: NoteID[] = [];
+
+		if (folderType === 'all') {
+			return Array.from(this.notes.values()).sort(
+				(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+			);
+		} else {
+			const fid = folderId ?? 'root';
+			noteIds = this.folderNotes.get(fid) || [];
+		}
+
+		return noteIds
+			.map((id) => this.notes.get(id)!)
+			.filter(Boolean)
 			.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 	}
+
 	getNoteCountForFolder(folderId: string | null, folderType?: FolderType): number {
-		return Array.from(this.notes.values()).filter((n) =>
-			folderType === 'all' ? true : n.folderId === folderId
-		).length;
+		if (folderType === 'all') {
+			return this.notes.size;
+		}
+		const fid = folderId ?? 'root';
+		return this.folderNotes.get(fid)?.length ?? 0;
 	}
 
 	createNote(folderId: FolderID | null) {
 		let actualFolderId = folderId;
 		const folder = folderId ? folderStore.findItemById(folderId) : null;
 
-		console.log('Create note under: ', folderId, $state.snapshot(folder));
 		if (!folderId || folder?.type === 'all' || folder?.type === 'trash') {
 			actualFolderId = folderStore.getDefaultFolderId();
 		}
@@ -90,6 +132,7 @@ class NotesStore {
 		};
 		let n = $state(newNote);
 		this.notes.set(newNote.id, n);
+		this.addToIndex(actualFolderId, newNote.id);
 		this.selectedNoteID = newNote.id;
 		this.persist(newNote.id);
 	}
@@ -97,16 +140,28 @@ class NotesStore {
 	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {
 		const note = this.notes.get(id);
 		if (note) {
+			const oldFolderId = note.folderId;
 			Object.assign(note, {
 				...updates,
 				updatedAt: new Date().toISOString()
 			});
+
+			if (updates.folderId !== undefined && updates.folderId !== oldFolderId) {
+				this.removeFromIndex(oldFolderId, id);
+				this.addToIndex(updates.folderId, id);
+			}
+
 			this.persist(id);
 		}
 	}
 
 	deleteNote(id: NoteID) {
-		this.notes.delete(id);
+		const note = this.notes.get(id);
+		if (note) {
+			this.removeFromIndex(note.folderId, id);
+			this.notes.delete(id);
+		}
+
 		if (this.selectedNoteID === id) {
 			this.selectedNoteID = null;
 		}
