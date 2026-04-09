@@ -10,7 +10,7 @@
 	import { notesStore } from '$lib/stores/notes.svelte';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
-	const menuButtonStyle = 'h-6 rounded-sm px-4 py-4 transition-none';
+	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none';
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
@@ -30,7 +30,9 @@
 	<Sidebar.Header>
 		<Sidebar.Menu class="pt-6">
 			<Sidebar.MenuItem>
-				<Sidebar.MenuButton class="group rounded-lg px-4 py-2 transition-none hover:bg-accent/20">
+				<Sidebar.MenuButton
+					class="group rounded-sm px-4 py-2 pr-10 transition-none hover:bg-accent/20"
+				>
 					{#snippet child({ props })}
 						<a href="#" class="flex items-center gap-2.5" {...props}>
 							<Trash size={16} class="text-destructive/70" />
@@ -40,8 +42,7 @@
 						</a>
 					{/snippet}
 				</Sidebar.MenuButton>
-				<Sidebar.MenuBadge
-					class="ml-auto text-[11px] font-normal text-muted-foreground/40 tabular-nums"
+				<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
 					>0</Sidebar.MenuBadge
 				>
 			</Sidebar.MenuItem>
@@ -100,7 +101,7 @@
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
 					<Sidebar.MenuItem>
-						<Collapsible.Trigger class="w-full">
+						<Collapsible.Trigger asChild>
 							{#snippet child({ props })}
 								<Sidebar.MenuButton
 									class={[
@@ -128,22 +129,22 @@
 									{#if folderStore.editingId === item.id}
 										<input
 											bind:value={item.title}
-											class="h-6 w-full rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
+											class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
 											use:focusAndSelect
 											onkeydown={(e) => handleRenameKeyDown(e, item)}
 											onblur={() => folderStore.renameFolder(item.id, item.title)}
 											onclick={(e) => e.stopPropagation()}
 										/>
 									{:else}
-										<span class="truncate text-left text-[13px] font-medium">{item.title}</span>
+										<span class="ml-2 truncate text-left text-[13px] font-medium">{item.title}</span
+										>
 									{/if}
 								</Sidebar.MenuButton>
-								<Sidebar.MenuBadge
-									class="ml-auto text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-									>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
-								>
 							{/snippet}
 						</Collapsible.Trigger>
+						<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
+							>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
+						>
 						<Collapsible.Content>
 							<Sidebar.MenuSub class="m-0 border-l-0 p-0">
 								{#each item.items as subItem (subItem.id)}
@@ -180,7 +181,7 @@
 								{#if folderStore.editingId === item.id}
 									<input
 										bind:value={item.title}
-										class="h-6 w-full rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
+										class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
 										use:focusAndSelect
 										onkeydown={(e) => handleRenameKeyDown(e, item)}
 										onblur={() => folderStore.renameFolder(item.id, item.title)}
@@ -192,8 +193,7 @@
 							</div>
 						{/snippet}
 					</Sidebar.MenuButton>
-					<Sidebar.MenuBadge
-						class="ml-auto text-[11px] font-normal text-muted-foreground/40 tabular-nums"
+					<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
 						>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
 					>
 				</Sidebar.MenuItem>

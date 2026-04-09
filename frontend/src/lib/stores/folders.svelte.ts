@@ -139,8 +139,8 @@ class FolderStore {
 	}
 
 	renameFolder(id: string, newTitle: string) {
-		if (newTitle.trim() === '') return;
 		this.editingId = null;
+		if (newTitle.trim() === '') return;
 		this.persist();
 	}
 
