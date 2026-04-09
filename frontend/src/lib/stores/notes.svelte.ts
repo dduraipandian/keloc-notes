@@ -1,5 +1,5 @@
 import { loadNotesState, saveNotesState } from './idb';
-import type { FolderType } from './folders.svelte';
+import { folderStore, type FolderType } from './folders.svelte';
 
 export type NoteItem = {
 	id: string;
