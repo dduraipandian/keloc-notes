@@ -1,36 +1,60 @@
 export type FolderType = 'all' | 'trash' | 'regular';
 
+export type FolderID = string;
+
 export type FolderItem = {
-	id: string;
+	id: FolderID;
 	title: string;
 	url: string;
 	type?: FolderType;
 	badge?: number;
-	items?: FolderItem[];
+	items?: FolderID[];
 	isOpen?: boolean;
+	parentId?: FolderID | null;
 };
 
-import { loadFolderState, saveFolderState } from './idb';
+import { SvelteMap } from 'svelte/reactivity';
+import { getAllFolders, getAllSettings, putFolder, putSetting } from './idbr';
 
 class FolderStore {
-	items = $state<FolderItem[]>([]);
-	selectedItem = $state<FolderItem | null>(null);
+	items = $state<string[]>([]);
+	selectedFolderID = $state<string | null>(null);
 	editingId = $state<string | null>(null);
+	folders = new SvelteMap<string, FolderItem>();
 	private isInitialized = false;
 
 	constructor(initialItems: FolderItem[] = []) {
-		this.items = initialItems;
+		this.loadItems(initialItems);
+	}
+
+	loadItems(initialItems: any[] = []) {
+		let i = $state<string[]>([]);
+		this.items = i;
+		this.folders.clear();
+
+		initialItems.forEach((item) => {
+			if (item.id) {
+				let i = $state(item);
+				this.folders.set(item.id, i);
+				if (!item.parentId) {
+					this.items.push(item.id);
+				}
+			}
+		});
+		console.log('loaded items:', this.items);
 	}
 
 	async init() {
 		if (this.isInitialized) return;
 
 		try {
-			const savedState = await loadFolderState();
-			if (savedState) {
-				this.items = savedState.items;
-				if (savedState.selectedId) {
-					this.selectedItem = this.findItemById(this.items, savedState.selectedId);
+			const allFolders = await getAllFolders();
+			const settings = await getAllSettings();
+			if (allFolders && allFolders.length > 0) {
+				this.loadItems(allFolders);
+
+				if (settings && settings.selectedFolderID) {
+					this.selectedFolderID = settings.selectedFolderID;
 				}
 			}
 			this.isInitialized = true;
@@ -39,17 +63,22 @@ class FolderStore {
 			throw error;
 		}
 	}
-	persist() {
+
+	persist(id: string) {
+		console.log('isInitialized', this.isInitialized);
 		if (!this.isInitialized) return;
-		saveFolderState({
-			items: $state.snapshot(this.items),
-			selectedId: this.selectedItem?.id ?? null
-		});
+
+		const folder = this.folders.get(id);
+		if (folder) {
+			console.log('Saving ID 1:', id, $state.snapshot(folder));
+			putFolder($state.snapshot(folder));
+		}
+		putSetting('selectedFolderID', this.selectedFolderID);
 	}
 
-	selectItem(item: FolderItem | null) {
-		this.selectedItem = item;
-		this.persist();
+	selectFolder(id: string | null) {
+		this.selectedFolderID = id;
+		if (this.selectedFolderID) this.persist(this.selectedFolderID);
 	}
 
 	startRename(id: string) {
@@ -67,193 +96,131 @@ class FolderStore {
 		const newFolder: FolderItem = {
 			id: crypto.randomUUID(),
 			title: 'New Folder',
-			url: '#'
+			url: '#',
+			items: [],
+			parentId: null
 		};
 
-		if (!this.selectedItem) {
-			this.items.unshift(newFolder);
+		if (!this.selectedFolderID) {
+			this.items.unshift(newFolder.id);
 		} else {
-			if (!this.selectedItem.items) {
-				this.selectedItem.items = [];
+			const parent = this.folders.get(this.selectedFolderID);
+			if (parent) {
+				if (!parent.items) {
+					let i = $state([]);
+					parent.items = i;
+				}
+				parent.items.unshift(newFolder.id);
+				parent.isOpen = true;
+				newFolder.parentId = parent.id;
+				this.persist(parent.id);
 			}
-			this.selectedItem.items.unshift(newFolder);
-			this.selectedItem.isOpen = true;
 		}
 
-		this.selectedItem = newFolder;
+		let nf = $state(newFolder);
+		this.folders.set(newFolder.id, nf);
+		this.selectedFolderID = newFolder.id;
+		this.persist(newFolder.id);
 		this.startRename(newFolder.id);
 	}
 
 	deleteFolder(id: string, shouldPersist: boolean = true) {
-		const wasSelected = this.selectedItem?.id === id;
-		const isChildSelected = this.selectedItem && this.isChildOf(id, this.selectedItem.id);
+		const wasSelected = this.selectedFolderID === id;
+		const folder = this.folders.get(id);
+		if (!folder) return;
 
-		this.items = this.filterItems(this.items, id);
+		// Recursive delete children
+		if (folder.items) {
+			[...folder.items].forEach((childId) => this.deleteFolder(childId, false));
+		}
 
-		if (wasSelected || isChildSelected) {
-			this.selectedItem = null;
+		// Remove from parent
+		if (folder.parentId) {
+			const parent = this.folders.get(folder.parentId);
+			if (parent && parent.items) {
+				parent.items = parent.items.filter((cid) => cid !== id);
+				this.persist(parent.id);
+			}
+		} else {
+			this.items = this.items.filter((rid) => rid !== id);
+		}
+
+		this.folders.delete(id);
+
+		if (wasSelected) {
+			this.selectedFolderID = null;
 		}
 
 		if (this.editingId === id) {
 			this.editingId = null;
 		}
-
-		if (shouldPersist) {
-			this.persist();
-		}
-	}
-
-	private filterItems(items: FolderItem[], id: string): FolderItem[] {
-		return items.filter((item) => {
-			if (item.id === id) return false;
-			if (item.items) {
-				item.items = this.filterItems(item.items, id);
-			}
-			return true;
-		});
 	}
 
 	private isChildOf(parentId: string, childId: string): boolean {
-		const parent = this.findItemById(this.items, parentId);
+		const parent = this.folders.get(parentId);
 		if (!parent || !parent.items) return false;
-		return this.findInChildren(parent.items, childId);
+		if (parent.items.includes(childId)) return true;
+
+		return parent.items.some((cid) => this.isChildOf(cid, childId));
 	}
 
-	private findInChildren(items: FolderItem[], id: string): boolean {
-		for (const item of items) {
-			if (item.id === id) return true;
-			if (item.items && this.findInChildren(item.items, id)) return true;
-		}
-		return false;
-	}
-
-	findItemById(items: FolderItem[], id: string): FolderItem | null {
-		for (const item of items) {
-			if (item.id === id) return item;
-			if (item.items) {
-				const found = this.findItemById(item.items, id);
-				if (found) return found;
-			}
-		}
-		return null;
+	findItemById(id: string): FolderItem | null {
+		return this.folders.get(id) || null;
 	}
 
 	renameFolder(id: string, newTitle: string) {
 		this.editingId = null;
-		if (newTitle.trim() === '') return;
-		this.persist();
+		const folder = this.folders.get(id);
+
+		console.log('Saving ID:', id, newTitle, $state.snapshot(folder));
+		if (folder && newTitle.trim() !== '') {
+			console.log('Saving ID 2:', id, newTitle, $state.snapshot(folder));
+			folder.title = newTitle;
+			this.persist(id);
+		}
 	}
 
-	openFolder(folder: FolderItem) {
-		folder.isOpen = !folder.isOpen;
-		this.persist();
+	openFolder(id: string) {
+		const folder = this.folders.get(id);
+		if (folder) {
+			folder.isOpen = !folder.isOpen;
+			this.persist(id);
+		}
 	}
 
 	getDefaultFolderId(): string {
-		const findRegular = (items: FolderItem[]): FolderItem | null => {
-			for (const item of items) {
-				if (!item.type || item.type === 'regular') return item;
-				if (item.items) {
-					const found = findRegular(item.items);
+		const findRegular = (ids: string[]): string | null => {
+			for (const id of ids) {
+				const folder = this.folders.get(id);
+				if (!folder) continue;
+				if (!folder.type || folder.type === 'regular') return folder.id;
+				if (folder.items) {
+					const found = findRegular(folder.items);
 					if (found) return found;
 				}
 			}
 			return null;
 		};
 
-		const regularFolder = findRegular(this.items);
-		if (regularFolder) return regularFolder.id;
+		const regularFolderId = findRegular(this.items);
+		if (regularFolderId) return regularFolderId;
 
 		const newFolder: FolderItem = {
 			id: 'notes',
 			title: 'Notes',
-			url: '#'
+			url: '#',
+			items: [],
+			parentId: null
 		};
-		this.items.unshift(newFolder);
-		this.persist();
+		let nf = $state(newFolder);
+		this.folders.set(newFolder.id, nf);
+		this.items.unshift(newFolder.id);
+		this.persist(newFolder.id);
 		return newFolder.id;
 	}
 }
 
 // Initial mock data
 const initialMockData: FolderItem[] = [];
-const initialMockData1: FolderItem[] = [
-	{
-		id: 'smart-all',
-		title: 'All iCloud',
-		url: '#',
-		type: 'all'
-	},
-	{
-		id: 'notes',
-		title: 'Notes',
-		url: '#',
-		badge: 40
-	},
-	{
-		id: 'algorithms',
-		title: 'Algorithms',
-		url: '#'
-	},
-	{
-		id: 'engineering-concepts',
-		title: 'Engineering Concepts',
-		url: '#',
-		badge: 1
-	},
-	{
-		id: 'personal',
-		title: 'Personal',
-		url: '#',
-		badge: 8
-	},
-	{
-		id: 'work',
-		title: 'Work',
-		url: '#',
-		badge: 11,
-		isOpen: true,
-		items: [
-			{
-				id: 'engineering-dashboard',
-				title: 'Engineering Dashboard',
-				url: '#',
-				badge: 1
-			},
-			{
-				id: 'esentire',
-				title: 'eSentire',
-				url: '#',
-				badge: 4
-			},
-			{
-				id: 'learnings',
-				title: 'Learnings',
-				url: '#',
-				badge: 15,
-				isOpen: false,
-				items: [
-					{
-						id: 'svelte',
-						title: 'Svelte',
-						url: '#'
-					},
-					{
-						id: 'security-fixes',
-						title: 'Security fixes',
-						url: '#',
-						badge: 2
-					},
-					{
-						id: 'golang',
-						title: 'Golang',
-						url: '#',
-						badge: 16
-					}
-				]
-			}
-		]
-	}
-];
 
 export const folderStore = new FolderStore(initialMockData);

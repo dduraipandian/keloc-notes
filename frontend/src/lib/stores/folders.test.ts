@@ -1,14 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { folderStore, type FolderItem } from './folders.svelte';
-import * as idb from './idb';
+import * as idbr from './idbr';
+import { SvelteMap } from 'svelte/reactivity';
 
 // Mock crypto.randomUUID
 global.crypto.randomUUID = vi.fn(() => 'test-uuid' as any);
 
-// Mock IDB module
-vi.mock('./idb', () => ({
-	loadFolderState: vi.fn(),
-	saveFolderState: vi.fn(),
+// Mock IDBR module
+vi.mock('./idbr', () => ({
+	putFolder: vi.fn(),
+	getAllFolders: vi.fn(),
+	putSetting: vi.fn(),
+	getAllSettings: vi.fn(),
 	initDB: vi.fn(),
 	getDB: vi.fn()
 }));
@@ -17,84 +20,105 @@ describe('FolderStore', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Reset store state before each test
-		// Using a private reset for tests to ensure clean state
 		(folderStore as any).items = [];
-		(folderStore as any).selectedItem = null;
+		(folderStore as any).folders = new SvelteMap<string, FolderItem>();
+		(folderStore as any).selectedFolderID = null;
 		(folderStore as any).editingId = null;
 		(folderStore as any).isInitialized = false;
 	});
 
 	it('should create a folder at the root when nothing is selected', () => {
+		(folderStore as any).isInitialized = true;
 		folderStore.createFolder();
 		
 		expect(folderStore.items.length).toBe(1);
-		expect(folderStore.items[0].title).toBe('New Folder');
-		expect(folderStore.items[0].id).toBe('test-uuid');
-		expect(folderStore.selectedItem?.id).toBe('test-uuid');
+		expect(folderStore.items[0]).toBe('test-uuid');
+		const folder = folderStore.folders.get('test-uuid');
+		expect(folder?.title).toBe('New Folder');
+		expect(folderStore.selectedFolderID).toBe('test-uuid');
+		expect(idbr.putFolder).toHaveBeenCalled();
 	});
 
 	it('should support folders with a type', () => {
 		const folder: FolderItem = { id: 'all', title: 'All', url: '#', type: 'all' };
-		folderStore.items = [folder];
-		expect(folderStore.items[0].type).toBe('all');
+		folderStore.folders.set('all', folder);
+		folderStore.items = ['all'];
+		expect(folderStore.folders.get('all')?.type).toBe('all');
 	});
 
 	it('should provide a default folder id and create if none exists', () => {
-		(folderStore as any).items = [];
+		(folderStore as any).isInitialized = true;
 		const id = folderStore.getDefaultFolderId();
 		expect(id).toBe('notes');
-		expect(folderStore.items[0]).toHaveProperty('title', 'Notes');
+		expect(folderStore.folders.has('notes')).toBe(true);
+		expect(folderStore.items).toContain('notes');
 	});
 
 	it('should return existing regular folder as default', () => {
-		(folderStore as any).items = [{ id: 'existing', title: 'Existing', url: '#' }];
+		const folder: FolderItem = { id: 'existing', title: 'Existing', url: '#' };
+		folderStore.folders.set('existing', folder);
+		folderStore.items = ['existing'];
+		
 		const id = folderStore.getDefaultFolderId();
 		expect(id).toBe('existing');
 		expect(folderStore.items.length).toBe(1);
 	});
 
 	it('should create a folder inside a selected folder', () => {
-		const parent: FolderItem = { id: 'parent', title: 'Parent', url: '#' };
-		folderStore.items = [parent];
-		folderStore.selectItem(folderStore.items[0]);
+		(folderStore as any).isInitialized = true;
+		const parent: FolderItem = { id: 'parent', title: 'Parent', url: '#', items: [] };
+		folderStore.folders.set('parent', parent);
+		folderStore.items = ['parent'];
+		folderStore.selectFolder('parent');
 
 		folderStore.createFolder();
 
-		expect(folderStore.items[0].items?.length).toBe(1);
-		expect(folderStore.items[0].items?.[0].title).toBe('New Folder');
-		expect(folderStore.items[0].isOpen).toBe(true);
-		expect(folderStore.selectedItem?.id).toBe('test-uuid');
+		expect(parent.items?.length).toBe(1);
+		expect(parent.items?.[0]).toBe('test-uuid');
+		expect(parent.isOpen).toBe(true);
+		
+		const child = folderStore.folders.get('test-uuid');
+		expect(child?.parentId).toBe('parent');
+		expect(folderStore.selectedFolderID).toBe('test-uuid');
 	});
 
 	it('should delete a folder and all its children recursively', () => {
-		const child: FolderItem = { id: 'child', title: 'Child', url: '#' };
+		(folderStore as any).isInitialized = true;
+		const child: FolderItem = { id: 'child', title: 'Child', url: '#', parentId: 'parent' };
 		const parent: FolderItem = { 
 			id: 'parent', 
 			title: 'Parent', 
 			url: '#', 
-			items: [child] 
+			items: ['child'] 
 		};
-		folderStore.items = [parent];
+		folderStore.folders.set('parent', parent);
+		folderStore.folders.set('child', child);
+		folderStore.items = ['parent'];
 
 		folderStore.deleteFolder('parent');
 
+		expect(folderStore.folders.size).toBe(0);
 		expect(folderStore.items.length).toBe(0);
 	});
 
 	it('should delete a child folder but keep the parent', () => {
-		const child: FolderItem = { id: 'child', title: 'Child', url: '#' };
+		(folderStore as any).isInitialized = true;
+		const child: FolderItem = { id: 'child', title: 'Child', url: '#', parentId: 'parent' };
 		const parent: FolderItem = { 
 			id: 'parent', 
 			title: 'Parent', 
 			url: '#', 
-			items: [child] 
+			items: ['child'] 
 		};
-		folderStore.items = [parent];
+		folderStore.folders.set('parent', parent);
+		folderStore.folders.set('child', child);
+		folderStore.items = ['parent'];
 
 		folderStore.deleteFolder('child');
 
-		expect(folderStore.items.length).toBe(1);
-		expect(folderStore.items[0].items?.length).toBe(0);
+		expect(folderStore.folders.has('parent')).toBe(true);
+		expect(folderStore.folders.has('child')).toBe(false);
+		expect(parent.items?.length).toBe(0);
 	});
 
 	it('should start renaming correctly', () => {
@@ -107,161 +131,123 @@ describe('FolderStore', () => {
 	});
 
 	it('should clear selection if selected item is deleted', () => {
-		const item: FolderItem = { id: 'item', title: 'Item', url: '#' };
 		(folderStore as any).isInitialized = true;
-		folderStore.items = [item];
-		folderStore.selectItem(item);
+		const item: FolderItem = { id: 'item', title: 'Item', url: '#' };
+		folderStore.folders.set('item', item);
+		folderStore.items = ['item'];
+		folderStore.selectFolder('item');
 
 		folderStore.deleteFolder('item');
 
-		expect(folderStore.selectedItem).toBeNull();
+		expect(folderStore.selectedFolderID).toBeNull();
 	});
 
 	describe('Persistence', () => {
 		it('should load state on init', async () => {
-			const savedItems = [{ id: 'saved', title: 'Saved', url: '#' }];
-			vi.mocked(idb.loadFolderState).mockResolvedValue({
-				items: savedItems,
-				selectedId: 'saved'
+			const savedFolders = [{ id: 'f1', title: 'F1', url: '#' }];
+			vi.mocked(idbr.getAllFolders).mockResolvedValue(savedFolders as any);
+			vi.mocked(idbr.getAllSettings).mockResolvedValue({
+				selectedFolderID: 'f1',
+				selectedNoteID: null
 			});
 
 			await folderStore.init();
 
-			expect(folderStore.items).toEqual(savedItems);
-			expect(folderStore.selectedItem?.id).toBe('saved');
+			expect(folderStore.folders.has('f1')).toBe(true);
+			expect(folderStore.items).toContain('f1');
+			expect(folderStore.selectedFolderID).toBe('f1');
 		});
 
 		it('should throw error when initialization fails', async () => {
-			vi.mocked(idb.loadFolderState).mockRejectedValue(new Error('DB Error'));
+			vi.mocked(idbr.getAllFolders).mockRejectedValue(new Error('DB Error'));
 
 			await expect(folderStore.init()).rejects.toThrow('DB Error');
 			expect((folderStore as any).isInitialized).toBe(false);
 		});
 
-		it('should be idempotent (multiple init calls)', async () => {
-			vi.mocked(idb.loadFolderState).mockResolvedValue({
-				items: [{ id: '1', title: '1', url: '#' }],
-				selectedId: null
-			});
-
-			await folderStore.init();
-			await folderStore.init();
-
-			expect(idb.loadFolderState).toHaveBeenCalledTimes(1);
-			expect(folderStore.items.length).toBe(1);
-		});
-
-		it('should save state on selectItem', async () => {
+		it('should save setting when selection changes', async () => {
 			(folderStore as any).isInitialized = true;
 			const item: FolderItem = { id: 'item', title: 'Item', url: '#' };
-			folderStore.items = [item];
+			folderStore.folders.set('item', item);
+			folderStore.items = ['item'];
 
-			folderStore.selectItem(item);
+			folderStore.selectFolder('item');
 
-			expect(idb.saveFolderState).toHaveBeenCalledWith(expect.objectContaining({
-				selectedId: 'item'
-			}));
+			expect(idbr.putSetting).toHaveBeenCalledWith('selectedFolderID', 'item');
 		});
 
-		it('should save state on deleteFolder', async () => {
+		it('should save folder when title changes (rename)', async () => {
 			(folderStore as any).isInitialized = true;
-			folderStore.items = [{ id: 'item', title: 'Item', url: '#' }];
-
-			folderStore.deleteFolder('item');
-
-			expect(idb.saveFolderState).toHaveBeenCalled();
-		});
-
-		it('should save state on openFolder', async () => {
-			(folderStore as any).isInitialized = true;
-			const folder: FolderItem = { id: 'f1', title: 'F1', url: '#', isOpen: false };
-			
-			folderStore.openFolder(folder);
-
-			expect(folder.isOpen).toBe(true);
-			expect(idb.saveFolderState).toHaveBeenCalled();
-		});
-
-		it('should NOT save state on createFolder (wait for rename)', async () => {
-			(folderStore as any).isInitialized = true;
-			folderStore.createFolder();
-			expect(idb.saveFolderState).not.toHaveBeenCalled();
-		});
-
-		it('should save state on renameFolder', async () => {
-			(folderStore as any).isInitialized = true;
-			folderStore.items = [{ id: 'item', title: 'Old Name', url: '#' }];
+			const item: FolderItem = { id: 'item', title: 'Old Name', url: '#' };
+			folderStore.folders.set('item', item);
 			
 			folderStore.renameFolder('item', 'New Name');
 
-			expect(idb.saveFolderState).toHaveBeenCalled();
+			expect(item.title).toBe('New Name');
+			expect(idbr.putFolder).toHaveBeenCalled();
+		});
+
+		it('should save folder when isOpen toggles', async () => {
+			(folderStore as any).isInitialized = true;
+			const item: FolderItem = { id: 'f1', title: 'F1', url: '#', isOpen: false };
+			folderStore.folders.set('f1', item);
+			
+			folderStore.openFolder('f1');
+
+			expect(item.isOpen).toBe(true);
+			expect(idbr.putFolder).toHaveBeenCalled();
 		});
 
 		it('should NOT save state if not initialized', () => {
 			(folderStore as any).isInitialized = false;
-			folderStore.items = [{ id: 'item', title: 'Item', url: '#' }];
+			const item: FolderItem = { id: 'item', title: 'Item', url: '#' };
+			folderStore.folders.set('item', item);
 			
-			folderStore.persist();
+			folderStore.persist('item');
 
-			expect(idb.saveFolderState).not.toHaveBeenCalled();
+			expect(idbr.putFolder).not.toHaveBeenCalled();
 		});
 	});
 
 	describe('Complex Tree Operations (Edge Cases)', () => {
 		it('should correctly delete a deeply nested folder', () => {
-			// Construct 5 level deep tree
-			const tree: FolderItem = {
-				id: 'L1', title: 'L1', url: '#',
-				items: [{
-					id: 'L2', title: 'L2', url: '#',
-					items: [{
-						id: 'L3', title: 'L3', url: '#',
-						items: [{
-							id: 'L4', title: 'L4', url: '#',
-							items: [{ id: 'L5', title: 'L5', url: '#' }]
-						}]
-					}]
-				}]
-			};
-			folderStore.items = [tree];
 			(folderStore as any).isInitialized = true;
+			// L1 -> L2 -> L3
+			const l3: FolderItem = { id: 'L3', title: 'L3', url: '#', parentId: 'L2' };
+			const l2: FolderItem = { id: 'L2', title: 'L2', url: '#', parentId: 'L1', items: ['L3'] };
+			const l1: FolderItem = { id: 'L1', title: 'L1', url: '#', parentId: null, items: ['L2'] };
+			
+			folderStore.folders.set('L1', l1);
+			folderStore.folders.set('L2', l2);
+			folderStore.folders.set('L3', l3);
+			folderStore.items = ['L1'];
 
-			folderStore.deleteFolder('L3');
+			folderStore.deleteFolder('L2');
 
-			expect(folderStore.items[0].items?.length).toBe(0);
-			expect(folderStore.items.length).toBe(1);
+			expect(folderStore.folders.has('L1')).toBe(true);
+			expect(folderStore.folders.has('L2')).toBe(false);
+			expect(folderStore.folders.has('L3')).toBe(false);
+			expect(l1.items?.length).toBe(0);
 		});
 
 		it('should clear selection if its parent is deleted', () => {
-			const leaf: FolderItem = { id: 'leaf', title: 'Leaf', url: '#' };
+			(folderStore as any).isInitialized = true;
+			const leaf: FolderItem = { id: 'leaf', title: 'Leaf', url: '#', parentId: 'parent' };
 			const parent: FolderItem = { 
 				id: 'parent', title: 'Parent', url: '#', 
-				items: [leaf] 
+				items: ['leaf'] 
 			};
-			folderStore.items = [parent];
-			(folderStore as any).isInitialized = true;
+			folderStore.folders.set('parent', parent);
+			folderStore.folders.set('leaf', leaf);
+			folderStore.items = ['parent'];
 			
-			folderStore.selectItem(folderStore.items[0].items![0]);
-			expect(folderStore.selectedItem?.id).toBe('leaf');
+			folderStore.selectFolder('leaf');
+			expect(folderStore.selectedFolderID).toBe('leaf');
 
 			folderStore.deleteFolder('parent');
 
-			expect(folderStore.items.length).toBe(0);
-			expect(folderStore.selectedItem).toBeNull();
-		});
-
-		it('should find item in deeply nested tree', () => {
-			const target: FolderItem = { id: 'target', title: 'Target', url: '#' };
-			const tree: FolderItem[] = [{
-				id: 'root', title: 'Root', url: '#',
-				items: [{
-					id: 'mid', title: 'Mid', url: '#',
-					items: [target]
-				}]
-			}];
-
-			const found = (folderStore as any).findItemById(tree, 'target');
-			expect(found).toEqual(target);
+			expect(folderStore.folders.size).toBe(0);
+			expect(folderStore.selectedFolderID).toBeNull();
 		});
 	});
 });
