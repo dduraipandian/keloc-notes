@@ -57,9 +57,16 @@ class NotesStore {
 	}
 
 	createNote(folderId: string | null) {
+		let actualFolderId = folderId;
+		const folder = folderId ? folderStore.findItemById(folderStore.items, folderId) : null;
+
+		if (!folderId || folder?.type === 'all' || folder?.type === 'trash') {
+			actualFolderId = folderStore.getDefaultFolderId();
+		}
+
 		const newNote: NoteItem = {
 			id: crypto.randomUUID(),
-			folderId,
+			folderId: actualFolderId,
 			title: 'Untitled Note',
 			content: '',
 			updatedAt: new Date().toISOString()
@@ -97,21 +104,21 @@ class NotesStore {
 const initialMockNotes: NoteItem[] = [
 	{
 		id: '1',
-		folderId: 'all-icloud',
+		folderId: 'notes',
 		title: 'Weekly Goals',
 		content: '15-SEP-2025, Monday\n- Complete UI framework component test cases\n- Understand B-Tree in depth',
 		updatedAt: '2025-09-15T08:48:00Z'
 	},
 	{
 		id: '2',
-		folderId: 'all-icloud',
+		folderId: 'notes',
 		title: 'Methodologies',
 		content: 'Rice Theorem - Let S be a set of languages...',
 		updatedAt: '2025-08-25T10:00:00Z'
 	},
 	{
 		id: '3',
-		folderId: 'all-icloud',
+		folderId: 'notes',
 		title: 'Tech Blogs',
 		content: 'Function Point Analysis - Measuring software size...',
 		updatedAt: '2022-03-15T14:30:00Z'

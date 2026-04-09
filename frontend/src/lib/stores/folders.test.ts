@@ -39,6 +39,20 @@ describe('FolderStore', () => {
 		expect(folderStore.items[0].type).toBe('all');
 	});
 
+	it('should provide a default folder id and create if none exists', () => {
+		(folderStore as any).items = [];
+		const id = folderStore.getDefaultFolderId();
+		expect(id).toBe('notes');
+		expect(folderStore.items[0]).toHaveProperty('title', 'Notes');
+	});
+
+	it('should return existing regular folder as default', () => {
+		(folderStore as any).items = [{ id: 'existing', title: 'Existing', url: '#' }];
+		const id = folderStore.getDefaultFolderId();
+		expect(id).toBe('existing');
+		expect(folderStore.items.length).toBe(1);
+	});
+
 	it('should create a folder inside a selected folder', () => {
 		const parent: FolderItem = { id: 'parent', title: 'Parent', url: '#' };
 		folderStore.items = [parent];

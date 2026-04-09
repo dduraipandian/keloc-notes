@@ -127,7 +127,7 @@ class FolderStore {
 		return false;
 	}
 
-	private findItemById(items: FolderItem[], id: string): FolderItem | null {
+	findItemById(items: FolderItem[], id: string): FolderItem | null {
 		for (const item of items) {
 			if (item.id === id) return item;
 			if (item.items) {
@@ -148,13 +148,38 @@ class FolderStore {
 		folder.isOpen = !folder.isOpen;
 		this.persist();
 	}
+
+	getDefaultFolderId(): string {
+		const findRegular = (items: FolderItem[]): FolderItem | null => {
+			for (const item of items) {
+				if (!item.type || item.type === 'regular') return item;
+				if (item.items) {
+					const found = findRegular(item.items);
+					if (found) return found;
+				}
+			}
+			return null;
+		};
+
+		const regularFolder = findRegular(this.items);
+		if (regularFolder) return regularFolder.id;
+
+		const newFolder: FolderItem = {
+			id: 'notes',
+			title: 'Notes',
+			url: '#'
+		};
+		this.items.unshift(newFolder);
+		this.persist();
+		return newFolder.id;
+	}
 }
 
 // Initial mock data
 const initialMockData: FolderItem[] = [];
 const initialMockData1: FolderItem[] = [
 	{
-		id: 'all-icloud',
+		id: 'smart-all',
 		title: 'All iCloud',
 		url: '#',
 		type: 'all'

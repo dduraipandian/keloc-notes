@@ -90,6 +90,43 @@ describe('NotesStore', () => {
 		expect(notesStore.getNoteCountForFolder('all', 'all')).toBe(0);
 	});
 
+	it('should correctly handle notes with null folderIds', () => {
+		const n1: NoteItem = { id: '1', folderId: null, title: 'Orphan', content: '', updatedAt: '' };
+		const n2: NoteItem = { id: '2', folderId: 'some-folder', title: 'Folder Note', content: '', updatedAt: '' };
+		notesStore.allNotes = [n1, n2];
+
+		expect(notesStore.getNoteCountForFolder(null)).toBe(1);
+		expect(notesStore.getNoteCountForFolder('all', 'all')).toBe(2);
+		expect(notesStore.getNotesForFolder(null).length).toBe(1);
+	});
+
+	it('should fallback to default folder when creating a note in root or smart folder', () => {
+		// Mock folder store to have a 'notes' folder
+		const defaultFolder: FolderItem = { id: 'notes-folder', title: 'Notes', url: '#' };
+		vi.spyOn(folderStore, 'getDefaultFolderId').mockReturnValue('notes-folder');
+		vi.spyOn(folderStore, 'findItemById').mockImplementation((items, id) => {
+			if (id === 'smart-all-id') return { id: 'smart-all-id', title: 'All', url: '#', type: 'all' };
+			return null;
+		});
+
+		// Create note in root
+		notesStore.createNote(null);
+		expect(notesStore.allNotes[0].folderId).toBe('notes-folder');
+
+		// Create note in 'all' folder
+		notesStore.createNote('smart-all-id');
+		expect(notesStore.allNotes[0].folderId).toBe('notes-folder');
+	});
+
+	it('should verify that allNotes snapshot includes new properties', () => {
+		const n1: NoteItem = { id: '1', folderId: 'f1', title: 'T1', content: 'C1', updatedAt: '2025-01-01T00:00:00Z' };
+		notesStore.allNotes = [n1];
+		(notesStore as any).isInitialized = true;
+
+		const snapshot = (notesStore as any).allNotes;
+		expect(snapshot[0]).toHaveProperty('folderId', 'f1');
+	});
+
 	it('should update a note and refresh its updatedAt timestamp', () => {
 		const note: NoteItem = { id: '1', folderId: 'f1', title: 'Test', content: '', updatedAt: '2020-01-01T00:00:00Z' };
 		notesStore.allNotes = [note];
