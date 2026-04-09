@@ -44,6 +44,52 @@ describe('NotesStore', () => {
 		expect(notes[1].id).toBe('1');
 	});
 
+	it('should return all notes when folderType is "all"', () => {
+		const n1: NoteItem = { id: '1', folderId: 'f1', title: 'N1', content: '', updatedAt: '' };
+		const n2: NoteItem = { id: '2', folderId: 'f2', title: 'N2', content: '', updatedAt: '' };
+		notesStore.allNotes = [n1, n2];
+
+		const notes = notesStore.getNotesForFolder('some-id', 'all');
+		expect(notes.length).toBe(2);
+		expect(notes.map(n => n.id)).toContain('1');
+		expect(notes.map(n => n.id)).toContain('2');
+	});
+
+	it('should return correct note count for a folder', () => {
+		const n1: NoteItem = { id: '1', folderId: 'f1', title: 'N1', content: '', updatedAt: '' };
+		const n2: NoteItem = { id: '2', folderId: 'f1', title: 'N2', content: '', updatedAt: '' };
+		const n3: NoteItem = { id: '3', folderId: 'f2', title: 'N3', content: '', updatedAt: '' };
+		notesStore.allNotes = [n1, n2, n3];
+
+		expect(notesStore.getNoteCountForFolder('f1')).toBe(2);
+		expect(notesStore.getNoteCountForFolder('f2')).toBe(1);
+		expect(notesStore.getNoteCountForFolder('f1', 'all')).toBe(3);
+	});
+
+	it('should update counts dynamically when notes are created, updated, or deleted', () => {
+		// Initial state
+		(notesStore as any).isInitialized = true;
+		expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
+		expect(notesStore.getNoteCountForFolder('all', 'all')).toBe(0);
+
+		// 1. Create note
+		notesStore.createNote('f1');
+		expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
+		expect(notesStore.getNoteCountForFolder('all', 'all')).toBe(1);
+
+		// 2. Move note to another folder
+		const noteId = notesStore.allNotes[0].id;
+		notesStore.updateNote(noteId, { folderId: 'f2' });
+		expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
+		expect(notesStore.getNoteCountForFolder('f2')).toBe(1);
+		expect(notesStore.getNoteCountForFolder('all', 'all')).toBe(1);
+
+		// 3. Delete note
+		notesStore.deleteNote(noteId);
+		expect(notesStore.getNoteCountForFolder('f2')).toBe(0);
+		expect(notesStore.getNoteCountForFolder('all', 'all')).toBe(0);
+	});
+
 	it('should update a note and refresh its updatedAt timestamp', () => {
 		const note: NoteItem = { id: '1', folderId: 'f1', title: 'Test', content: '', updatedAt: '2020-01-01T00:00:00Z' };
 		notesStore.allNotes = [note];

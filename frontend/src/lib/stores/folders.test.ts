@@ -33,6 +33,12 @@ describe('FolderStore', () => {
 		expect(folderStore.selectedItem?.id).toBe('test-uuid');
 	});
 
+	it('should support folders with a type', () => {
+		const folder: FolderItem = { id: 'all', title: 'All', url: '#', type: 'all' };
+		folderStore.items = [folder];
+		expect(folderStore.items[0].type).toBe('all');
+	});
+
 	it('should create a folder inside a selected folder', () => {
 		const parent: FolderItem = { id: 'parent', title: 'Parent', url: '#' };
 		folderStore.items = [parent];
