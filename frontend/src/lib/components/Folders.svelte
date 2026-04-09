@@ -14,6 +14,7 @@
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
+			console.log('Save: ', item);
 			folderStore.renameFolder(item.id, item.title);
 		} else if (e.key === 'Escape') {
 			folderStore.cancelRename();
@@ -56,8 +57,8 @@
 			>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
-					{#each folderStore.items as item (item.id)}
-						{@render MenuItemSnippet(item, 0)}
+					{#each folderStore.items as itemId}
+						{@render MenuItemSnippet(folderStore.folders.get(itemId)!, 0)}
 					{/each}
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
@@ -88,43 +89,98 @@
 </Sidebar.Root>
 
 {#snippet MenuItemSnippet(item: FolderItem, depth: number)}
-	{#if item.items && item.items.length > 0}
-		<Collapsible.Root
-			class="group/collapsible"
-			bind:open={
-				() => item.isOpen ?? false,
-				(v) => {
-					folderStore.openFolder(item);
+	{#if item}
+		{#if item.items && item.items.length > 0}
+			<Collapsible.Root
+				class="group/collapsible"
+				bind:open={
+					() => item.isOpen ?? false,
+					(v) => {
+						folderStore.openFolder(item.id);
+					}
 				}
-			}
-		>
+			>
+				<ContextMenu.Root>
+					<ContextMenu.Trigger>
+						<Sidebar.MenuItem>
+							<Collapsible.Trigger asChild>
+								{#snippet child({ props })}
+									<Sidebar.MenuButton
+										class={[
+											menuButtonStyle,
+											item.id === folderStore.selectedFolderID
+												? 'bg-accent text-foreground shadow-sm'
+												: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
+										]}
+										{...props}
+										isActive={item.id === folderStore.selectedFolderID}
+										onclick={(e) => {
+											(props as any).onclick?.(e);
+											folderStore.selectFolder(item.id);
+										}}
+									>
+										<div style="width: {depth * 0.75}rem" class="shrink-0"></div>
+										<ChevronRight
+											size={14}
+											class={[
+												'shrink-0 text-muted-foreground/40 transition-transform duration-200',
+												item.isOpen ? 'rotate-90' : ''
+											]}
+										/>
+										<Folder size={16} style="color: {folderColor}" class="opacity-80" />
+										{#if folderStore.editingId === item.id}
+											<input
+												bind:value={item.title}
+												class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
+												use:focusAndSelect
+												onkeydown={(e) => handleRenameKeyDown(e, item)}
+												onblur={() => folderStore.renameFolder(item.id, item.title)}
+												onclick={(e) => e.stopPropagation()}
+											/>
+										{:else}
+											<span class="ml-2 truncate text-left text-[13px] font-medium"
+												>{item.title}</span
+											>
+										{/if}
+									</Sidebar.MenuButton>
+								{/snippet}
+							</Collapsible.Trigger>
+							<Sidebar.MenuBadge
+								class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
+								>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
+							>
+							<Collapsible.Content>
+								<Sidebar.MenuSub class="m-0 border-l-0 p-0">
+									{#each item.items as subItemID}
+										{@render MenuItemSnippet(folderStore.folders.get(subItemID)!, depth + 1)}
+									{/each}
+								</Sidebar.MenuSub>
+							</Collapsible.Content>
+						</Sidebar.MenuItem>
+					</ContextMenu.Trigger>
+					{@render ContextMenuContentSnippet(item)}
+				</ContextMenu.Root>
+			</Collapsible.Root>
+		{:else}
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
 					<Sidebar.MenuItem>
-						<Collapsible.Trigger asChild>
+						<Sidebar.MenuButton
+							class={[
+								menuButtonStyle,
+								item.id === folderStore.selectedFolderID
+									? 'bg-accent text-foreground shadow-sm'
+									: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
+							]}
+							isActive={item.id === folderStore.selectedFolderID}
+							onclick={() => {
+								folderStore.selectFolder(item.id);
+							}}
+						>
 							{#snippet child({ props })}
-								<Sidebar.MenuButton
-									class={[
-										menuButtonStyle,
-										item.id === folderStore.selectedItem?.id
-											? 'bg-accent text-foreground shadow-sm'
-											: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
-									]}
-									{...props}
-									isActive={item.id === folderStore.selectedItem?.id}
-									onclick={(e) => {
-										(props as any).onclick?.(e);
-										folderStore.selectItem(item);
-									}}
-								>
+								<div class="flex w-full items-center" {...props}>
 									<div style="width: {depth * 0.75}rem" class="shrink-0"></div>
-									<ChevronRight
-										size={14}
-										class={[
-											'shrink-0 text-muted-foreground/40 transition-transform duration-200',
-											item.isOpen ? 'rotate-90' : ''
-										]}
-									/>
+									<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
 									<Folder size={16} style="color: {folderColor}" class="opacity-80" />
 									{#if folderStore.editingId === item.id}
 										<input
@@ -139,67 +195,17 @@
 										<span class="ml-2 truncate text-left text-[13px] font-medium">{item.title}</span
 										>
 									{/if}
-								</Sidebar.MenuButton>
+								</div>
 							{/snippet}
-						</Collapsible.Trigger>
+						</Sidebar.MenuButton>
 						<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
 							>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
 						>
-						<Collapsible.Content>
-							<Sidebar.MenuSub class="m-0 border-l-0 p-0">
-								{#each item.items as subItem (subItem.id)}
-									{@render MenuItemSnippet(subItem, depth + 1)}
-								{/each}
-							</Sidebar.MenuSub>
-						</Collapsible.Content>
 					</Sidebar.MenuItem>
 				</ContextMenu.Trigger>
 				{@render ContextMenuContentSnippet(item)}
 			</ContextMenu.Root>
-		</Collapsible.Root>
-	{:else}
-		<ContextMenu.Root>
-			<ContextMenu.Trigger>
-				<Sidebar.MenuItem>
-					<Sidebar.MenuButton
-						class={[
-							menuButtonStyle,
-							item.id === folderStore.selectedItem?.id
-								? 'bg-accent text-foreground shadow-sm'
-								: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
-						]}
-						isActive={item.id === folderStore.selectedItem?.id}
-						onclick={() => {
-							folderStore.selectItem(item);
-						}}
-					>
-						{#snippet child({ props })}
-							<div class="flex w-full items-center" {...props}>
-								<div style="width: {depth * 0.75}rem" class="shrink-0"></div>
-								<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-								<Folder size={16} style="color: {folderColor}" class="opacity-80" />
-								{#if folderStore.editingId === item.id}
-									<input
-										bind:value={item.title}
-										class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
-										use:focusAndSelect
-										onkeydown={(e) => handleRenameKeyDown(e, item)}
-										onblur={() => folderStore.renameFolder(item.id, item.title)}
-										onclick={(e) => e.stopPropagation()}
-									/>
-								{:else}
-									<span class="ml-2 truncate text-left text-[13px] font-medium">{item.title}</span>
-								{/if}
-							</div>
-						{/snippet}
-					</Sidebar.MenuButton>
-					<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-						>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
-					>
-				</Sidebar.MenuItem>
-			</ContextMenu.Trigger>
-			{@render ContextMenuContentSnippet(item)}
-		</ContextMenu.Root>
+		{/if}
 	{/if}
 {/snippet}
 
