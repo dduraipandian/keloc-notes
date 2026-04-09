@@ -12,7 +12,7 @@
 
 	const filteredNotes = $derived(
 		notesStore
-			.getNotesForFolder(folderStore.selectedItem?.id ?? null, folderStore.selectedItem?.type)
+			.getNotesForFolder(folderStore.selectedFolderID ?? null)
 			.filter(
 				(n) =>
 					n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -52,13 +52,13 @@
 	<header class="flex h-[52px] shrink-0 items-center justify-between gap-2 px-6">
 		<div class="flex min-w-0 items-center gap-2 overflow-hidden">
 			<h2 class="truncate text-xs font-bold tracking-wider text-muted-foreground/60 uppercase">
-				{folderStore.selectedItem?.title ?? 'Notes'}
+				{folderStore.getSelectedFolder()?.title ?? 'Notes'}
 			</h2>
 		</div>
 		<div class="flex shrink-0 items-center gap-1">
 			<button
 				class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
-				onclick={() => notesStore.createNote(folderStore.selectedItem?.id ?? null)}
+				onclick={() => notesStore.createNote(folderStore.getSelectedFolder()?.id ?? null)}
 				title="New Note"
 			>
 				<SquarePen size={16} />
@@ -67,7 +67,7 @@
 				class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
 				title="Trash"
 				onclick={() =>
-					notesStore.selectedNoteId ? notesStore.deleteNote(notesStore.selectedNoteId) : null}
+					notesStore.selectedNoteID ? notesStore.deleteNote(notesStore.selectedNoteID) : null}
 			>
 				<Trash2 size={16} />
 			</button>
@@ -98,7 +98,7 @@
 						</span>
 					</Item.Header>
 					{#each notes as note, i (note.id)}
-						{@const isSelected = notesStore.selectedNoteId === note.id}
+						{@const isSelected = notesStore.selectedNoteID === note.id}
 						<ContextMenu.Root>
 							<ContextMenu.Trigger>
 								<Item.Root

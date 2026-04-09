@@ -164,11 +164,11 @@ class FolderStore {
 		return parent.items.some((cid) => this.isChildOf(cid, childId));
 	}
 
-	findItemById(id: string): FolderItem | null {
+	findItemById(id: FolderID): FolderItem | null {
 		return this.folders.get(id) || null;
 	}
 
-	renameFolder(id: string, newTitle: string) {
+	renameFolder(id: FolderID, newTitle: string) {
 		this.editingId = null;
 		const folder = this.folders.get(id);
 
@@ -180,7 +180,7 @@ class FolderStore {
 		}
 	}
 
-	openFolder(id: string) {
+	openFolder(id: FolderID) {
 		const folder = this.folders.get(id);
 		if (folder) {
 			folder.isOpen = !folder.isOpen;
@@ -217,6 +217,14 @@ class FolderStore {
 		this.items.unshift(newFolder.id);
 		this.persist(newFolder.id);
 		return newFolder.id;
+	}
+	getSelectedFolder(): FolderItem | null {
+		if (!this.selectedFolderID) return null;
+		let folder = this.folders.get(this.selectedFolderID);
+		if (!folder) {
+			folder = this.folders.get(this.getDefaultFolderId());
+		}
+		return folder || null;
 	}
 }
 

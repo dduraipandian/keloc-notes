@@ -1,7 +1,7 @@
 import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 import type { FolderItem } from './folders.svelte';
 
-const DB_NAME = 'mdnotes-db-r'; // Using a separate name for the refactored version to avoid conflicts
+const DB_NAME = 'mdnotes-db'; // Using a separate name for the refactored version to avoid conflicts
 const DB_VERSION = 1;
 
 export interface DBStore {

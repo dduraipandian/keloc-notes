@@ -1,8 +1,11 @@
-import { loadNotesState, saveNotesState } from './idb';
-import { folderStore, type FolderType } from './folders.svelte';
+import { SvelteMap } from 'svelte/reactivity';
+import { getAllNotes, getAllSettings, putNote, putSetting } from './idbr';
+import { folderStore, type FolderType, type FolderID } from './folders.svelte';
+
+export type NoteID = string;
 
 export type NoteItem = {
-	id: string;
+	id: NoteID;
 	folderId: string | null;
 	title: string;
 	content: string;
@@ -11,7 +14,9 @@ export type NoteItem = {
 
 class NotesStore {
 	allNotes = $state<NoteItem[]>([]);
-	selectedNoteId = $state<string | null>(null);
+	notes = new SvelteMap<NoteID, NoteItem>();
+	folderNotes = new SvelteMap<FolderID, NoteID[]>();
+	selectedNoteID = $state<NoteID | null>(null);
 	private isInitialized = false;
 
 	constructor(initialNotes: NoteItem[] = []) {
@@ -22,10 +27,17 @@ class NotesStore {
 		if (this.isInitialized) return;
 
 		try {
-			const savedState = await loadNotesState();
-			if (savedState) {
-				this.allNotes = savedState.notes;
-				this.selectedNoteId = savedState.selectedNoteId;
+			const allNotes = await getAllNotes();
+			const settings = await getAllSettings();
+
+			if (allNotes) {
+				allNotes.forEach((note) => {
+					let n = $state(note);
+					this.notes.set(note.id, n);
+				});
+				if (settings && settings.selectedNoteID) {
+					this.selectedNoteID = settings.selectedNoteID;
+				}
 			}
 			this.isInitialized = true;
 		} catch (error) {
@@ -34,32 +46,37 @@ class NotesStore {
 		}
 	}
 
-	persist() {
+	persist(id: NoteID) {
 		if (!this.isInitialized) return;
-		saveNotesState({
-			notes: $state.snapshot(this.allNotes),
-			selectedNoteId: this.selectedNoteId
-		});
+		const note = this.notes.get(id);
+		if (note) {
+			putNote($state.snapshot(note));
+		}
+		putSetting('selectedNoteID', this.selectedNoteID);
 	}
 
 	get selectedNote(): NoteItem | null {
-		return this.allNotes.find((n) => n.id === this.selectedNoteId) ?? null;
+		if (!this.selectedNoteID) return null;
+
+		return this.notes.get(this.selectedNoteID) || null;
 	}
 
 	getNotesForFolder(folderId: string | null, folderType?: FolderType): NoteItem[] {
-		return this.allNotes
+		return Array.from(this.notes.values())
 			.filter((n) => (folderType === 'all' ? true : n.folderId === folderId))
 			.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 	}
 	getNoteCountForFolder(folderId: string | null, folderType?: FolderType): number {
-		return this.allNotes.filter((n) => (folderType === 'all' ? true : n.folderId === folderId))
-			.length;
+		return Array.from(this.notes.values()).filter((n) =>
+			folderType === 'all' ? true : n.folderId === folderId
+		).length;
 	}
 
-	createNote(folderId: string | null) {
+	createNote(folderId: FolderID | null) {
 		let actualFolderId = folderId;
-		const folder = folderId ? folderStore.findItemById(folderStore.items, folderId) : null;
+		const folder = folderId ? folderStore.findItemById(folderId) : null;
 
+		console.log('Create note under: ', folderId, $state.snapshot(folder));
 		if (!folderId || folder?.type === 'all' || folder?.type === 'trash') {
 			actualFolderId = folderStore.getDefaultFolderId();
 		}
@@ -71,33 +88,34 @@ class NotesStore {
 			content: '',
 			updatedAt: new Date().toISOString()
 		};
-		this.allNotes.unshift(newNote);
-		this.selectedNoteId = newNote.id;
-		this.persist();
+		let n = $state(newNote);
+		this.notes.set(newNote.id, n);
+		this.selectedNoteID = newNote.id;
+		this.persist(newNote.id);
 	}
 
-	updateNote(id: string, updates: Partial<Omit<NoteItem, 'id'>>) {
-		const note = this.allNotes.find((n) => n.id === id);
+	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {
+		const note = this.notes.get(id);
 		if (note) {
 			Object.assign(note, {
 				...updates,
 				updatedAt: new Date().toISOString()
 			});
-			this.persist();
+			this.persist(id);
 		}
 	}
 
-	deleteNote(id: string) {
-		this.allNotes = this.allNotes.filter((n) => n.id !== id);
-		if (this.selectedNoteId === id) {
-			this.selectedNoteId = null;
+	deleteNote(id: NoteID) {
+		this.notes.delete(id);
+		if (this.selectedNoteID === id) {
+			this.selectedNoteID = null;
 		}
-		this.persist();
+		// this.persist(id);
 	}
 
-	selectNote(id: string | null) {
-		this.selectedNoteId = id;
-		this.persist();
+	selectNote(id: NoteID | null) {
+		this.selectedNoteID = id;
+		if (id) this.persist(id);
 	}
 }
 
@@ -106,7 +124,8 @@ const initialMockNotes: NoteItem[] = [
 		id: '1',
 		folderId: 'notes',
 		title: 'Weekly Goals',
-		content: '15-SEP-2025, Monday\n- Complete UI framework component test cases\n- Understand B-Tree in depth',
+		content:
+			'15-SEP-2025, Monday\n- Complete UI framework component test cases\n- Understand B-Tree in depth',
 		updatedAt: '2025-09-15T08:48:00Z'
 	},
 	{
@@ -132,4 +151,4 @@ const initialMockNotes: NoteItem[] = [
 	}
 ];
 
-export const notesStore = new NotesStore(initialMockNotes);
+export const notesStore = new NotesStore([]);
