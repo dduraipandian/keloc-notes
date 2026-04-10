@@ -174,10 +174,20 @@ class NotesStore {
 			this.notes.set(id, note);
 			this.persist(id);
 			if (note.folderId) {
-				const f = folderStore.findItemById(note.folderId);
+				const oldFolderId = note.folderId;
+				const f = folderStore.findItemById(oldFolderId);
 				if (f && f.deletedAt != null) {
-					folderStore.recoverParentPath(note.folderId);
+					note.folderId = folderStore.recreateActivePathForFolder(oldFolderId);
+					this.notes.set(id, note);
+					this.persist(id);
+					folderStore.pruneEmptyTrashPath(oldFolderId);
+				} else {
+					this.notes.set(id, note);
+					this.persist(id);
 				}
+			} else {
+				this.notes.set(id, note);
+				this.persist(id);
 			}
 		}
 	}
