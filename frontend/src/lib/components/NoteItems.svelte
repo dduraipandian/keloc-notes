@@ -117,7 +117,7 @@
 
 {#snippet ContextMenuContentSnippet(note: NoteItem)}
 	<ContextMenu.Content class="w-48">
-		{#if note._deleted}
+		{#if note.deletedAt != null}
 			<ContextMenu.Item
 				class="text-[13px] text-destructive focus:text-destructive"
 				onSelect={() => notesStore.recoverNote(note.id)}>Recover</ContextMenu.Item

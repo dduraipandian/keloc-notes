@@ -113,17 +113,18 @@ describe('NotesStore', () => {
 		notesStore.selectedNoteID = '1';
 		(notesStore as any).isInitialized = true;
 
-		notesStore.deleteNote('1');
+		const stamp = 12345;
+		notesStore.deleteNote('1', stamp);
 
 		// Still in map and marked as deleted
-		expect(notesStore.notes.get('1')?._deleted).toBe(true);
+		expect(notesStore.notes.get('1')?.deletedAt).toBe(stamp);
 		// Selection cleared
 		expect(notesStore.selectedNoteID).toBeNull();
-		// Index updated
+		// Index updated semantically
 		expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
 		expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(1);
-		// Persistence called with true
-		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ _deleted: true }));
+		// Persistence called with properties
+		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: stamp }));
 	});
 
 	it('should recover a note from trash', () => {
@@ -133,20 +134,19 @@ describe('NotesStore', () => {
 			title: 'T',
 			content: '',
 			updatedAt: '',
-			_deleted: true
+			deletedAt: 123
 		};
 		addNoteToStore(note as any);
-		// Manually move to trash index for setup
-		(notesStore as any).removeFromIndex('f1', '1');
-		(notesStore as any).addToIndex('deleted-notes', '1');
 		(notesStore as any).isInitialized = true;
+		
+		vi.spyOn(folderStore, 'findItemById').mockReturnValue(null);
 
 		notesStore.recoverNote('1');
 
-		expect(notesStore.notes.get('1')?._deleted).toBe(false);
+		expect(notesStore.notes.get('1')?.deletedAt).toBeNull();
 		expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(0);
 		expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
-		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ _deleted: false }));
+		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: null }));
 	});
 
 	describe('Index Management', () => {
@@ -165,14 +165,14 @@ describe('NotesStore', () => {
 			expect((notesStore as any).folderNotes.get('f2')).toContain(noteID);
 		});
 
-		it('should remove note from index on delete', () => {
+		it('should hide soft deleted notes entirely without breaking structural index', () => {
 			addNoteToStore({ id: 'del-me', folderId: 'f1' } as any);
 			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
 
 			notesStore.deleteNote('del-me');
 
 			expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
-			expect((notesStore as any).folderNotes.get('f1')?.length).toBe(0);
+			expect((notesStore as any).folderNotes.get('f1')?.length).toBe(1); // STILL IN INDEX
 		});
 
 		it('should redirect createNote to default folder if trash is selected', () => {
@@ -192,19 +192,18 @@ describe('NotesStore', () => {
 			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(0);
 		});
 
-		it('should recover a note back to its original specific folder', () => {
-			const note = { id: 'orig', folderId: 'special-folder', _deleted: true, updatedAt: '' };
+		it('should recover a note back to its original specific folder logically', () => {
+			const note = { id: 'orig', folderId: 'special-folder', deletedAt: 999, updatedAt: '' };
 			addNoteToStore(note as any);
-			// Manually move to trash index for setup
-			(notesStore as any).removeFromIndex('special-folder', 'orig');
-			(notesStore as any).addToIndex('deleted-notes', 'orig');
 			(notesStore as any).isInitialized = true;
+
+			vi.spyOn(folderStore, 'findItemById').mockReturnValue(null);
 
 			notesStore.recoverNote('orig');
 
 			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(0);
 			expect(notesStore.getNoteCountForFolder('special-folder')).toBe(1);
-			expect(notesStore.notes.get('orig')?.folderId).toBe('special-folder');
+			expect(notesStore.notes.get('orig')?.deletedAt).toBeNull();
 		});
 
 		it('should use "root" key for notes with null folderId', () => {
@@ -216,10 +215,10 @@ describe('NotesStore', () => {
 	});
 
 	describe('Persistence', () => {
-		it('should rebuild index on init and partition deleted notes', async () => {
+		it('should rebuild index on init and globally unified index notes regardless of deleted status', async () => {
 			const savedNotes = [
 				{ id: '1', folderId: 'f1', title: 'Active' },
-				{ id: '2', folderId: 'f1', title: 'Deleted', _deleted: true }
+				{ id: '2', folderId: 'f1', title: 'Deleted', deletedAt: 444 }
 			];
 			vi.mocked(idbr.getAllNotes).mockResolvedValue(savedNotes as any);
 			vi.mocked(idbr.getAllSettings).mockResolvedValue({ selectedNoteID: '1' } as any);
@@ -228,8 +227,7 @@ describe('NotesStore', () => {
 
 			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
 			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(1);
-			expect((notesStore as any).folderNotes.get('f1')).toEqual(['1']);
-			expect((notesStore as any).folderNotes.get('deleted-notes')).toEqual(['2']);
+			expect((notesStore as any).folderNotes.get('f1')).toEqual(['1', '2']);
 		});
 
 		it('should save notes on createNote', async () => {

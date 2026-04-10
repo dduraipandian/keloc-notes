@@ -11,10 +11,12 @@ export type FolderItem = {
 	items?: FolderID[];
 	isOpen?: boolean;
 	parentId?: FolderID | null;
+	deletedAt?: number | null;
 };
 
 import { SvelteMap } from 'svelte/reactivity';
 import { getAllFolders, getAllSettings, putFolder, putSetting } from './idbr';
+import { notesStore } from './notes.svelte';
 
 class FolderStore {
 	items = $state<string[]>([]);
@@ -22,6 +24,19 @@ class FolderStore {
 	editingId = $state<string | null>(null);
 	folders = new SvelteMap<string, FolderItem>();
 	private isInitialized = false;
+
+	trashItems = $derived.by(() => {
+		const deletedIds: string[] = [];
+		for (const [id, folder] of this.folders.entries()) {
+			if (folder.type !== 'trash' && folder.deletedAt != null) {
+				const parent = folder.parentId ? this.folders.get(folder.parentId) : null;
+				if (!parent || parent.deletedAt == null) {
+					deletedIds.push(id);
+				}
+			}
+		}
+		return deletedIds;
+	});
 
 	constructor(initialItems: FolderItem[] = []) {
 		let i = $state<string[]>([]);
@@ -33,6 +48,7 @@ class FolderStore {
 	loadItems(initialItems: any[] = []) {
 		initialItems.forEach((item) => {
 			if (item.id) {
+				if (item.deletedAt === undefined) item.deletedAt = null;
 				let i = $state(item);
 				this.folders.set(item.id, i);
 				if (!item.parentId) {
@@ -96,7 +112,8 @@ class FolderStore {
 			title: 'New Folder',
 			url: '#',
 			items: [],
-			parentId: null
+			parentId: null,
+			deletedAt: null
 		};
 
 		if (!this.selectedFolderID) {
@@ -122,35 +139,62 @@ class FolderStore {
 		this.startRename(newFolder.id);
 	}
 
-	deleteFolder(id: string, shouldPersist: boolean = true) {
-		const wasSelected = this.selectedFolderID === id;
+	deleteFolder(id: string, batchTimestamp?: number) {
 		const folder = this.folders.get(id);
 		if (!folder) return;
 
-		// Recursive delete children
+		const ts = batchTimestamp ?? Date.now();
+		folder.deletedAt = ts;
+		this.folders.set(id, folder);
+		this.persist(id);
+
 		if (folder.items) {
-			[...folder.items].forEach((childId) => this.deleteFolder(childId, false));
+			[...folder.items].forEach((childId) => this.deleteFolder(childId, ts));
 		}
 
-		// Remove from parent
-		if (folder.parentId) {
-			const parent = this.folders.get(folder.parentId);
-			if (parent && parent.items) {
-				parent.items = parent.items.filter((cid) => cid !== id);
-				this.persist(parent.id);
-			}
-		} else {
-			this.items = this.items.filter((rid) => rid !== id);
-		}
+		notesStore.deleteNotesInFolder(id, ts);
 
-		this.folders.delete(id);
-
-		if (wasSelected) {
+		if (this.selectedFolderID === id) {
 			this.selectedFolderID = null;
 		}
 
 		if (this.editingId === id) {
 			this.editingId = null;
+		}
+	}
+
+	recoverFolderAndChildren(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+		if (!folder || folder.deletedAt == null) return;
+
+		const batch = targetBatch ?? folder.deletedAt;
+
+		if (folder.deletedAt === batch) {
+			folder.deletedAt = null;
+			console.log('Recovering folder:', folder.deletedAt, batch);
+			this.folders.set(id, folder);
+			this.persist(id);
+
+			notesStore.recoverNotesInFolder(id, batch);
+
+			if (folder.items) {
+				folder.items.forEach((childId) => this.recoverFolderAndChildren(childId, batch));
+			}
+
+			if (!targetBatch) {
+				this.recoverParentPath(folder.parentId);
+			}
+		}
+	}
+
+	private recoverParentPath(parentId: string | null | undefined) {
+		if (!parentId) return;
+		const parent = this.folders.get(parentId);
+		if (parent && parent.deletedAt != null) {
+			parent.deletedAt = null;
+			this.folders.set(parentId, parent);
+			this.persist(parentId);
+			this.recoverParentPath(parent.parentId);
 		}
 	}
 
@@ -206,7 +250,8 @@ class FolderStore {
 			title: 'Notes',
 			url: '#',
 			items: [],
-			parentId: null
+			parentId: null,
+			deletedAt: null
 		};
 		let nf = $state(newFolder);
 		this.folders.set(newFolder.id, nf);
@@ -232,7 +277,8 @@ const initialData: FolderItem[] = [
 		url: '#',
 		items: [],
 		parentId: null,
-		type: 'trash'
+		type: 'trash',
+		deletedAt: null
 	}
 ];
 

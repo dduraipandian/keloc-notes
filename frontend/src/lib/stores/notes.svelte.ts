@@ -10,7 +10,7 @@ export type NoteItem = {
 	title: string;
 	content: string;
 	updatedAt: string;
-	_deleted?: boolean;
+	deletedAt?: number | null;
 };
 
 class NotesStore {
@@ -59,22 +59,14 @@ class NotesStore {
 			let deletedNotes: NoteItem[] = [];
 
 			allNotesData.forEach((note) => {
-				let n = $state(note);
-				if (note._deleted) {
-					deletedNotes.push(n);
-				} else {
+				if (note && note.id) {
+					if (note.deletedAt === undefined) note.deletedAt = null;
+					let n = $state(note);
 					allNotes.push(n);
 				}
 			});
 			this.notes.clear();
 			this.folderNotes.clear();
-
-			if (deletedNotes) {
-				deletedNotes.forEach((note) => {
-					this.notes.set(note.id, note);
-					this.addToIndex('deleted-notes', note.id);
-				});
-			}
 
 			if (allNotes) {
 				allNotes.forEach((note) => {
@@ -108,30 +100,43 @@ class NotesStore {
 	}
 
 	getNotesForFolder(folderId: string | null, folderType?: FolderType): NoteItem[] {
-		let noteIds: NoteID[] = [];
+		let resultNotes: NoteItem[] = [];
+		const allNotes = Array.from(this.notes.values());
 
 		if (folderType === 'all') {
-			return Array.from(this.notes.values()).sort(
-				(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-			);
+			resultNotes = allNotes.filter((n) => n.deletedAt == null);
+		} else if (folderId === 'deleted-notes') {
+			resultNotes = allNotes.filter((n) => n.deletedAt != null);
 		} else {
 			const fid = folderId ?? 'root';
-			noteIds = this.folderNotes.get(fid) || [];
+			const currentFolder = folderStore.findItemById(folderId || '');
+			if (currentFolder && currentFolder.deletedAt != null) {
+				resultNotes = allNotes.filter((n) => n.folderId === fid && n.deletedAt != null);
+			} else {
+				resultNotes = allNotes.filter((n) => n.folderId === fid && n.deletedAt == null);
+			}
 		}
 
-		console.log('noteIds', noteIds);
-		return noteIds
-			.map((id) => this.notes.get(id)!)
-			.filter(Boolean)
-			.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+		return resultNotes.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 	}
 
 	getNoteCountForFolder(folderId: string | null, folderType?: FolderType): number {
+		const allNotes = Array.from(this.notes.values());
+		
 		if (folderType === 'all') {
-			return this.notes.size;
+			return allNotes.filter((n) => n.deletedAt == null).length;
+		} else if (folderId === 'deleted-notes') {
+			return allNotes.filter((n) => n.deletedAt != null).length;
 		}
+		
 		const fid = folderId ?? 'root';
-		return this.folderNotes.get(fid)?.length ?? 0;
+		const currentFolder = folderStore.findItemById(folderId || '');
+		
+		if (currentFolder && currentFolder.deletedAt != null) {
+			return allNotes.filter((n) => n.folderId === fid && n.deletedAt != null).length;
+		}
+		
+		return allNotes.filter((n) => n.folderId === fid && n.deletedAt == null).length;
 	}
 
 	createNote(folderId: FolderID | null) {
@@ -147,7 +152,8 @@ class NotesStore {
 			folderId: actualFolderId,
 			title: 'Untitled Note',
 			content: '',
-			updatedAt: new Date().toISOString()
+			updatedAt: new Date().toISOString(),
+			deletedAt: null
 		};
 		let n = $state(newNote);
 		this.notes.set(newNote.id, n);
@@ -174,14 +180,12 @@ class NotesStore {
 		}
 	}
 
-	deleteNote(id: NoteID) {
+	deleteNote(id: NoteID, batchTimestamp?: number) {
 		const note = this.notes.get(id);
 		if (note) {
-			console.log('deleteNote', id);
-			note._deleted = true;
+			note.deletedAt = batchTimestamp ?? Date.now();
+			this.notes.set(id, note);
 			this.persist(id);
-			this.removeFromIndex(note.folderId, id);
-			this.addToIndex('deleted-notes', note.id);
 		}
 
 		if (this.selectedNoteID === id) {
@@ -192,10 +196,42 @@ class NotesStore {
 	recoverNote(id: NoteID) {
 		const note = this.notes.get(id);
 		if (note) {
-			note._deleted = false;
+			note.deletedAt = null;
+			this.notes.set(id, note);
 			this.persist(id);
-			this.removeFromIndex('deleted-notes', id);
-			this.addToIndex(note.folderId, id);
+			if (note.folderId) {
+				const f = folderStore.findItemById(note.folderId);
+				if (f && f.deletedAt != null) {
+					folderStore.recoverFolderAndChildren(note.folderId, false);
+				}
+			}
+		}
+	}
+
+	deleteNotesInFolder(folderId: string, batchTimestamp: number) {
+		const allNotes = Array.from(this.notes.values());
+		for (const note of allNotes) {
+			if (note.folderId === folderId && note.deletedAt == null) {
+				note.deletedAt = batchTimestamp;
+				this.notes.set(note.id, note);
+				this.persist(note.id);
+				if (this.selectedNoteID === note.id) {
+					this.selectedNoteID = null;
+				}
+			}
+		}
+	}
+
+	recoverNotesInFolder(folderId: string, targetBatch?: number) {
+		const allNotes = Array.from(this.notes.values());
+		for (const note of allNotes) {
+			if (note.folderId === folderId && note.deletedAt != null) {
+				if (!targetBatch || note.deletedAt === targetBatch) {
+					note.deletedAt = null;
+					this.notes.set(note.id, note);
+					this.persist(note.id);
+				}
+			}
 		}
 	}
 

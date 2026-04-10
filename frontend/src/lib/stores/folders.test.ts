@@ -82,7 +82,7 @@ describe('FolderStore', () => {
 		expect(folderStore.selectedFolderID).toBe('test-uuid');
 	});
 
-	it('should delete a folder and all its children recursively', () => {
+	it('should soft delete a folder and cascade deletedAt batches', () => {
 		(folderStore as any).isInitialized = true;
 		const child: FolderItem = { id: 'child', title: 'Child', url: '#', parentId: 'parent' };
 		const parent: FolderItem = { 
@@ -91,34 +91,51 @@ describe('FolderStore', () => {
 			url: '#', 
 			items: ['child'] 
 		};
+
 		folderStore.folders.set('parent', parent);
 		folderStore.folders.set('child', child);
 		folderStore.items = ['parent'];
 
-		folderStore.deleteFolder('parent');
+		const fixedEpoch = 123456789;
+		folderStore.deleteFolder('parent', fixedEpoch);
 
-		expect(folderStore.folders.size).toBe(0);
-		expect(folderStore.items.length).toBe(0);
+		// Structural map intact
+		expect(folderStore.items).toContain('parent');
+		expect(folderStore.folders.get('parent')?.items).toContain('child');
+		expect(folderStore.folders.get('child')?.parentId).toBe('parent');
+		
+		// Batched flags applied perfectly
+		expect(folderStore.folders.get('parent')?.deletedAt).toBe(fixedEpoch);
+		expect(folderStore.folders.get('child')?.deletedAt).toBe(fixedEpoch);
 	});
 
-	it('should delete a child folder but keep the parent', () => {
+	it('should recover a folder recursively only if it shares the target batch epoch', () => {
 		(folderStore as any).isInitialized = true;
-		const child: FolderItem = { id: 'child', title: 'Child', url: '#', parentId: 'parent' };
+        const validEpoch = 11111;
+        const oldEpoch = 99999;
+		const childA: FolderItem = { id: 'childA', title: 'ChildA', url: '#', parentId: 'parent', deletedAt: validEpoch };
+		const childB: FolderItem = { id: 'childB', title: 'ChildB', url: '#', parentId: 'parent', deletedAt: oldEpoch };
 		const parent: FolderItem = { 
 			id: 'parent', 
 			title: 'Parent', 
 			url: '#', 
-			items: ['child'] 
+			items: ['childA', 'childB'],
+			deletedAt: validEpoch,
+			parentId: null
 		};
+
 		folderStore.folders.set('parent', parent);
-		folderStore.folders.set('child', child);
-		folderStore.items = ['parent'];
+		folderStore.folders.set('childA', childA);
+		folderStore.folders.set('childB', childB);
 
-		folderStore.deleteFolder('child');
+		folderStore.recoverFolderAndChildren('parent');
 
-		expect(folderStore.folders.has('parent')).toBe(true);
-		expect(folderStore.folders.has('child')).toBe(false);
-		expect(parent.items?.length).toBe(0);
+		// Parent and Child A match batch and recover
+		expect(folderStore.folders.get('parent')?.deletedAt).toBeNull();
+		expect(folderStore.folders.get('childA')?.deletedAt).toBeNull();
+        
+        // Child B was deleted long before, should remain flagged!
+		expect(folderStore.folders.get('childB')?.deletedAt).toBe(oldEpoch);
 	});
 
 	it('should start renaming correctly', () => {
@@ -210,7 +227,7 @@ describe('FolderStore', () => {
 	});
 
 	describe('Complex Tree Operations (Edge Cases)', () => {
-		it('should correctly delete a deeply nested folder', () => {
+		it('should propagate epoch across deeply nested structures', () => {
 			(folderStore as any).isInitialized = true;
 			// L1 -> L2 -> L3
 			const l3: FolderItem = { id: 'L3', title: 'L3', url: '#', parentId: 'L2' };
@@ -222,12 +239,15 @@ describe('FolderStore', () => {
 			folderStore.folders.set('L3', l3);
 			folderStore.items = ['L1'];
 
-			folderStore.deleteFolder('L2');
+            const epoch = 555;
+			folderStore.deleteFolder('L2', epoch);
 
-			expect(folderStore.folders.has('L1')).toBe(true);
-			expect(folderStore.folders.has('L2')).toBe(false);
-			expect(folderStore.folders.has('L3')).toBe(false);
-			expect(l1.items?.length).toBe(0);
+			expect(folderStore.folders.get('L1')?.items).toContain('L2');
+			expect(folderStore.folders.get('L2')?.parentId).toBe('L1');
+			
+			// Epochs cascade completely
+			expect(folderStore.folders.get('L2')?.deletedAt).toBe(epoch);
+			expect(folderStore.folders.get('L3')?.deletedAt).toBe(epoch);
 		});
 
 		it('should clear selection if its parent is deleted', () => {
@@ -246,7 +266,7 @@ describe('FolderStore', () => {
 
 			folderStore.deleteFolder('parent');
 
-			expect(folderStore.folders.size).toBe(0);
+			expect(folderStore.folders.get('parent')?.deletedAt).toBeDefined();
 			expect(folderStore.selectedFolderID).toBeNull();
 		});
 	});
