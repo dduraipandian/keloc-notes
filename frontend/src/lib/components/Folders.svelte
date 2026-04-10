@@ -2,7 +2,7 @@
 	import Folder from '@lucide/svelte/icons/folder';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FolderPlus from '@lucide/svelte/icons/folder-plus';
-	import Trash from '@lucide/svelte/icons/trash';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
@@ -31,21 +31,7 @@
 	<Sidebar.Header>
 		<Sidebar.Menu class="pt-6">
 			<Sidebar.MenuItem>
-				<Sidebar.MenuButton
-					class="group rounded-sm px-4 py-2 pr-10 transition-none hover:bg-accent/20"
-				>
-					{#snippet child({ props })}
-						<a href="#" class="flex items-center gap-2.5" {...props}>
-							<Trash size={16} class="text-destructive/70" />
-							<span class="text-[13px] font-medium text-foreground/70 group-hover:text-foreground"
-								>Recently Deleted</span
-							>
-						</a>
-					{/snippet}
-				</Sidebar.MenuButton>
-				<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-					>0</Sidebar.MenuBadge
-				>
+				{@render MenuItemNoChildSnippet(folderStore.folders.get('deleted-notes')!, 0)}
 			</Sidebar.MenuItem>
 		</Sidebar.Menu>
 	</Sidebar.Header>
@@ -77,6 +63,7 @@
 								e.preventDefault();
 								folderStore.createFolder();
 							}}
+							disabled={folderStore.selectedFolderID === 'deleted-notes'}
 						>
 							<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
 							<span>New Folder</span>
@@ -89,7 +76,7 @@
 </Sidebar.Root>
 
 {#snippet MenuItemSnippet(item: FolderItem, depth: number)}
-	{#if item}
+	{#if item && item.type !== 'trash'}
 		{#if item.items && item.items.length > 0}
 			<Collapsible.Root
 				class="group/collapsible"
@@ -165,42 +152,7 @@
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
 					<Sidebar.MenuItem>
-						<Sidebar.MenuButton
-							class={[
-								menuButtonStyle,
-								item.id === folderStore.selectedFolderID
-									? 'bg-accent text-foreground shadow-sm'
-									: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
-							]}
-							isActive={item.id === folderStore.selectedFolderID}
-							onclick={() => {
-								folderStore.selectFolder(item.id);
-							}}
-						>
-							{#snippet child({ props })}
-								<div class="flex w-full items-center" {...props}>
-									<div style="width: {depth * 0.75}rem" class="shrink-0"></div>
-									<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-									<Folder size={16} style="color: {folderColor}" class="opacity-80" />
-									{#if folderStore.editingId === item.id}
-										<input
-											bind:value={item.title}
-											class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
-											use:focusAndSelect
-											onkeydown={(e) => handleRenameKeyDown(e, item)}
-											onblur={() => folderStore.renameFolder(item.id, item.title)}
-											onclick={(e) => e.stopPropagation()}
-										/>
-									{:else}
-										<span class="ml-2 truncate text-left text-[13px] font-medium">{item.title}</span
-										>
-									{/if}
-								</div>
-							{/snippet}
-						</Sidebar.MenuButton>
-						<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-							>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
-						>
+						{@render MenuItemNoChildSnippet(item, depth)}
 					</Sidebar.MenuItem>
 				</ContextMenu.Trigger>
 				{@render ContextMenuContentSnippet(item)}
@@ -222,4 +174,46 @@
 			onSelect={() => folderStore.deleteFolder(item.id)}>Delete</ContextMenu.Item
 		>
 	</ContextMenu.Content>
+{/snippet}
+
+{#snippet MenuItemNoChildSnippet(item: FolderItem, depth: number)}
+	<Sidebar.MenuButton
+		class={[
+			menuButtonStyle,
+			item.id === folderStore.selectedFolderID
+				? 'bg-accent text-foreground shadow-sm'
+				: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
+		]}
+		isActive={item.id === folderStore.selectedFolderID}
+		onclick={() => {
+			folderStore.selectFolder(item.id);
+		}}
+	>
+		{#snippet child({ props })}
+			<div class="flex w-full items-center" {...props}>
+				<div style="width: {depth * 0.75}rem" class="shrink-0"></div>
+				<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
+				{#if item.type === 'trash'}
+					<Trash2 size={16} class="text-destructive/70" />
+				{:else}
+					<Folder size={16} style="color: {folderColor}" class="opacity-80" />
+				{/if}
+				{#if folderStore.editingId === item.id}
+					<input
+						bind:value={item.title}
+						class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
+						use:focusAndSelect
+						onkeydown={(e) => handleRenameKeyDown(e, item)}
+						onblur={() => folderStore.renameFolder(item.id, item.title)}
+						onclick={(e) => e.stopPropagation()}
+					/>
+				{:else}
+					<span class="ml-2 truncate text-left text-[13px] font-medium">{item.title}</span>
+				{/if}
+			</div>
+		{/snippet}
+	</Sidebar.MenuButton>
+	<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
+		>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
+	>
 {/snippet}

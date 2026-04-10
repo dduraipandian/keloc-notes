@@ -40,13 +40,15 @@
 			</h2>
 		</div>
 		<div class="flex shrink-0 items-center gap-1">
-			<button
-				class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
-				onclick={() => notesStore.createNote(folderStore.getSelectedFolder()?.id ?? null)}
-				title="New Note"
-			>
-				<SquarePen size={16} />
-			</button>
+			{#if folderStore.selectedFolderID !== 'deleted-notes'}
+				<button
+					class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
+					onclick={() => notesStore.createNote(folderStore.getSelectedFolder()?.id ?? null)}
+					title="New Note"
+				>
+					<SquarePen size={16} />
+				</button>
+			{/if}
 			<button
 				class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
 				title="Trash"
@@ -118,10 +120,17 @@
 	<ContextMenu.Content
 		class="dark min-w-[160px] rounded-md border-border/10 bg-card/95 p-1 shadow-2xl backdrop-blur-xl"
 	>
-		<ContextMenu.Item
-			class="rounded-sm px-5 py-1 text-[13px] text-destructive focus:text-destructive"
-			onSelect={() => notesStore.deleteNote(note.id)}>Delete</ContextMenu.Item
-		>
+		{#if note._deleted}
+			<ContextMenu.Item
+				class="rounded-sm px-5 py-1 text-[13px] text-destructive focus:text-destructive"
+				onSelect={() => notesStore.recoverNote(note.id)}>Recover</ContextMenu.Item
+			>
+		{:else}
+			<ContextMenu.Item
+				class="rounded-sm px-5 py-1 text-[13px] text-destructive focus:text-destructive"
+				onSelect={() => notesStore.deleteNote(note.id)}>Delete</ContextMenu.Item
+			>
+		{/if}
 	</ContextMenu.Content>
 {/snippet}
 

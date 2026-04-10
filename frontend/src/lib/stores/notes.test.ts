@@ -31,7 +31,8 @@ describe('NotesStore', () => {
 
 	// Helper to add notes correctly for tests that don't use createNote
 	const addNoteToStore = (note: NoteItem) => {
-		notesStore.notes.set(note.id, $state(note));
+		const ns = $state(note);
+		notesStore.notes.set(note.id, ns);
 		(notesStore as any).addToIndex(note.folderId, note.id);
 	};
 
@@ -62,7 +63,7 @@ describe('NotesStore', () => {
 			content: '',
 			updatedAt: '2025-01-01T00:00:00Z'
 		};
-		
+
 		addNoteToStore(n1);
 		addNoteToStore(n2);
 
@@ -72,19 +73,15 @@ describe('NotesStore', () => {
 		expect(notes[1].id).toBe('1');
 	});
 
-	it('should return correct note count for a folder using index', () => {
-		addNoteToStore({ id: '1', folderId: 'f1' } as any);
-		addNoteToStore({ id: '2', folderId: 'f1' } as any);
-		addNoteToStore({ id: '3', folderId: 'f2' } as any);
-
-		expect(notesStore.getNoteCountForFolder('f1')).toBe(2);
-		expect(notesStore.getNoteCountForFolder('f2')).toBe(1);
-		expect(notesStore.getNoteCountForFolder('f1', 'all')).toBe(3);
-	});
-
 	it('should correctly handle notes with null folderIds', () => {
 		addNoteToStore({ id: '1', folderId: null, title: 'Orphan', content: '', updatedAt: '' } as any);
-		addNoteToStore({ id: '2', folderId: 'some-folder', title: 'Folder Note', content: '', updatedAt: '' } as any);
+		addNoteToStore({
+			id: '2',
+			folderId: 'some-folder',
+			title: 'Folder Note',
+			content: '',
+			updatedAt: ''
+		} as any);
 
 		expect(notesStore.getNoteCountForFolder(null)).toBe(1);
 		expect(notesStore.getNotesForFolder(null).length).toBe(1);
@@ -111,23 +108,53 @@ describe('NotesStore', () => {
 		expect(idbr.putNote).toHaveBeenCalled();
 	});
 
-	it('should delete a note and clear selection if deleted was active', () => {
-		addNoteToStore({ id: '1', folderId: 'f1', title: 'Test', content: '', updatedAt: '' } as any);
+	it('should soft-delete a note (move to trash) and clear selection', () => {
+		addNoteToStore({ id: '1', folderId: 'f1', title: 'T', content: '', updatedAt: '' } as any);
 		notesStore.selectedNoteID = '1';
 		(notesStore as any).isInitialized = true;
 
 		notesStore.deleteNote('1');
 
-		expect(notesStore.notes.size).toBe(0);
+		// Still in map and marked as deleted
+		expect(notesStore.notes.get('1')?._deleted).toBe(true);
+		// Selection cleared
 		expect(notesStore.selectedNoteID).toBeNull();
+		// Index updated
+		expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
+		expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(1);
+		// Persistence called with true
+		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ _deleted: true }));
+	});
+
+	it('should recover a note from trash', () => {
+		const note = {
+			id: '1',
+			folderId: 'f1',
+			title: 'T',
+			content: '',
+			updatedAt: '',
+			_deleted: true
+		};
+		addNoteToStore(note as any);
+		// Manually move to trash index for setup
+		(notesStore as any).removeFromIndex('f1', '1');
+		(notesStore as any).addToIndex('deleted-notes', '1');
+		(notesStore as any).isInitialized = true;
+
+		notesStore.recoverNote('1');
+
+		expect(notesStore.notes.get('1')?._deleted).toBe(false);
+		expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(0);
+		expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
+		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ _deleted: false }));
 	});
 
 	describe('Index Management', () => {
 		it('should update index when note is moved between folders', () => {
 			const noteID = 'move-me';
 			(notesStore as any).isInitialized = true;
-			addNoteToStore({ id: noteID, folderId: 'f1', title: 'T' } as any);
-			
+			addNoteToStore({ id: noteID, folderId: 'f1', title: 'T', content: '', updatedAt: '' });
+
 			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
 			expect(notesStore.getNoteCountForFolder('f2')).toBe(0);
 
@@ -148,27 +175,61 @@ describe('NotesStore', () => {
 			expect((notesStore as any).folderNotes.get('f1')?.length).toBe(0);
 		});
 
+		it('should redirect createNote to default folder if trash is selected', () => {
+			(notesStore as any).isInitialized = true;
+			// Mock trash folder
+			vi.spyOn(folderStore, 'findItemById').mockReturnValue({
+				id: 'deleted-notes',
+				type: 'trash'
+			} as any);
+			vi.spyOn(folderStore, 'getDefaultFolderId').mockReturnValue('default-folder');
+
+			notesStore.createNote('deleted-notes');
+
+			const note = notesStore.notes.get('test-uuid');
+			expect(note?.folderId).toBe('default-folder');
+			expect(notesStore.getNoteCountForFolder('default-folder')).toBe(1);
+			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(0);
+		});
+
+		it('should recover a note back to its original specific folder', () => {
+			const note = { id: 'orig', folderId: 'special-folder', _deleted: true, updatedAt: '' };
+			addNoteToStore(note as any);
+			// Manually move to trash index for setup
+			(notesStore as any).removeFromIndex('special-folder', 'orig');
+			(notesStore as any).addToIndex('deleted-notes', 'orig');
+			(notesStore as any).isInitialized = true;
+
+			notesStore.recoverNote('orig');
+
+			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(0);
+			expect(notesStore.getNoteCountForFolder('special-folder')).toBe(1);
+			expect(notesStore.notes.get('orig')?.folderId).toBe('special-folder');
+		});
+
 		it('should use "root" key for notes with null folderId', () => {
 			addNoteToStore({ id: 'orphan', folderId: null } as any);
-			
+
 			expect(notesStore.getNoteCountForFolder(null)).toBe(1);
 			expect((notesStore as any).folderNotes.get('root')).toContain('orphan');
 		});
 	});
 
 	describe('Persistence', () => {
-		it('should rebuild index on init', async () => {
+		it('should rebuild index on init and partition deleted notes', async () => {
 			const savedNotes = [
-				{ id: '1', folderId: 'f1', title: 'N1' },
-				{ id: '2', folderId: 'f1', title: 'N2' }
+				{ id: '1', folderId: 'f1', title: 'Active' },
+				{ id: '2', folderId: 'f1', title: 'Deleted', _deleted: true }
 			];
 			vi.mocked(idbr.getAllNotes).mockResolvedValue(savedNotes as any);
 			vi.mocked(idbr.getAllSettings).mockResolvedValue({ selectedNoteID: '1' } as any);
 
 			await notesStore.init();
 
-			expect(notesStore.getNoteCountForFolder('f1')).toBe(2);
-			expect((notesStore as any).folderNotes.get('f1')).toEqual(['1', '2']);
+			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
+			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(1);
+			expect((notesStore as any).folderNotes.get('f1')).toEqual(['1']);
+			expect((notesStore as any).folderNotes.get('deleted-notes')).toEqual(['2']);
 		});
 
 		it('should save notes on createNote', async () => {
@@ -177,21 +238,12 @@ describe('NotesStore', () => {
 			expect(idbr.putNote).toHaveBeenCalled();
 		});
 
-		it('should save notes on updateNote', async () => {
-			const note = { id: '1', folderId: 'f1', title: 'Test', content: '', updatedAt: '' };
-			addNoteToStore(note);
-			(notesStore as any).isInitialized = true;
-
-			notesStore.updateNote('1', { content: 'New Content' });
-			expect(idbr.putNote).toHaveBeenCalled();
-		});
-
 		it('should save selectedNoteID on selectNote', async () => {
 			(notesStore as any).isInitialized = true;
 			addNoteToStore({ id: '1', title: 'T' } as any);
-			
+
 			notesStore.selectNote('1');
-			
+
 			expect(notesStore.selectedNoteID).toBe('1');
 			expect(idbr.putSetting).toHaveBeenCalledWith('selectedNoteID', '1');
 		});

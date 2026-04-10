@@ -30,6 +30,7 @@
 						bind:value={selectedNote.title}
 						oninput={() => notesStore.updateNote(selectedNote!.id, { title: selectedNote!.title })}
 						placeholder="Note Title"
+						disabled={selectedNote._deleted}
 						rows="1"
 						class="w-full resize-none bg-transparent text-4xl font-extrabold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/10"
 						spellcheck="false"
@@ -44,6 +45,7 @@
 					<!-- Placeholder for future TipTap editor -->
 					<textarea
 						bind:value={selectedNote.content}
+						disabled={selectedNote._deleted ? true : false}
 						oninput={() =>
 							notesStore.updateNote(selectedNote!.id, { content: selectedNote!.content })}
 						placeholder="Start writing..."

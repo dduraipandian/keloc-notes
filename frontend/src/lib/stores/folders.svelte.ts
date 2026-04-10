@@ -24,14 +24,13 @@ class FolderStore {
 	private isInitialized = false;
 
 	constructor(initialItems: FolderItem[] = []) {
+		let i = $state<string[]>([]);
+		this.items = i;
+		this.folders.clear();
 		this.loadItems(initialItems);
 	}
 
 	loadItems(initialItems: any[] = []) {
-		let i = $state<string[]>([]);
-		this.items = i;
-		this.folders.clear();
-
 		initialItems.forEach((item) => {
 			if (item.id) {
 				let i = $state(item);
@@ -226,6 +225,15 @@ class FolderStore {
 }
 
 // Initial mock data
-const initialMockData: FolderItem[] = [];
+const initialData: FolderItem[] = [
+	{
+		id: 'deleted-notes',
+		title: 'Recently Notes',
+		url: '#',
+		items: [],
+		parentId: null,
+		type: 'trash'
+	}
+];
 
-export const folderStore = new FolderStore(initialMockData);
+export const folderStore = new FolderStore(initialData);

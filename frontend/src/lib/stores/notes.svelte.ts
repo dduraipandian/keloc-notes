@@ -10,6 +10,7 @@ export type NoteItem = {
 	title: string;
 	content: string;
 	updatedAt: string;
+	_deleted?: boolean;
 };
 
 class NotesStore {
@@ -54,18 +55,34 @@ class NotesStore {
 		try {
 			const allNotesData = await getAllNotes();
 			const settings = await getAllSettings();
+			let allNotes: NoteItem[] = [];
+			let deletedNotes: NoteItem[] = [];
 
-			if (allNotesData) {
+			allNotesData.forEach((note) => {
+				let n = $state(note);
+				if (note._deleted) {
+					deletedNotes.push(n);
+				} else {
+					allNotes.push(n);
+				}
+			});
+
+			if (allNotes) {
 				this.notes.clear();
 				this.folderNotes.clear();
-				allNotesData.forEach((note) => {
-					let n = $state(note);
-					this.notes.set(note.id, n);
+				allNotes.forEach((note) => {
+					this.notes.set(note.id, note);
 					this.addToIndex(note.folderId, note.id);
 				});
 				if (settings && settings.selectedNoteID) {
 					this.selectedNoteID = settings.selectedNoteID;
 				}
+			}
+			if (deletedNotes) {
+				deletedNotes.forEach((note) => {
+					this.notes.set(note.id, note);
+					this.addToIndex('deleted-notes', note.id);
+				});
 			}
 			this.isInitialized = true;
 		} catch (error) {
@@ -74,11 +91,13 @@ class NotesStore {
 		}
 	}
 
-	persist(id: NoteID) {
+	persist(id: NoteID, toDelete: boolean = false) {
 		if (!this.isInitialized) return;
 		const note = this.notes.get(id);
 		if (note) {
-			putNote($state.snapshot(note));
+			console.log('persist', toDelete, id);
+			let n = $state.snapshot(note);
+			putNote({ ...n, _deleted: toDelete });
 		}
 		putSetting('selectedNoteID', this.selectedNoteID);
 	}
@@ -101,6 +120,7 @@ class NotesStore {
 			noteIds = this.folderNotes.get(fid) || [];
 		}
 
+		console.log('noteIds', noteIds);
 		return noteIds
 			.map((id) => this.notes.get(id)!)
 			.filter(Boolean)
@@ -158,14 +178,26 @@ class NotesStore {
 	deleteNote(id: NoteID) {
 		const note = this.notes.get(id);
 		if (note) {
+			console.log('deleteNote', id);
+			note._deleted = true;
+			this.persist(id, true);
 			this.removeFromIndex(note.folderId, id);
-			this.notes.delete(id);
+			this.addToIndex('deleted-notes', note.id);
 		}
 
 		if (this.selectedNoteID === id) {
 			this.selectedNoteID = null;
 		}
-		// this.persist(id);
+	}
+
+	recoverNote(id: NoteID) {
+		const note = this.notes.get(id);
+		if (note) {
+			note._deleted = false;
+			this.persist(id, false);
+			this.removeFromIndex('deleted-notes', id);
+			this.addToIndex(note.folderId, id);
+		}
 	}
 
 	selectNote(id: NoteID | null) {
