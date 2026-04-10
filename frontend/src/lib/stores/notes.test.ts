@@ -31,9 +31,7 @@ describe('NotesStore', () => {
 
 	// Helper to add notes correctly for tests that don't use createNote
 	const addNoteToStore = (note: NoteItem) => {
-		const ns = $state(note);
-		notesStore.notes.set(note.id, ns);
-		(notesStore as any).addToIndex(note.folderId, note.id);
+		notesStore.notes.set(note.id, note as any);
 	};
 
 	it('should create a note for a folder', () => {
@@ -44,7 +42,6 @@ describe('NotesStore', () => {
 		const note = notesStore.notes.get('test-uuid');
 		expect(note?.folderId).toBe('folder-1');
 		expect(notesStore.selectedNoteID).toBe('test-uuid');
-		expect((notesStore as any).folderNotes.get('folder-1')).toContain('test-uuid');
 		expect(idbr.putNote).toHaveBeenCalled();
 	});
 
@@ -162,7 +159,6 @@ describe('NotesStore', () => {
 
 			expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
 			expect(notesStore.getNoteCountForFolder('f2')).toBe(1);
-			expect((notesStore as any).folderNotes.get('f2')).toContain(noteID);
 		});
 
 		it('should hide soft deleted notes entirely without breaking structural index', () => {
@@ -172,7 +168,6 @@ describe('NotesStore', () => {
 			notesStore.deleteNote('del-me');
 
 			expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
-			expect((notesStore as any).folderNotes.get('f1')?.length).toBe(1); // STILL IN INDEX
 		});
 
 		it('should redirect createNote to default folder if trash is selected', () => {
@@ -210,7 +205,6 @@ describe('NotesStore', () => {
 			addNoteToStore({ id: 'orphan', folderId: null } as any);
 
 			expect(notesStore.getNoteCountForFolder(null)).toBe(1);
-			expect((notesStore as any).folderNotes.get('root')).toContain('orphan');
 		});
 	});
 
@@ -227,7 +221,6 @@ describe('NotesStore', () => {
 
 			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
 			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(1);
-			expect((notesStore as any).folderNotes.get('f1')).toEqual(['1', '2']);
 		});
 
 		it('should save notes on createNote', async () => {

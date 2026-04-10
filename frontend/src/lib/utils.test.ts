@@ -11,13 +11,14 @@ describe('Date Utilities', () => {
 		});
 
 		it('should return "Yesterday" for previous day', () => {
-			const date = '2024-05-19T23:00:00Z';
+			const date = new Date(mockNow.getFullYear(), mockNow.getMonth(), mockNow.getDate() - 1, 10).toISOString();
 			expect(formatDate(date, mockNow)).toBe('Yesterday');
 		});
 
 		it('should return day of week for within last 7 days', () => {
-			const date = '2024-05-18T10:00:00Z'; // Sunday
-			expect(formatDate(date, mockNow)).toBe('Sunday');
+			const dateObj = new Date(mockNow.getFullYear(), mockNow.getMonth(), mockNow.getDate() - 2, 10);
+			const expectedDay = dateObj.toLocaleDateString(undefined, { weekday: 'long' });
+			expect(formatDate(dateObj.toISOString(), mockNow)).toBe(expectedDay);
 		});
 
 		it('should return full date for older dates', () => {
@@ -30,9 +31,9 @@ describe('Date Utilities', () => {
 	describe('groupNotesByDate', () => {
 		it('should group notes by calendar day and sort descending', () => {
 			const notes = [
-				{ id: '1', updatedAt: '2024-05-20T05:00:00Z', title: 'Today 1' },
-				{ id: '2', updatedAt: '2024-05-19T22:00:00Z', title: 'Yesterday 1' },
-				{ id: '3', updatedAt: '2024-05-20T08:00:00Z', title: 'Today 2' }
+				{ id: '1', updatedAt: new Date(mockNow.getFullYear(), mockNow.getMonth(), mockNow.getDate(), 10).toISOString(), title: 'Today 1' },
+				{ id: '2', updatedAt: new Date(mockNow.getFullYear(), mockNow.getMonth(), mockNow.getDate() - 1, 10).toISOString(), title: 'Yesterday 1' },
+				{ id: '3', updatedAt: new Date(mockNow.getFullYear(), mockNow.getMonth(), mockNow.getDate(), 12).toISOString(), title: 'Today 2' }
 			];
 
 			const groups = groupNotesByDate(notes, mockNow);
@@ -50,8 +51,8 @@ describe('Date Utilities', () => {
 		});
 
 		it('should handle dates across year boundaries', () => {
-			const now = new Date('2024-01-01T10:00:00Z');
-			const noteDate = '2023-12-31T22:00:00Z';
+			const now = new Date('2024-01-01T10:00:00'); // Local time to avoid boundary shifts
+			const noteDate = new Date('2023-12-31T10:00:00').toISOString();
 			
 			expect(formatDate(noteDate, now)).toBe('Yesterday');
 		});
