@@ -162,15 +162,12 @@
 {/snippet}
 
 {#snippet ContextMenuContentSnippet(item: FolderItem)}
-	<ContextMenu.Content
-		class="dark min-w-[160px] rounded-md border-border/10 bg-card/95 p-1 shadow-2xl backdrop-blur-xl"
-	>
-		<ContextMenu.Item
-			class="rounded-sm px-3 py-1 text-[13px]"
-			onSelect={() => folderStore.startRename(item.id)}>Rename</ContextMenu.Item
+	<ContextMenu.Content class="w-36">
+		<ContextMenu.Item class="text-[13px]" onSelect={() => folderStore.startRename(item.id)}
+			>Rename</ContextMenu.Item
 		>
 		<ContextMenu.Item
-			class="rounded-sm px-3 py-1 text-[13px] text-destructive focus:text-destructive"
+			class="text-[13px] text-destructive focus:text-destructive"
 			onSelect={() => folderStore.deleteFolder(item.id)}>Delete</ContextMenu.Item
 		>
 	</ContextMenu.Content>

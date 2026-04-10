@@ -89,7 +89,6 @@
 							<ContextMenu.Trigger>
 								<Item.Root
 									variant={isSelected ? 'muted' : 'default'}
-									class="rounded-md"
 									onclick={() => notesStore.selectNote(note.id)}
 								>
 									<Item.Content>
@@ -117,17 +116,15 @@
 </aside>
 
 {#snippet ContextMenuContentSnippet(note: NoteItem)}
-	<ContextMenu.Content
-		class="dark min-w-[160px] rounded-md border-border/10 bg-card/95 p-1 shadow-2xl backdrop-blur-xl"
-	>
+	<ContextMenu.Content class="w-48">
 		{#if note._deleted}
 			<ContextMenu.Item
-				class="rounded-sm px-5 py-1 text-[13px] text-destructive focus:text-destructive"
+				class="text-[13px] text-destructive focus:text-destructive"
 				onSelect={() => notesStore.recoverNote(note.id)}>Recover</ContextMenu.Item
 			>
 		{:else}
 			<ContextMenu.Item
-				class="rounded-sm px-5 py-1 text-[13px] text-destructive focus:text-destructive"
+				class="text-[13px] text-destructive focus:text-destructive"
 				onSelect={() => notesStore.deleteNote(note.id)}>Delete</ContextMenu.Item
 			>
 		{/if}
