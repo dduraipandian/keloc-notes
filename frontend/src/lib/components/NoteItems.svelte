@@ -9,6 +9,8 @@
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
+	import { uiStore } from '$lib/stores/ui.svelte';
+
 	let searchQuery = $state('');
 
 	const filteredNotes = $derived(
@@ -29,6 +31,13 @@
 	const sections = $derived(() => {
 		return groupNotesByDate(filteredNotes);
 	});
+
+	function handleNoteRestore(note: NoteItem) {
+		const isHierarchical = !!(note.folderId && folderStore.findTopDeletedAncestor(note.folderId));
+		uiStore.confirmNoteRestore(note.title, isHierarchical, () => {
+			notesStore.recoverNote(note.id, isHierarchical);
+		});
+	}
 </script>
 
 <aside class="relative z-0 flex h-full w-[350px] flex-col">
@@ -49,14 +58,18 @@
 					<SquarePen size={16} />
 				</button>
 			{/if}
-			<button
-				class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
-				title="Trash"
-				onclick={() =>
-					notesStore.selectedNoteID ? notesStore.deleteNote(notesStore.selectedNoteID) : null}
-			>
-				<Trash2 size={16} />
-			</button>
+			{#if notesStore.selectedNote}
+				<button
+					class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
+					title="Trash"
+					onclick={() =>
+						uiStore.confirmNoteDelete(notesStore.selectedNote!.title, () =>
+							notesStore.deleteNote(notesStore.selectedNoteID!)
+						)}
+				>
+					<Trash2 size={16} />
+				</button>
+			{/if}
 		</div>
 	</header>
 
@@ -118,14 +131,14 @@
 {#snippet ContextMenuContentSnippet(note: NoteItem)}
 	<ContextMenu.Content class="w-48">
 		{#if note.deletedAt != null}
-			<ContextMenu.Item
-				class="text-[13px] text-destructive focus:text-destructive"
-				onSelect={() => notesStore.recoverNote(note.id)}>Recover</ContextMenu.Item
+			<ContextMenu.Item class="text-[13px]" onSelect={() => handleNoteRestore(note)}
+				>Restore</ContextMenu.Item
 			>
 		{:else}
 			<ContextMenu.Item
 				class="text-[13px] text-destructive focus:text-destructive"
-				onSelect={() => notesStore.deleteNote(note.id)}>Delete</ContextMenu.Item
+				onSelect={() => uiStore.confirmNoteDelete(note.title, () => notesStore.deleteNote(note.id))}
+				>Delete</ContextMenu.Item
 			>
 		{/if}
 	</ContextMenu.Content>

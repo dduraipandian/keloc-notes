@@ -8,6 +8,7 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 	import { notesStore } from '$lib/stores/notes.svelte';
+	import { uiStore } from '$lib/stores/ui.svelte';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
 	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none';
@@ -63,7 +64,6 @@
 								e.preventDefault();
 								folderStore.createFolder();
 							}}
-							disabled={folderStore.selectedFolderID === 'deleted-notes'}
 						>
 							<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
 							<span>New Folder</span>
@@ -77,9 +77,13 @@
 
 {#snippet MenuItemSnippet(item: FolderItem, depth: number, isTrashTree: boolean = false)}
 	{#if item && (isTrashTree || (item.deletedAt == null && item.type !== 'trash'))}
-        {@const isTrashRoot = item.type === 'trash'}
-        {@const childrenIds_raw = isTrashRoot ? folderStore.trashItems : (item.items || [])}
-        {@const childrenIds = isTrashRoot ? childrenIds_raw : (isTrashTree ? [] : childrenIds_raw.filter(id => folderStore.folders.get(id)?.deletedAt == null))}
+		{@const isTrashRoot = item.type === 'trash'}
+		{@const childrenIds_raw = isTrashRoot ? folderStore.trashItems : item.items || []}
+		{@const childrenIds = isTrashRoot
+			? childrenIds_raw
+			: isTrashTree
+				? []
+				: childrenIds_raw.filter((id) => folderStore.folders.get(id)?.deletedAt == null)}
 		{#if childrenIds && childrenIds.length > 0}
 			<Collapsible.Root
 				class="group/collapsible"
@@ -146,7 +150,11 @@
 							<Collapsible.Content>
 								<Sidebar.MenuSub class="m-0 border-l-0 p-0">
 									{#each childrenIds as subItemID}
-										{@render MenuItemSnippet(folderStore.folders.get(subItemID)!, depth + 1, isTrashTree || isTrashRoot)}
+										{@render MenuItemSnippet(
+											folderStore.folders.get(subItemID)!,
+											depth + 1,
+											isTrashTree || isTrashRoot
+										)}
 									{/each}
 								</Sidebar.MenuSub>
 							</Collapsible.Content>
@@ -175,7 +183,9 @@
 {#snippet ContextMenuContentSnippet(item: FolderItem)}
 	<ContextMenu.Content class="w-36">
 		{#if item.deletedAt != null}
-			<ContextMenu.Item class="text-[13px]" onSelect={() => folderStore.recoverFolderAndChildren(item.id)}
+			<ContextMenu.Item
+				class="text-[13px]"
+				onSelect={() => folderStore.recoverFolderAndChildren(item.id)}
 				>Recover Folder</ContextMenu.Item
 			>
 		{:else}
@@ -184,13 +194,20 @@
 			>
 			<ContextMenu.Item
 				class="text-[13px] text-destructive focus:text-destructive"
-				onSelect={() => folderStore.deleteFolder(item.id)}>Delete</ContextMenu.Item
+				onSelect={() =>
+					uiStore.confirmFolderDelete(item.title, () => folderStore.deleteFolder(item.id))}
+				>Delete</ContextMenu.Item
 			>
 		{/if}
 	</ContextMenu.Content>
 {/snippet}
 
-{#snippet MenuItemNoChildSnippet(item: FolderItem, depth: number, isTrashTree: boolean = false, isTrashRoot: boolean = false)}
+{#snippet MenuItemNoChildSnippet(
+	item: FolderItem,
+	depth: number,
+	isTrashTree: boolean = false,
+	isTrashRoot: boolean = false
+)}
 	<Sidebar.MenuButton
 		class={[
 			menuButtonStyle,

@@ -186,13 +186,18 @@ class NotesStore {
 		if (note) {
 			if (note.folderId) {
 				const f = folderStore.findItemById(note.folderId);
-				if (f && f.deletedAt != null) {
-					if (recoverFolder) {
-						const topRoot = folderStore.findTopDeletedAncestor(note.folderId);
-						if (topRoot) folderStore.recoverFolderAndChildren(topRoot.id);
-					} else {
-						note.folderId = null; // Recover to root
+				if (f) {
+					if (f.deletedAt != null) {
+						if (recoverFolder) {
+							const topRoot = folderStore.findTopDeletedAncestor(note.folderId);
+							if (topRoot) folderStore.recoverFolderAndChildren(topRoot.id);
+						} else {
+							note.folderId = null; // Recover to root if not choosing to restore hierarchy
+						}
 					}
+				} else {
+					// Parent folder metadata is missing from system
+					note.folderId = null;
 				}
 			}
 			note.deletedAt = null;

@@ -3,10 +3,10 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Info from '@lucide/svelte/icons/info';
 	import { folderStore } from '$lib/stores/folders.svelte';
+	import { uiStore } from '$lib/stores/ui.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 
 	let selectedNote = $derived(notesStore.selectedNote);
-	let showRestoreDialog = $state(false);
 
 	let topDeletedAncestor = $derived.by(() => {
 		if (selectedNote?.folderId) {
@@ -17,11 +17,12 @@
 	});
 
 	function handleRestoreInit() {
-		if (topDeletedAncestor) {
-			showRestoreDialog = true;
-		} else if (selectedNote) {
-			notesStore.recoverNote(selectedNote.id);
-		}
+		if (!selectedNote) return;
+
+		const isHierarchical = !!topDeletedAncestor;
+		uiStore.confirmNoteRestore(selectedNote.title, isHierarchical, () => {
+			notesStore.recoverNote(selectedNote!.id, isHierarchical);
+		});
 	}
 
 	function formatDate(dateStr: string) {
@@ -126,44 +127,48 @@
 	</div>
 {/if}
 
-<AlertDialog.Root bind:open={showRestoreDialog}>
+<!-- Note Dialog -->
+<AlertDialog.Root bind:open={uiStore.noteDialog.open}>
 	<AlertDialog.Content>
 		<AlertDialog.Header>
-			<AlertDialog.Title>Restore Folder Too?</AlertDialog.Title>
-			<AlertDialog.Description>
-				{#if topDeletedAncestor}
-					The original folder <strong>{topDeletedAncestor.title}</strong> is currently deleted. Would
-					you like to restore the folder structure as well?
-				{:else}
-					This note is in the trash. Would you like to restore it?
-				{/if}
-			</AlertDialog.Description>
+			<AlertDialog.Title>{uiStore.noteDialog.title}</AlertDialog.Title>
+			<AlertDialog.Description>{uiStore.noteDialog.description}</AlertDialog.Description>
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
 			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-			<div class="flex gap-2">
-				<Button
-					variant="secondary"
-					onclick={() => {
-						if (selectedNote) {
-							notesStore.recoverNote(selectedNote.id, false);
-							showRestoreDialog = false;
-						}
-					}}
-				>
-					Note Only
-				</Button>
-				<AlertDialog.Action
-					onclick={() => {
-						if (selectedNote) {
-							notesStore.recoverNote(selectedNote.id, true);
-							showRestoreDialog = false;
-						}
-					}}
-				>
-					Restore Folder
-				</AlertDialog.Action>
-			</div>
+			<AlertDialog.Action
+				class={uiStore.noteDialog.type === 'delete' ? 'bg-destructive hover:bg-destructive/90' : ''}
+				onclick={() => {
+					uiStore.noteDialog.onConfirm();
+					uiStore.noteDialog.open = false;
+				}}
+			>
+				{uiStore.noteDialog.confirmLabel}
+			</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<!-- Folder Dialog -->
+<AlertDialog.Root bind:open={uiStore.folderDialog.open}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>{uiStore.folderDialog.title}</AlertDialog.Title>
+			<AlertDialog.Description>{uiStore.folderDialog.description}</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action
+				class={uiStore.folderDialog.type === 'delete'
+					? 'bg-destructive hover:bg-destructive/90'
+					: ''}
+				onclick={() => {
+					uiStore.folderDialog.onConfirm();
+					uiStore.folderDialog.open = false;
+				}}
+			>
+				{uiStore.folderDialog.confirmLabel}
+			</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>

@@ -195,7 +195,12 @@ class FolderStore {
 			}
 
 			if (!targetBatch) {
-				this.recoverParentPath(folder.parentId);
+				if (folder.parentId && !this.folders.has(folder.parentId)) {
+					// Parent is missing from system, root this folder
+					folder.parentId = null;
+				} else {
+					this.recoverParentPath(folder.parentId);
+				}
 			}
 		}
 	}
