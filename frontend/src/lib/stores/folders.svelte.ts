@@ -187,7 +187,7 @@ class FolderStore {
 		}
 	}
 
-	private recoverParentPath(parentId: string | null | undefined) {
+	recoverParentPath(parentId: string | null | undefined) {
 		if (!parentId) return;
 		const parent = this.folders.get(parentId);
 		if (parent && parent.deletedAt != null) {
@@ -273,7 +273,7 @@ class FolderStore {
 const initialData: FolderItem[] = [
 	{
 		id: 'deleted-notes',
-		title: 'Recently Notes',
+		title: 'Recently Deleted',
 		url: '#',
 		items: [],
 		parentId: null,

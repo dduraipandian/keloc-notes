@@ -176,7 +176,7 @@ class NotesStore {
 			if (note.folderId) {
 				const f = folderStore.findItemById(note.folderId);
 				if (f && f.deletedAt != null) {
-					folderStore.recoverFolderAndChildren(note.folderId, false);
+					folderStore.recoverParentPath(note.folderId);
 				}
 			}
 		}
