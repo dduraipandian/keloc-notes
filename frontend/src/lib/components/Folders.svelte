@@ -79,7 +79,7 @@
 	{#if item && (isTrashTree || (item.deletedAt == null && item.type !== 'trash'))}
         {@const isTrashRoot = item.type === 'trash'}
         {@const childrenIds_raw = isTrashRoot ? folderStore.trashItems : (item.items || [])}
-        {@const childrenIds = isTrashTree || isTrashRoot ? childrenIds_raw : childrenIds_raw.filter(id => folderStore.folders.get(id)?.deletedAt == null)}
+        {@const childrenIds = isTrashRoot ? childrenIds_raw : (isTrashTree ? [] : childrenIds_raw.filter(id => folderStore.folders.get(id)?.deletedAt == null))}
 		{#if childrenIds && childrenIds.length > 0}
 			<Collapsible.Root
 				class="group/collapsible"

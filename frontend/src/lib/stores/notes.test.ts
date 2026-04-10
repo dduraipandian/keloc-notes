@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { notesStore, type NoteItem } from './notes.svelte';
 import * as idbr from './idbr';
-import { folderStore } from './folders.svelte';
+import { folderStore, type FolderItem } from './folders.svelte';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock IDBR module
@@ -21,17 +21,30 @@ global.crypto.randomUUID = vi.fn(() => 'test-uuid' as any);
 
 describe('NotesStore', () => {
 	beforeEach(() => {
+		vi.restoreAllMocks();
 		vi.clearAllMocks();
-		// Reset store
+		// Reset stores
 		(notesStore as any).notes = new SvelteMap();
-		(notesStore as any).folderNotes = new SvelteMap();
 		(notesStore as any).selectedNoteID = null;
 		(notesStore as any).isInitialized = false;
+
+		// Clear singleton FolderStore to prevent cross-test pollution
+		(folderStore as any).items = [];
+		(folderStore as any).folders = new SvelteMap();
+		(folderStore as any).isInitialized = false;
 	});
 
 	// Helper to add notes correctly for tests that don't use createNote
-	const addNoteToStore = (note: NoteItem) => {
-		notesStore.notes.set(note.id, note as any);
+	const addNoteToStore = (note: Partial<NoteItem> & { id: string }) => {
+		const fullNote: NoteItem = {
+			folderId: null,
+			title: 'Untitled',
+			content: '',
+			updatedAt: new Date().toISOString(),
+			deletedAt: null,
+			...note
+		};
+		notesStore.notes.set(fullNote.id, fullNote);
 	};
 
 	it('should create a note for a folder', () => {
@@ -71,14 +84,11 @@ describe('NotesStore', () => {
 	});
 
 	it('should correctly handle notes with null folderIds', () => {
-		addNoteToStore({ id: '1', folderId: null, title: 'Orphan', content: '', updatedAt: '' } as any);
+		addNoteToStore({ id: '1', folderId: null });
 		addNoteToStore({
 			id: '2',
-			folderId: 'some-folder',
-			title: 'Folder Note',
-			content: '',
-			updatedAt: ''
-		} as any);
+			folderId: 'some-folder'
+		});
 
 		expect(notesStore.getNoteCountForFolder(null)).toBe(1);
 		expect(notesStore.getNotesForFolder(null).length).toBe(1);
@@ -106,7 +116,7 @@ describe('NotesStore', () => {
 	});
 
 	it('should soft-delete a note (move to trash) and clear selection', () => {
-		addNoteToStore({ id: '1', folderId: 'f1', title: 'T', content: '', updatedAt: '' } as any);
+		addNoteToStore({ id: '1', folderId: 'f1' });
 		notesStore.selectedNoteID = '1';
 		(notesStore as any).isInitialized = true;
 
@@ -135,22 +145,130 @@ describe('NotesStore', () => {
 		};
 		addNoteToStore(note as any);
 		(notesStore as any).isInitialized = true;
-		
+
 		vi.spyOn(folderStore, 'findItemById').mockReturnValue(null);
 
 		notesStore.recoverNote('1');
 
 		expect(notesStore.notes.get('1')?.deletedAt).toBeNull();
-		expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(0);
-		expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
+		expect(notesStore.notes.get('1')?.folderId).toBe('f1'); // Remains in f1 if f1 is active
 		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: null }));
+	});
+
+	it('should aggregate notes from sub-hierarchies in trash', () => {
+		(notesStore as any).isInitialized = true;
+
+		// Setup A (Deleted) -> B (Deleted) -> Note X
+		const note: NoteItem = {
+			id: 'note-x',
+			folderId: 'B',
+			title: 'X',
+			content: '',
+			updatedAt: '',
+			deletedAt: 123
+		};
+		addNoteToStore(note);
+
+		const b: FolderItem = {
+			id: 'B',
+			title: 'B',
+			url: '#',
+			parentId: 'A',
+			items: [],
+			deletedAt: 123
+		};
+		const a: FolderItem = {
+			id: 'A',
+			title: 'A',
+			url: '#',
+			parentId: null,
+			items: ['B'],
+			deletedAt: 123
+		};
+
+		vi.spyOn(folderStore, 'findItemById').mockImplementation((id) => {
+			if (id === 'A') return a;
+			if (id === 'B') return b;
+			return null;
+		});
+
+		// Selecting parent A should find notes from child B
+		const notes = notesStore.getNotesForFolder('A');
+		expect(notes).toContainEqual(expect.objectContaining({ id: 'note-x' }));
+	});
+
+	it('should support prompted recovery of note and folder hierarchy', () => {
+		(notesStore as any).isInitialized = true;
+		const epoch = 123;
+
+		// Setup A (Deleted) -> Note X
+		const note: NoteItem = {
+			id: 'note-x',
+			folderId: 'A',
+			title: 'X',
+			content: '',
+			updatedAt: '',
+			deletedAt: epoch
+		};
+		addNoteToStore(note);
+
+		const a: FolderItem = {
+			id: 'A',
+			title: 'A',
+			url: '#',
+			parentId: null,
+			items: [],
+			deletedAt: epoch
+		};
+		vi.spyOn(folderStore, 'findItemById').mockReturnValue(a);
+		vi.spyOn(folderStore, 'findTopDeletedAncestor').mockReturnValue(a);
+		const recoverSpy = vi.spyOn(folderStore, 'recoverFolderAndChildren');
+
+		// Recover with folder
+		notesStore.recoverNote('note-x', true);
+
+		expect(recoverSpy).toHaveBeenCalledWith('A');
+		expect(notesStore.notes.get('note-x')?.deletedAt).toBeNull();
+		expect(notesStore.notes.get('note-x')?.folderId).toBe('A');
+	});
+
+	it('should support prompted recovery of note alone (rooting it)', () => {
+		(notesStore as any).isInitialized = true;
+		const epoch = 123;
+
+		// Setup A (Deleted) -> Note X
+		const note: NoteItem = {
+			id: 'note-x',
+			folderId: 'A',
+			title: 'X',
+			content: '',
+			updatedAt: '',
+			deletedAt: epoch
+		};
+		addNoteToStore(note);
+
+		const a: FolderItem = {
+			id: 'A',
+			title: 'A',
+			url: '#',
+			parentId: null,
+			items: [],
+			deletedAt: epoch
+		};
+		vi.spyOn(folderStore, 'findItemById').mockReturnValue(a);
+
+		// Recover note ONLY
+		notesStore.recoverNote('note-x', false);
+
+		expect(notesStore.notes.get('note-x')?.deletedAt).toBeNull();
+		expect(notesStore.notes.get('note-x')?.folderId).toBeNull(); // Ejected to root
 	});
 
 	describe('Index Management', () => {
 		it('should update index when note is moved between folders', () => {
 			const noteID = 'move-me';
 			(notesStore as any).isInitialized = true;
-			addNoteToStore({ id: noteID, folderId: 'f1', title: 'T', content: '', updatedAt: '' });
+			addNoteToStore({ id: noteID, folderId: 'f1' });
 
 			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
 			expect(notesStore.getNoteCountForFolder('f2')).toBe(0);
@@ -162,7 +280,7 @@ describe('NotesStore', () => {
 		});
 
 		it('should hide soft deleted notes entirely without breaking structural index', () => {
-			addNoteToStore({ id: 'del-me', folderId: 'f1' } as any);
+			addNoteToStore({ id: 'del-me', folderId: 'f1' });
 			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
 
 			notesStore.deleteNote('del-me');
@@ -202,7 +320,7 @@ describe('NotesStore', () => {
 		});
 
 		it('should use "root" key for notes with null folderId', () => {
-			addNoteToStore({ id: 'orphan', folderId: null } as any);
+			addNoteToStore({ id: 'orphan', folderId: null });
 
 			expect(notesStore.getNoteCountForFolder(null)).toBe(1);
 		});
@@ -231,7 +349,7 @@ describe('NotesStore', () => {
 
 		it('should save selectedNoteID on selectNote', async () => {
 			(notesStore as any).isInitialized = true;
-			addNoteToStore({ id: '1', title: 'T' } as any);
+			addNoteToStore({ id: '1' });
 
 			notesStore.selectNote('1');
 

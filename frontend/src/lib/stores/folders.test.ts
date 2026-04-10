@@ -295,45 +295,55 @@ describe('FolderStore', () => {
 			expect(folderStore.folders.get('sibling')?.deletedAt).toBe(epoch);
 		});
 
-		it('should strictly recreate active folder paths from trash configurations without mutating the original trash structures', () => {
+		it('should correctly identify deletion roots in trashItems', () => {
 			(folderStore as any).isInitialized = true;
 			const epoch = 555;
-			const child: FolderItem = { id: 'child', title: 'Child', url: '#', parentId: 'parent', items: [], deletedAt: epoch };
-			const parent: FolderItem = { id: 'parent', title: 'Parent', url: '#', parentId: null, items: ['child'], deletedAt: epoch };
+			// A (Active) -> B (Deleted) -> C (Deleted)
+			const c: FolderItem = { id: 'C', title: 'C', url: '#', parentId: 'B', deletedAt: epoch };
+			const b: FolderItem = { id: 'B', title: 'B', url: '#', parentId: 'A', items: ['C'], deletedAt: epoch };
+			const a: FolderItem = { id: 'A', title: 'A', url: '#', parentId: null, items: ['B'], deletedAt: null };
 			
-			folderStore.folders.set('parent', parent);
-			folderStore.folders.set('child', child);
-			folderStore.items = ['parent'];
+			folderStore.folders.set('A', a);
+			folderStore.folders.set('B', b);
+			folderStore.folders.set('C', c);
+			folderStore.items = ['A'];
 
-			const activeChildId = folderStore.recreateActivePathForFolder('child');
-
-			const activeChild = folderStore.folders.get(activeChildId);
-			expect(activeChild).toBeDefined();
-			expect(activeChild?.deletedAt).toBeNull();
-			expect(activeChild?.title).toBe('Child');
-			expect(activeChildId).not.toBe('child'); // It's a fresh clone UUID
-
-			// Ensure original trash hierarchy remained locked and unmutated
-			expect(folderStore.folders.get('child')?.deletedAt).toBe(epoch);
-			expect(folderStore.folders.get('parent')?.deletedAt).toBe(epoch);
+			// Only B should be a root, because its parent A is NOT deleted
+			expect(folderStore.trashItems).toContain('B');
+			expect(folderStore.trashItems).not.toContain('C');
 		});
 
-		it('should dynamically cascade-prune dead trash hierarchies upward when emptied of data', async () => {
+		it('should find the top deleted ancestor correctly', () => {
 			(folderStore as any).isInitialized = true;
 			const epoch = 555;
-			const child: FolderItem = { id: 'garbage-child', title: 'Child', url: '#', parentId: 'garbage-parent', items: [], deletedAt: epoch };
-			const parent: FolderItem = { id: 'garbage-parent', title: 'Parent', url: '#', parentId: null, items: ['garbage-child'], deletedAt: epoch };
+			// A (Active) -> B (Deleted) -> C (Deleted)
+			const c: FolderItem = { id: 'C', title: 'C', url: '#', parentId: 'B', deletedAt: epoch };
+			const b: FolderItem = { id: 'B', title: 'B', url: '#', parentId: 'A', items: ['C'], deletedAt: epoch };
+			const a: FolderItem = { id: 'A', title: 'A', url: '#', parentId: null, items: ['B'], deletedAt: null };
 			
-			folderStore.folders.set('garbage-parent', parent);
-			folderStore.folders.set('garbage-child', child);
-			folderStore.items = ['garbage-parent'];
+			folderStore.folders.set('A', a);
+			folderStore.folders.set('B', b);
+			folderStore.folders.set('C', c);
 
-			// Assuming no notes live here, pruning child destroys both
-			await folderStore.pruneEmptyTrashPath('garbage-child');
+			const top = folderStore.findTopDeletedAncestor('C');
+			expect(top?.id).toBe('B');
+		});
 
-			expect(folderStore.folders.has('garbage-child')).toBe(false);
-			expect(folderStore.folders.has('garbage-parent')).toBe(false);
-			expect(folderStore.items).not.toContain('garbage-parent');
+		it('should handle recursive recovery of parent path', () => {
+			(folderStore as any).isInitialized = true;
+			const epoch = 555;
+			// L1 (Deleted) -> L2 (Deleted)
+			const l2: FolderItem = { id: 'L2', title: 'L2', url: '#', parentId: 'L1', deletedAt: epoch };
+			const l1: FolderItem = { id: 'L1', title: 'L1', url: '#', parentId: null, items: ['L2'], deletedAt: epoch };
+			
+			folderStore.folders.set('L1', l1);
+			folderStore.folders.set('L2', l2);
+			folderStore.items = ['L1'];
+
+			folderStore.recoverParentPath('L2');
+
+			expect(folderStore.folders.get('L2')?.deletedAt).toBeNull();
+			expect(folderStore.folders.get('L1')?.deletedAt).toBeNull();
 		});
 
 		it('should clear selection if its parent is deleted', () => {

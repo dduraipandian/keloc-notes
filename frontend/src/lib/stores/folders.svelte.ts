@@ -144,6 +144,7 @@ class FolderStore {
 		if (!folder) return;
 
 		const ts = batchTimestamp ?? Date.now();
+
 		folder.deletedAt = ts;
 		this.folders.set(id, folder);
 		this.persist(id);
@@ -161,6 +162,18 @@ class FolderStore {
 		if (this.editingId === id) {
 			this.editingId = null;
 		}
+	}
+
+	findTopDeletedAncestor(folderId: string): FolderItem | null {
+		const folder = this.folders.get(folderId);
+		if (!folder || folder.deletedAt == null) return null;
+
+		if (!folder.parentId) return folder;
+
+		const parent = this.folders.get(folder.parentId);
+		if (!parent || parent.deletedAt == null) return folder;
+
+		return this.findTopDeletedAncestor(folder.parentId);
 	}
 
 	recoverFolderAndChildren(id: string, targetBatch?: number) {
@@ -196,104 +209,6 @@ class FolderStore {
 			this.persist(parentId);
 			this.recoverParentPath(parent.parentId);
 		}
-	}
-
-	async pruneEmptyTrashPath(folderId: string) {
-		const folder = this.folders.get(folderId);
-		if (!folder || folder.deletedAt == null) return;
-
-		// 1. Assert no remaining trash notes
-		if (notesStore.getNoteCountForFolder(folderId) > 0) return;
-
-		// 2. Assert no remaining trash subfolders
-		const hasTrashedChildren = (folder.items || []).some(childId => {
-			const child = this.folders.get(childId);
-			return child && child.deletedAt != null;
-		});
-
-		if (hasTrashedChildren) return;
-
-		// 3. Destruct
-		const parentId = folder.parentId;
-		this.folders.delete(folderId);
-
-		if (parentId) {
-			const parent = this.folders.get(parentId);
-			if (parent && parent.items) {
-				parent.items = parent.items.filter(id => id !== folderId);
-				this.persist(parentId);
-			}
-		} else {
-			this.items = this.items.filter(id => id !== folderId);
-		}
-
-		if (this.selectedFolderID === folderId) {
-			this.selectedFolderID = null;
-		}
-
-		await deleteFolder(folderId);
-
-		// 4. Cascade prune upward
-		if (parentId) {
-			this.pruneEmptyTrashPath(parentId);
-		}
-	}
-
-	recreateActivePathForFolder(folderId: string): string {
-		const folder = this.folders.get(folderId);
-		if (!folder) return this.getDefaultFolderId() || 'root';
-
-		if (folder.deletedAt == null) return folderId;
-
-		let parentIdToUse: string | null = null;
-		if (folder.parentId) {
-			parentIdToUse = this.recreateActivePathForFolder(folder.parentId);
-		}
-
-		// Look for an existing ACTIVE sibling folder with the exact same name
-		let siblingSearchList = parentIdToUse 
-			? (this.folders.get(parentIdToUse)?.items || [])
-			: this.items;
-
-		const existingActiveSibling = siblingSearchList.find(id => {
-			const f = this.folders.get(id);
-			return f && f.deletedAt == null && f.title === folder.title;
-		});
-
-		if (existingActiveSibling) {
-			return existingActiveSibling;
-		}
-
-		// Generate structural active clone
-		const newFolder: FolderItem = {
-			id: crypto.randomUUID(),
-			title: folder.title,
-			url: '#',
-			items: [],
-			isOpen: true,
-			parentId: parentIdToUse,
-			deletedAt: null
-		};
-
-		if (!parentIdToUse) {
-			this.items.unshift(newFolder.id);
-		} else {
-			const parentObj = this.folders.get(parentIdToUse);
-			if (parentObj) {
-				if (!parentObj.items) parentObj.items = [];
-				parentObj.items.unshift(newFolder.id);
-				this.persist(parentIdToUse);
-			}
-		}
-
-		let nf = $state(newFolder);
-		this.folders.set(newFolder.id, nf);
-		this.persist(newFolder.id);
-
-		// Synchronously log the event to disk
-		putFolder(nf);
-
-		return newFolder.id;
 	}
 
 	private isChildOf(parentId: string, childId: string): boolean {

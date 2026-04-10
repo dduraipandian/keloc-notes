@@ -86,11 +86,13 @@ class NotesStore {
 		} else if (folderId === 'deleted-notes') {
 			resultNotes = allNotes.filter((n) => n.deletedAt != null);
 		} else {
-			const fid = folderId ?? 'root';
 			const currentFolder = folderStore.findItemById(folderId || '');
 			if (currentFolder && currentFolder.deletedAt != null) {
-				resultNotes = allNotes.filter((n) => (n.folderId ?? 'root') === fid && n.deletedAt != null);
+				// Aggregate all deleted notes from this folder and its subfolders
+				const subtreeIds = this.getFolderSubtreeIds(folderId!);
+				resultNotes = allNotes.filter((n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt != null);
 			} else {
+				const fid = folderId ?? 'root';
 				resultNotes = allNotes.filter((n) => (n.folderId ?? 'root') === fid && n.deletedAt == null);
 			}
 		}
@@ -98,6 +100,18 @@ class NotesStore {
 		return resultNotes.sort(
 			(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 		);
+	}
+
+	private getFolderSubtreeIds(rootId: string): Set<string> {
+		const ids = new Set<string>([rootId]);
+		const folder = folderStore.findItemById(rootId);
+		if (folder && folder.items) {
+			folder.items.forEach(childId => {
+				const childSubtree = this.getFolderSubtreeIds(childId);
+				childSubtree.forEach(id => ids.add(id));
+			});
+		}
+		return ids;
 	}
 
 	getNoteCountForFolder(folderId: string | null, folderType?: FolderType): number {
@@ -109,13 +123,13 @@ class NotesStore {
 			return allNotes.filter((n) => n.deletedAt != null).length;
 		}
 
-		const fid = folderId ?? 'root';
 		const currentFolder = folderStore.findItemById(folderId || '');
-
 		if (currentFolder && currentFolder.deletedAt != null) {
-			return allNotes.filter((n) => (n.folderId ?? 'root') === fid && n.deletedAt != null).length;
+			const subtreeIds = this.getFolderSubtreeIds(folderId!);
+			return allNotes.filter((n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt != null).length;
 		}
 
+		const fid = folderId ?? 'root';
 		return allNotes.filter((n) => (n.folderId ?? 'root') === fid && n.deletedAt == null).length;
 	}
 
@@ -167,28 +181,23 @@ class NotesStore {
 		}
 	}
 
-	recoverNote(id: NoteID) {
+	recoverNote(id: NoteID, recoverFolder: boolean = false) {
 		const note = this.notes.get(id);
 		if (note) {
+			if (note.folderId) {
+				const f = folderStore.findItemById(note.folderId);
+				if (f && f.deletedAt != null) {
+					if (recoverFolder) {
+						const topRoot = folderStore.findTopDeletedAncestor(note.folderId);
+						if (topRoot) folderStore.recoverFolderAndChildren(topRoot.id);
+					} else {
+						note.folderId = null; // Recover to root
+					}
+				}
+			}
 			note.deletedAt = null;
 			this.notes.set(id, note);
 			this.persist(id);
-			if (note.folderId) {
-				const oldFolderId = note.folderId;
-				const f = folderStore.findItemById(oldFolderId);
-				if (f && f.deletedAt != null) {
-					note.folderId = folderStore.recreateActivePathForFolder(oldFolderId);
-					this.notes.set(id, note);
-					this.persist(id);
-					folderStore.pruneEmptyTrashPath(oldFolderId);
-				} else {
-					this.notes.set(id, note);
-					this.persist(id);
-				}
-			} else {
-				this.notes.set(id, note);
-				this.persist(id);
-			}
 		}
 	}
 
