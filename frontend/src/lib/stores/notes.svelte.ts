@@ -66,10 +66,17 @@ class NotesStore {
 					allNotes.push(n);
 				}
 			});
+			this.notes.clear();
+			this.folderNotes.clear();
+
+			if (deletedNotes) {
+				deletedNotes.forEach((note) => {
+					this.notes.set(note.id, note);
+					this.addToIndex('deleted-notes', note.id);
+				});
+			}
 
 			if (allNotes) {
-				this.notes.clear();
-				this.folderNotes.clear();
 				allNotes.forEach((note) => {
 					this.notes.set(note.id, note);
 					this.addToIndex(note.folderId, note.id);
@@ -78,12 +85,6 @@ class NotesStore {
 					this.selectedNoteID = settings.selectedNoteID;
 				}
 			}
-			if (deletedNotes) {
-				deletedNotes.forEach((note) => {
-					this.notes.set(note.id, note);
-					this.addToIndex('deleted-notes', note.id);
-				});
-			}
 			this.isInitialized = true;
 		} catch (error) {
 			console.error('Failed to load notes from storage:', error);
@@ -91,13 +92,11 @@ class NotesStore {
 		}
 	}
 
-	persist(id: NoteID, toDelete: boolean = false) {
+	persist(id: NoteID) {
 		if (!this.isInitialized) return;
 		const note = this.notes.get(id);
 		if (note) {
-			console.log('persist', toDelete, id);
-			let n = $state.snapshot(note);
-			putNote({ ...n, _deleted: toDelete });
+			putNote($state.snapshot(note));
 		}
 		putSetting('selectedNoteID', this.selectedNoteID);
 	}
@@ -180,7 +179,7 @@ class NotesStore {
 		if (note) {
 			console.log('deleteNote', id);
 			note._deleted = true;
-			this.persist(id, true);
+			this.persist(id);
 			this.removeFromIndex(note.folderId, id);
 			this.addToIndex('deleted-notes', note.id);
 		}
@@ -194,7 +193,7 @@ class NotesStore {
 		const note = this.notes.get(id);
 		if (note) {
 			note._deleted = false;
-			this.persist(id, false);
+			this.persist(id);
 			this.removeFromIndex('deleted-notes', id);
 			this.addToIndex(note.folderId, id);
 		}
