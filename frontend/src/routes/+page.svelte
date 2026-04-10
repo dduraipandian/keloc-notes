@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { notesStore } from '$lib/stores/notes.svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import Info from '@lucide/svelte/icons/info';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 
 	let selectedNote = $derived(notesStore.selectedNote);
+	let showRestoreDialog = $state(false);
 
 	function formatDate(dateStr: string) {
 		if (!dateStr) return '';
@@ -17,6 +21,24 @@
 
 {#if selectedNote}
 	<div class="flex h-full animate-in flex-col bg-card duration-500 fade-in">
+		{#if selectedNote._deleted}
+			<div
+				class="flex shrink-0 items-center justify-between border-b border-destructive/10 bg-destructive/5 px-12 py-3 text-destructive"
+			>
+				<div class="flex items-center gap-3">
+					<Info class="h-4 w-4" />
+					<p class="text-sm font-medium">This note is in the Trash. Restore it to edit.</p>
+				</div>
+				<Button
+					variant="outline"
+					size="sm"
+					class="h-8 border-destructive/20 bg-transparent text-xs hover:bg-destructive/10 hover:text-destructive"
+					onclick={() => notesStore.recoverNote(selectedNote!.id)}
+				>
+					Restore Note
+				</Button>
+			</div>
+		{/if}
 		<div class="custom-scrollbar flex-1 overflow-x-hidden overflow-y-auto">
 			<div class="mx-auto flex min-h-full w-full max-w-4xl flex-col px-12 pb-5">
 				<!-- Editor Header/Title -->
@@ -30,7 +52,10 @@
 						bind:value={selectedNote.title}
 						oninput={() => notesStore.updateNote(selectedNote!.id, { title: selectedNote!.title })}
 						placeholder="Note Title"
-						disabled={selectedNote._deleted}
+						readonly={selectedNote._deleted}
+						onclick={() => {
+							if (selectedNote?._deleted) showRestoreDialog = true;
+						}}
 						rows="1"
 						class="w-full resize-none bg-transparent text-4xl font-extrabold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/10"
 						spellcheck="false"
@@ -45,7 +70,10 @@
 					<!-- Placeholder for future TipTap editor -->
 					<textarea
 						bind:value={selectedNote.content}
-						disabled={selectedNote._deleted ? true : false}
+						readonly={selectedNote._deleted}
+						onclick={() => {
+							if (selectedNote?._deleted) showRestoreDialog = true;
+						}}
 						oninput={() =>
 							notesStore.updateNote(selectedNote!.id, { content: selectedNote!.content })}
 						placeholder="Start writing..."
@@ -80,6 +108,31 @@
 		<p class="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40">Select a note to view</p>
 	</div>
 {/if}
+
+<AlertDialog.Root bind:open={showRestoreDialog}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Restore Note?</AlertDialog.Title>
+			<AlertDialog.Description>
+				This note is in the trash. Would you like to restore it to its original folder before
+				viewing or editing?
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action
+				onclick={() => {
+					if (selectedNote) {
+						notesStore.recoverNote(selectedNote.id);
+						showRestoreDialog = false;
+					}
+				}}
+			>
+				Restore
+			</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 
 <style>
 	textarea {
