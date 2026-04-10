@@ -1,8 +1,12 @@
 <script lang="ts">
-	import { Collapsible as CollapsiblePrimitive } from "bits-ui";
-	import { slide } from "svelte/transition";
+	import { Collapsible as CollapsiblePrimitive } from 'bits-ui';
+	import { slide } from 'svelte/transition';
 
-	let { ref = $bindable(null), children, ...restProps }: CollapsiblePrimitive.ContentProps = $props();
+	let {
+		ref = $bindable(null),
+		children,
+		...restProps
+	}: CollapsiblePrimitive.ContentProps = $props();
 </script>
 
 <CollapsiblePrimitive.Content forceMount bind:ref data-slot="collapsible-content" {...restProps}>
