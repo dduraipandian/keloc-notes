@@ -2,10 +2,27 @@
 	import { notesStore } from '$lib/stores/notes.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Info from '@lucide/svelte/icons/info';
+	import { folderStore } from '$lib/stores/folders.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 
 	let selectedNote = $derived(notesStore.selectedNote);
 	let showRestoreDialog = $state(false);
+
+	let topDeletedAncestor = $derived.by(() => {
+		if (selectedNote?.folderId) {
+			const top = folderStore.findTopDeletedAncestor(selectedNote.folderId);
+			return top;
+		}
+		return null;
+	});
+
+	function handleRestoreInit() {
+		if (topDeletedAncestor) {
+			showRestoreDialog = true;
+		} else if (selectedNote) {
+			notesStore.recoverNote(selectedNote.id);
+		}
+	}
 
 	function formatDate(dateStr: string) {
 		if (!dateStr) return '';
@@ -33,7 +50,7 @@
 					variant="outline"
 					size="sm"
 					class="h-8 border-destructive/20 bg-transparent text-xs hover:bg-destructive/10 hover:text-destructive"
-					onclick={() => notesStore.recoverNote(selectedNote!.id)}
+					onclick={handleRestoreInit}
 				>
 					Restore Note
 				</Button>
@@ -54,7 +71,7 @@
 						placeholder="Note Title"
 						readonly={selectedNote.deletedAt != null}
 						onclick={() => {
-							if (selectedNote.deletedAt != null) showRestoreDialog = true;
+							if (selectedNote.deletedAt != null) handleRestoreInit();
 						}}
 						rows="1"
 						class="w-full resize-none bg-transparent text-4xl font-extrabold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/10"
@@ -72,7 +89,7 @@
 						bind:value={selectedNote.content}
 						readonly={selectedNote.deletedAt != null}
 						onclick={() => {
-							if (selectedNote.deletedAt != null) showRestoreDialog = true;
+							if (selectedNote.deletedAt != null) handleRestoreInit();
 						}}
 						oninput={() =>
 							notesStore.updateNote(selectedNote!.id, { content: selectedNote!.content })}
@@ -112,24 +129,41 @@
 <AlertDialog.Root bind:open={showRestoreDialog}>
 	<AlertDialog.Content>
 		<AlertDialog.Header>
-			<AlertDialog.Title>Restore Note?</AlertDialog.Title>
+			<AlertDialog.Title>Restore Folder Too?</AlertDialog.Title>
 			<AlertDialog.Description>
-				This note is in the trash. Would you like to restore it to its original folder before
-				viewing or editing?
+				{#if topDeletedAncestor}
+					The original folder <strong>{topDeletedAncestor.title}</strong> is currently deleted. Would
+					you like to restore the folder structure as well?
+				{:else}
+					This note is in the trash. Would you like to restore it?
+				{/if}
 			</AlertDialog.Description>
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
 			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-			<AlertDialog.Action
-				onclick={() => {
-					if (selectedNote) {
-						notesStore.recoverNote(selectedNote.id);
-						showRestoreDialog = false;
-					}
-				}}
-			>
-				Restore
-			</AlertDialog.Action>
+			<div class="flex gap-2">
+				<Button
+					variant="secondary"
+					onclick={() => {
+						if (selectedNote) {
+							notesStore.recoverNote(selectedNote.id, false);
+							showRestoreDialog = false;
+						}
+					}}
+				>
+					Note Only
+				</Button>
+				<AlertDialog.Action
+					onclick={() => {
+						if (selectedNote) {
+							notesStore.recoverNote(selectedNote.id, true);
+							showRestoreDialog = false;
+						}
+					}}
+				>
+					Restore Folder
+				</AlertDialog.Action>
+			</div>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>
