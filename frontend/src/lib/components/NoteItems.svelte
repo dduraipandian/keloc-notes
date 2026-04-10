@@ -5,6 +5,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
+	import { groupNotesByDate } from '$lib/utils';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
@@ -20,30 +21,13 @@
 			)
 	);
 
-	function formatDate(dateStr: string) {
-		const date = new Date(dateStr);
-		const now = new Date();
-		const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 3600 * 24));
-
-		if (diffDays === 0) return 'Today';
-		if (diffDays === 1) return 'Yesterday';
-		if (diffDays < 7) return date.toLocaleDateString(undefined, { weekday: 'long' });
-		return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-	}
-
 	function getTime(dateStr: string) {
 		return new Date(dateStr).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 	}
 
 	// Grouping logic
 	const sections = $derived(() => {
-		const groups: Record<string, NoteItem[]> = {};
-		filteredNotes.forEach((note) => {
-			const label = formatDate(note.updatedAt);
-			if (!groups[label]) groups[label] = [];
-			groups[label].push(note);
-		});
-		return Object.entries(groups);
+		return groupNotesByDate(filteredNotes);
 	});
 </script>
 
