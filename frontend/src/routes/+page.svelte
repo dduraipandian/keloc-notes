@@ -21,7 +21,7 @@
 
 {#if selectedNote}
 	<div class="flex h-full animate-in flex-col bg-card duration-500 fade-in">
-		{#if selectedNote._deleted}
+		{#if selectedNote.deletedAt != null}
 			<div
 				class="flex shrink-0 items-center justify-between border-b border-destructive/10 bg-destructive/5 px-12 py-3 text-destructive"
 			>
@@ -52,9 +52,9 @@
 						bind:value={selectedNote.title}
 						oninput={() => notesStore.updateNote(selectedNote!.id, { title: selectedNote!.title })}
 						placeholder="Note Title"
-						readonly={selectedNote._deleted}
+						readonly={selectedNote.deletedAt != null}
 						onclick={() => {
-							if (selectedNote?._deleted) showRestoreDialog = true;
+							if (selectedNote.deletedAt != null) showRestoreDialog = true;
 						}}
 						rows="1"
 						class="w-full resize-none bg-transparent text-4xl font-extrabold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/10"
@@ -70,9 +70,9 @@
 					<!-- Placeholder for future TipTap editor -->
 					<textarea
 						bind:value={selectedNote.content}
-						readonly={selectedNote._deleted}
+						readonly={selectedNote.deletedAt != null}
 						onclick={() => {
-							if (selectedNote?._deleted) showRestoreDialog = true;
+							if (selectedNote.deletedAt != null) showRestoreDialog = true;
 						}}
 						oninput={() =>
 							notesStore.updateNote(selectedNote!.id, { content: selectedNote!.content })}
