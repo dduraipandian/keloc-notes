@@ -169,7 +169,7 @@
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
 					<Sidebar.MenuItem>
-						{@render MenuItemNoChildSnippet(item, depth, isTrashTree, isTrashRoot)}
+						{@render MenuItemNoChildSnippet(item, depth)}
 					</Sidebar.MenuItem>
 				</ContextMenu.Trigger>
 				{#if !isTrashRoot}
@@ -204,9 +204,7 @@
 
 {#snippet MenuItemNoChildSnippet(
 	item: FolderItem,
-	depth: number,
-	isTrashTree: boolean = false,
-	isTrashRoot: boolean = false
+	depth: number
 )}
 	<Sidebar.MenuButton
 		class={[
