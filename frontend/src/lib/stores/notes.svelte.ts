@@ -1,5 +1,11 @@
 import { SvelteMap } from 'svelte/reactivity';
-import { getAllNotes, getAllSettings, putNote, putSetting, permanentDeleteNoteTransactionally } from './idbr';
+import {
+	getAllNotes,
+	getAllSettings,
+	putNote,
+	putSetting,
+	permanentDeleteNoteTransactionally
+} from './idbr';
 import { folderStore, type FolderType, type FolderID } from './folders.svelte';
 
 export type NoteID = string;
@@ -91,7 +97,7 @@ class NotesStore {
 				// Aggregate all deleted notes from this folder and its subfolders
 				const subtreeIds = this.getFolderSubtreeIds(folderId!);
 				resultNotes = allNotes.filter(
-					(n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt != null
+					(n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt === currentFolder.deletedAt
 				);
 			} else {
 				const fid = folderId ?? 'root';
@@ -194,12 +200,12 @@ class NotesStore {
 							const topRoot = folderStore.findTopDeletedAncestor(note.folderId);
 							if (topRoot) folderStore.recoverFolderAndChildren(topRoot.id);
 						} else {
-							note.folderId = null; // Recover to root if not choosing to restore hierarchy
+							note.folderId = 'notes'; // Recover to root if not choosing to restore hierarchy
 						}
 					}
 				} else {
 					// Parent folder metadata is missing from system
-					note.folderId = null;
+					note.folderId = 'notes';
 				}
 			}
 			note.deletedAt = null;
@@ -228,7 +234,9 @@ class NotesStore {
 
 		const archivedAt = Date.now();
 		const folderPath = note.folderId ? folderStore.getFolderPath(note.folderId) : 'root';
-		const fullPath = note.folderId ? `${folderPath}/${note.title}:${note.id}` : `${note.title}:${note.id}`;
+		const fullPath = note.folderId
+			? `${folderPath}/${note.title}:${note.id}`
+			: `${note.title}:${note.id}`;
 
 		try {
 			await permanentDeleteNoteTransactionally($state.snapshot(note), fullPath, archivedAt);

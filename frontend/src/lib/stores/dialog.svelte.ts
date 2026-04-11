@@ -46,6 +46,7 @@ class UIStore {
 	confirmNoteDelete(noteTitle: string, onConfirm: () => void) {
 		this.noteDialog = {
 			open: true,
+			canCancel: true,
 			type: 'destroy',
 			title: 'Delete Note',
 			description: `Are you sure you want to delete "${noteTitle}"?`,
@@ -57,6 +58,7 @@ class UIStore {
 	confirmNotePermanentDelete(noteTitle: string, onConfirm: () => void) {
 		this.noteDialog = {
 			open: true,
+			canCancel: true,
 			type: 'destroy',
 			title: 'Delete Note Permanently',
 			description: `Are you sure you want to permanently delete "${noteTitle}"?`,
@@ -68,6 +70,7 @@ class UIStore {
 	confirmNoteRestore(noteTitle: string, isHierarchical: boolean, onConfirm: () => void) {
 		this.noteDialog = {
 			open: true,
+			canCancel: true,
 			type: 'restore',
 			title: isHierarchical ? 'Restore Folder?' : 'Restore Note',
 			description: isHierarchical
@@ -81,6 +84,7 @@ class UIStore {
 	confirmFolderPermanentDelete(folderTitle: string, onConfirm: () => void) {
 		this.folderDialog = {
 			open: true,
+			canCancel: true,
 			type: 'destroy',
 			title: 'Delete Folder Permanently',
 			description: `Permanently delete '${folderTitle}' and all its notes? This cannot be undone.`,
@@ -92,6 +96,7 @@ class UIStore {
 	confirmFolderDelete(folderTitle: string, onConfirm: () => void) {
 		this.folderDialog = {
 			open: true,
+			canCancel: true,
 			type: 'destroy',
 			title: 'Delete Folder',
 			description: `Are you sure you want to delete '${folderTitle}' and all its contents?.`,
@@ -102,6 +107,7 @@ class UIStore {
 	confirmAppQuit(title: string, initError: string, onConfirm: () => void) {
 		this.folderDialog = {
 			open: true,
+			canCancel: false,
 			type: 'destroy',
 			title: title,
 			description: `mdnotes could not load your data. This is usually caused by a corrupted database or
@@ -109,6 +115,18 @@ class UIStore {
 				<br/> <br/>
 				<span class="font-mono text-xs text-destructive">${initError}</span>`,
 			confirmLabel: 'Quit Application',
+			onConfirm
+		};
+	}
+
+	confirmEmptyTrash(onConfirm: () => void) {
+		this.folderDialog = {
+			open: true,
+			type: 'destroy',
+			title: 'Empty Trash',
+			description: `Are you sure you want to permanently delete all folders and notes in the trash?`,
+			confirmLabel: 'Empty Trash',
+			canCancel: true,
 			onConfirm
 		};
 	}

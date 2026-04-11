@@ -34,6 +34,9 @@
 			<Sidebar.MenuItem>
 				{@render MenuItemSnippet(folderStore.folders.get('deleted-notes')!, 0, true)}
 			</Sidebar.MenuItem>
+			<Sidebar.MenuItem>
+				{@render MenuItemSnippet(folderStore.folders.get('notes')!, 0, false)}
+			</Sidebar.MenuItem>
 		</Sidebar.Menu>
 	</Sidebar.Header>
 	<Sidebar.Content class="pt-0">
@@ -160,9 +163,7 @@
 							</Collapsible.Content>
 						</Sidebar.MenuItem>
 					</ContextMenu.Trigger>
-					{#if !isTrashRoot}
-						{@render ContextMenuContentSnippet(item)}
-					{/if}
+					{@render ContextMenuContentSnippet(item, isTrashTree)}
 				</ContextMenu.Root>
 			</Collapsible.Root>
 		{:else}
@@ -172,15 +173,13 @@
 						{@render MenuItemNoChildSnippet(item, depth)}
 					</Sidebar.MenuItem>
 				</ContextMenu.Trigger>
-				{#if !isTrashRoot}
-					{@render ContextMenuContentSnippet(item)}
-				{/if}
+				{@render ContextMenuContentSnippet(item, isTrashTree)}
 			</ContextMenu.Root>
 		{/if}
 	{/if}
 {/snippet}
 
-{#snippet ContextMenuContentSnippet(item: FolderItem)}
+{#snippet ContextMenuContentSnippet(item: FolderItem, isTrashTree: boolean = false)}
 	<ContextMenu.Content class="w-36">
 		{#if item.deletedAt != null}
 			<ContextMenu.Item
@@ -188,18 +187,32 @@
 				onSelect={() => folderStore.recoverFolderAndChildren(item.id)}
 				>Recover Folder</ContextMenu.Item
 			>
+			<ContextMenu.Separator />
 			<ContextMenu.Item
-				class="text-[13px]"
+				class="text-[13px] text-destructive focus:text-destructive"
 				onSelect={() =>
 					uiStore.confirmFolderPermanentDelete(item.title, () =>
 						folderStore.permanentDeleteFolderAndChildren(item.id)
-					)}
-				>Delete Permanently</ContextMenu.Item
+					)}>Delete Permanently</ContextMenu.Item
+			>
+		{:else if isTrashTree}
+			<ContextMenu.Item
+				class="text-[13px] text-destructive focus:text-destructive"
+				onSelect={() => uiStore.confirmEmptyTrash(() => folderStore.emptyTrash())}
+				>Empty Trash</ContextMenu.Item
+			>
+		{:else if item.type == 'system'}
+			<ContextMenu.Item class="text-[13px]" onSelect={() => folderStore.createFolder()}
+				>New Folder</ContextMenu.Item
 			>
 		{:else}
+			<ContextMenu.Item class="text-[13px]" onSelect={() => folderStore.createFolder()}
+				>New Folder</ContextMenu.Item
+			>
 			<ContextMenu.Item class="text-[13px]" onSelect={() => folderStore.startRename(item.id)}
 				>Rename</ContextMenu.Item
 			>
+			<ContextMenu.Separator />
 			<ContextMenu.Item
 				class="text-[13px] text-destructive focus:text-destructive"
 				onSelect={() =>

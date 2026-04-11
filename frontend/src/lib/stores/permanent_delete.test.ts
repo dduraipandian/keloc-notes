@@ -130,6 +130,63 @@ describe('Permanent Deletion with Archival', () => {
 		});
 	});
 
+	describe('Empty Trash', () => {
+		it('should collect all deleted notes regardless of batch epoch', async () => {
+			addFolder({ id: 'f1', title: 'Work', deletedAt: 100 });
+			addNote({ id: 'n1', title: 'N1', folderId: 'f1', deletedAt: 100 }); // deleted with folder
+			addNote({ id: 'n2', title: 'N2', folderId: 'f1', deletedAt: 999 }); // deleted independently
+			folderStore.items.push('f1');
+
+			vi.mocked(idbr.permanentDeleteFolderTransactionally).mockResolvedValue(true as any);
+
+			await folderStore.emptyTrash();
+
+			expect(idbr.permanentDeleteFolderTransactionally).toHaveBeenCalledWith(
+				expect.arrayContaining([
+					expect.objectContaining({ note: expect.objectContaining({ id: 'n1' }) }),
+					expect.objectContaining({ note: expect.objectContaining({ id: 'n2' }) })
+				]),
+				expect.arrayContaining([expect.objectContaining({ id: 'f1' })]),
+				expect.any(Number)
+			);
+
+			expect(notesStore.notes.has('n1')).toBe(false);
+			expect(notesStore.notes.has('n2')).toBe(false);
+			expect(folderStore.folders.has('f1')).toBe(false);
+		});
+
+		it('should include root-level deleted notes (no folder)', async () => {
+			addNote({ id: 'root-n', title: 'Orphan', folderId: null, deletedAt: 500 });
+
+			vi.mocked(idbr.permanentDeleteFolderTransactionally).mockResolvedValue(true as any);
+
+			await folderStore.emptyTrash();
+
+			expect(idbr.permanentDeleteFolderTransactionally).toHaveBeenCalledWith(
+				expect.arrayContaining([
+					expect.objectContaining({ path: 'Orphan:root-n' })
+				]),
+				[],
+				expect.any(Number)
+			);
+
+			expect(notesStore.notes.has('root-n')).toBe(false);
+		});
+
+		it('should ROLLBACK if the transaction fails', async () => {
+			addFolder({ id: 'f1', title: 'F1', deletedAt: 123 });
+			addNote({ id: 'n1', title: 'N1', folderId: 'f1', deletedAt: 123 });
+			folderStore.items.push('f1');
+
+			vi.mocked(idbr.permanentDeleteFolderTransactionally).mockRejectedValue(new Error('Crash'));
+
+			await expect(folderStore.emptyTrash()).rejects.toThrow('Crash');
+
+			expect(folderStore.folders.has('f1')).toBe(true);
+			expect(notesStore.notes.has('n1')).toBe(true);
+		});
+	});
+
 	describe('Note Permanent Deletion', () => {
 		it('should archive and delete a single note with its full path', async () => {
 			addFolder({ id: 'f1', title: 'Work' });

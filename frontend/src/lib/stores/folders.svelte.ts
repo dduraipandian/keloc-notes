@@ -1,4 +1,4 @@
-export type FolderType = 'all' | 'trash' | 'regular';
+export type FolderType = 'all' | 'trash' | 'regular' | 'system';
 
 export type FolderID = string;
 
@@ -229,62 +229,103 @@ class FolderStore {
 		if (!folder || folder.deletedAt == null) return;
 
 		const batch = targetBatch ?? folder.deletedAt;
-		const archivedAt = Date.now();
+		const foldersToDelete = this.collectFolderSubtree(id);
+		const notesToDelete = this.collectFolderNotesWithPaths(foldersToDelete, batch);
 
-		// 1. Collect all resources to be deleted (logical state collection)
-		const foldersToDelete: FolderItem[] = [];
-		const notesToDelete: { note: any; path: string }[] = [];
-
-		const collectRecursive = (fid: string) => {
-			const f = this.folders.get(fid);
-			if (!f) return;
-
-			foldersToDelete.push($state.snapshot(f));
-			const currentPath = this.getFolderPath(fid);
-
-			const fNotes = notesStore.getNotesToArchive(fid, batch);
-			fNotes.forEach((n) => {
-				notesToDelete.push({
-					note: $state.snapshot(n),
-					path: `${currentPath}/${n.title}:${n.id}`
-				});
-			});
-
-			if (f.items) {
-				f.items.forEach((childId) => collectRecursive(childId));
-			}
-		};
-
-		collectRecursive(id);
-
-		// 2. Delegate database work to the persistence layer (idbr.ts)
 		try {
-			await permanentDeleteFolderTransactionally(notesToDelete, foldersToDelete, archivedAt);
-
-			// 3. Update reactive in-memory state after successful transaction
-			notesToDelete.forEach(({ note }) => {
-				notesStore.removeNoteLocally(note.id);
-			});
-
-			foldersToDelete.forEach((f) => {
-				if (f.parentId) {
-					const parent = this.folders.get(f.parentId);
-					if (parent && parent.items) {
-						parent.items = parent.items.filter((itemId) => itemId !== f.id);
-					}
-				} else {
-					this.items = this.items.filter((itemId) => itemId !== f.id);
-				}
-				this.folders.delete(f.id);
-			});
-
-			if (this.selectedFolderID === id) {
-				this.selectedFolderID = null;
-			}
+			await permanentDeleteFolderTransactionally(notesToDelete, foldersToDelete, Date.now());
+			this.applyPermanentDeleteState(notesToDelete, foldersToDelete);
+			if (this.selectedFolderID === id) this.selectedFolderID = null;
 		} catch (error) {
 			console.error('Failed to permanently delete folder and children:', error);
 			throw error;
 		}
+	}
+
+	async emptyTrash() {
+		const foldersToDelete = this.trashItems.flatMap((id) => this.collectFolderSubtree(id));
+		const deletedFolderIds = new Set(foldersToDelete.map((f) => f.id));
+
+		// Collect deleted folder notes (batch-filtered per folder) plus all individually
+		// deleted notes regardless of batch or whether their folder is also being deleted.
+		const folderNotes = this.collectFolderNotesWithPaths(foldersToDelete);
+		const individualNotes = this.collectAllDeletedNotesWithPaths();
+		const seenIds = new Set(folderNotes.map((e) => e.note.id));
+		const notesToDelete = [
+			...folderNotes,
+			...individualNotes.filter((e) => !seenIds.has(e.note.id))
+		];
+
+		try {
+			await permanentDeleteFolderTransactionally(notesToDelete, foldersToDelete, Date.now());
+			this.applyPermanentDeleteState(notesToDelete, foldersToDelete);
+			if (this.selectedFolderID && deletedFolderIds.has(this.selectedFolderID)) {
+				this.selectedFolderID = null;
+			}
+		} catch (error) {
+			console.error('Failed to empty trash:', error);
+			throw error;
+		}
+	}
+
+	// Returns snapshots of a folder and all its descendants.
+	private collectFolderSubtree(id: string): FolderItem[] {
+		const result: FolderItem[] = [];
+		const collect = (fid: string) => {
+			const f = this.folders.get(fid);
+			if (!f) return;
+			result.push($state.snapshot(f));
+			if (f.items) f.items.forEach(collect);
+		};
+		collect(id);
+		return result;
+	}
+
+	// Notes belonging to the given folder subtree, filtered to the folder's deletion batch.
+	// Used by permanentDeleteFolderAndChildren to avoid touching notes deleted at a different time.
+	private collectFolderNotesWithPaths(
+		folders: FolderItem[],
+		batch?: number
+	): { note: any; path: string }[] {
+		return folders.flatMap((f) => {
+			const folderPath = this.getFolderPath(f.id);
+			const notes =
+				batch !== undefined
+					? notesStore.getNotesToArchive(f.id, batch)
+					: notesStore.getNotesForFolder(f.id);
+			return notes.map((n) => ({
+				note: $state.snapshot(n),
+				path: `${folderPath}/${n.title}:${n.id}`
+			}));
+		});
+	}
+
+	// All individually deleted notes — any batch, any folder (including root-level).
+	// Used by emptyTrash to catch notes deleted outside of a folder-delete operation.
+	private collectAllDeletedNotesWithPaths(): { note: any; path: string }[] {
+		return Array.from(notesStore.notes.values())
+			.filter((n) => n.deletedAt != null)
+			.map((n) => {
+				const folderPath = n.folderId ? this.getFolderPath(n.folderId) : null;
+				const path = folderPath ? `${folderPath}/${n.title}:${n.id}` : `${n.title}:${n.id}`;
+				return { note: $state.snapshot(n), path };
+			});
+	}
+
+	private applyPermanentDeleteState(notesToDelete: { note: any }[], foldersToDelete: FolderItem[]) {
+		notesToDelete.forEach(({ note }) => notesStore.removeNoteLocally(note.id));
+
+		foldersToDelete.forEach((f) => {
+			if (f.parentId) {
+				const parent = this.folders.get(f.parentId);
+				if (parent && parent.items) {
+					parent.items = parent.items.filter((itemId) => itemId !== f.id);
+				}
+			} else {
+				this.items = this.items.filter((itemId) => itemId !== f.id);
+			}
+			this.folders.delete(f.id);
+		});
 	}
 
 	recoverParentPath(parentId: string | null | undefined) {
@@ -378,6 +419,15 @@ const initialData: FolderItem[] = [
 		items: [],
 		parentId: null,
 		type: 'trash',
+		deletedAt: null
+	},
+	{
+		id: 'notes',
+		title: 'Notes',
+		url: '#',
+		items: [],
+		parentId: null,
+		type: 'system',
 		deletedAt: null
 	}
 ];
