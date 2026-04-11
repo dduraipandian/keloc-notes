@@ -9,9 +9,9 @@
 
 	let { children } = $props();
 
-	onMount(() => {
-		folderStore.init();
-		notesStore.init();
+	onMount(async () => {
+		await folderStore.init();
+		await notesStore.init();
 	});
 </script>
 
