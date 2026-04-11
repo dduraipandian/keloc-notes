@@ -1,8 +1,8 @@
 import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 import type { FolderItem } from './folders.svelte';
 
-const DB_NAME = 'mdnotes-db'; // Using a separate name for the refactored version to avoid conflicts
-const DB_VERSION = 1;
+const DB_NAME = 'mdnotes-db';
+const DB_VERSION = 2;
 
 export interface DBStore {
 	folders: {
@@ -17,6 +17,10 @@ export interface DBStore {
 		key: string;
 		value: any;
 	};
+	backups: {
+		key: string;
+		value: any;
+	};
 }
 
 let dbPromise: Promise<IDBPDatabase<DBStore>>;
@@ -25,7 +29,7 @@ export function initDB() {
 	if (dbPromise) return dbPromise;
 
 	dbPromise = openDB<DBStore>(DB_NAME, DB_VERSION, {
-		upgrade(db) {
+		upgrade(db, oldVersion, newVersion) {
 			if (!db.objectStoreNames.contains('folders')) {
 				db.createObjectStore('folders', { keyPath: 'id' });
 			}
@@ -34,6 +38,9 @@ export function initDB() {
 			}
 			if (!db.objectStoreNames.contains('settings')) {
 				db.createObjectStore('settings');
+			}
+			if (!db.objectStoreNames.contains('backups')) {
+				db.createObjectStore('backups', { keyPath: 'id' });
 			}
 		}
 	});
@@ -163,5 +170,54 @@ export async function getAllSettings(): Promise<SettingsState> {
 			settings[key] = values[index];
 		});
 		return settings as SettingsState;
+	});
+}
+
+// ─────────────────────────────────────────────
+// Transactional Archival/Deletion
+// ─────────────────────────────────────────────
+
+export async function permanentDeleteFolderTransactionally(
+	notesToDelete: { note: any; path: string }[],
+	foldersToDelete: any[],
+	archivedAt: number
+) {
+	return await withTransaction(['folders', 'notes', 'backups'], 'readwrite', async (tx) => {
+		const fStore = tx.objectStore('folders');
+		const nStore = tx.objectStore('notes');
+		const bStore = tx.objectStore('backups');
+
+		// Backup and Delete Notes
+		for (const { note, path } of notesToDelete) {
+			await bStore.put({
+				id: `note_${note.id}`,
+				type: 'note',
+				data: note,
+				path,
+				archivedAt
+			});
+			await nStore.delete(note.id);
+		}
+
+		// Delete Folders
+		for (const f of foldersToDelete) {
+			await fStore.delete(f.id);
+		}
+	});
+}
+
+export async function permanentDeleteNoteTransactionally(note: any, path: string, archivedAt: number) {
+	return await withTransaction(['notes', 'backups'], 'readwrite', async (tx) => {
+		const nStore = tx.objectStore('notes');
+		const bStore = tx.objectStore('backups');
+
+		await bStore.put({
+			id: `note_${note.id}`,
+			type: 'note',
+			data: note,
+			path,
+			archivedAt
+		});
+		await nStore.delete(note.id);
 	});
 }

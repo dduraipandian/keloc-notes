@@ -1,5 +1,5 @@
 import { SvelteMap } from 'svelte/reactivity';
-import { getAllNotes, getAllSettings, putNote, putSetting } from './idbr';
+import { getAllNotes, getAllSettings, putNote, putSetting, permanentDeleteNoteTransactionally } from './idbr';
 import { folderStore, type FolderType, type FolderID } from './folders.svelte';
 
 export type NoteID = string;
@@ -222,6 +222,27 @@ class NotesStore {
 		}
 	}
 
+	async permanentDeleteNote(id: NoteID) {
+		const note = this.notes.get(id);
+		if (!note) return;
+
+		const archivedAt = Date.now();
+		const folderPath = note.folderId ? folderStore.getFolderPath(note.folderId) : 'root';
+		const fullPath = note.folderId ? `${folderPath}/${note.title}:${note.id}` : `${note.title}:${note.id}`;
+
+		try {
+			await permanentDeleteNoteTransactionally($state.snapshot(note), fullPath, archivedAt);
+			this.notes.delete(id);
+			if (this.selectedNoteID === id) {
+				this.selectedNoteID = null;
+				putSetting('selectedNoteID', null);
+			}
+		} catch (error) {
+			console.error('Failed to permanently delete note:', error);
+			throw error;
+		}
+	}
+
 	recoverNotesInFolder(folderId: string, targetBatch?: number) {
 		const allNotes = Array.from(this.notes.values());
 		for (const note of allNotes) {
@@ -232,6 +253,18 @@ class NotesStore {
 					this.persist(note.id);
 				}
 			}
+		}
+	}
+	getNotesToArchive(folderId: string, targetBatch: number): NoteItem[] {
+		return Array.from(this.notes.values()).filter(
+			(n) => (n.folderId ?? 'root') === folderId && n.deletedAt === targetBatch
+		);
+	}
+
+	removeNoteLocally(id: string) {
+		this.notes.delete(id);
+		if (this.selectedNoteID === id) {
+			this.selectedNoteID = null;
 		}
 	}
 

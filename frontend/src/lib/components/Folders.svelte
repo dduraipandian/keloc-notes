@@ -188,6 +188,14 @@
 				onSelect={() => folderStore.recoverFolderAndChildren(item.id)}
 				>Recover Folder</ContextMenu.Item
 			>
+			<ContextMenu.Item
+				class="text-[13px]"
+				onSelect={() =>
+					uiStore.confirmFolderPermanentDelete(item.title, () =>
+						folderStore.permanentDeleteFolderAndChildren(item.id)
+					)}
+				>Delete Permanently</ContextMenu.Item
+			>
 		{:else}
 			<ContextMenu.Item class="text-[13px]" onSelect={() => folderStore.startRename(item.id)}
 				>Rename</ContextMenu.Item

@@ -38,6 +38,12 @@
 			notesStore.recoverNote(note.id, isHierarchical);
 		});
 	}
+
+	function handleNotePermanentDelete(note: NoteItem) {
+		uiStore.confirmNotePermanentDelete(note.title, () => {
+			notesStore.permanentDeleteNote(note.id);
+		});
+	}
 </script>
 
 <aside class="relative z-0 flex h-full w-[350px] flex-col">
@@ -133,6 +139,9 @@
 		{#if note.deletedAt != null}
 			<ContextMenu.Item class="text-[13px]" onSelect={() => handleNoteRestore(note)}
 				>Restore</ContextMenu.Item
+			>
+			<ContextMenu.Item class="text-[13px]" onSelect={() => handleNotePermanentDelete(note)}
+				>Delete Permanently</ContextMenu.Item
 			>
 		{:else}
 			<ContextMenu.Item

@@ -15,7 +15,15 @@ export type FolderItem = {
 };
 
 import { SvelteMap } from 'svelte/reactivity';
-import { getAllFolders, getAllSettings, putFolder, putSetting, deleteFolder } from './idbr';
+import {
+	getAllFolders,
+	getAllSettings,
+	putFolder,
+	putSetting,
+	deleteFolder,
+	withTransaction,
+	permanentDeleteFolderTransactionally
+} from './idbr';
 import { notesStore } from './notes.svelte';
 
 class FolderStore {
@@ -202,6 +210,80 @@ class FolderStore {
 					this.recoverParentPath(folder.parentId);
 				}
 			}
+		}
+	}
+
+	getFolderPath(id: string): string {
+		const folder = this.folders.get(id);
+		if (!folder) return '';
+
+		const segment = `${folder.title}:${folder.id}`;
+		if (!folder.parentId) return segment;
+
+		const parentPath = this.getFolderPath(folder.parentId);
+		return parentPath ? `${parentPath}/${segment}` : segment;
+	}
+
+	async permanentDeleteFolderAndChildren(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+		if (!folder || folder.deletedAt == null) return;
+
+		const batch = targetBatch ?? folder.deletedAt;
+		const archivedAt = Date.now();
+
+		// 1. Collect all resources to be deleted (logical state collection)
+		const foldersToDelete: FolderItem[] = [];
+		const notesToDelete: { note: any; path: string }[] = [];
+
+		const collectRecursive = (fid: string) => {
+			const f = this.folders.get(fid);
+			if (!f) return;
+
+			foldersToDelete.push($state.snapshot(f));
+			const currentPath = this.getFolderPath(fid);
+
+			const fNotes = notesStore.getNotesToArchive(fid, batch);
+			fNotes.forEach((n) => {
+				notesToDelete.push({
+					note: $state.snapshot(n),
+					path: `${currentPath}/${n.title}:${n.id}`
+				});
+			});
+
+			if (f.items) {
+				f.items.forEach((childId) => collectRecursive(childId));
+			}
+		};
+
+		collectRecursive(id);
+
+		// 2. Delegate database work to the persistence layer (idbr.ts)
+		try {
+			await permanentDeleteFolderTransactionally(notesToDelete, foldersToDelete, archivedAt);
+
+			// 3. Update reactive in-memory state after successful transaction
+			notesToDelete.forEach(({ note }) => {
+				notesStore.removeNoteLocally(note.id);
+			});
+
+			foldersToDelete.forEach((f) => {
+				if (f.parentId) {
+					const parent = this.folders.get(f.parentId);
+					if (parent && parent.items) {
+						parent.items = parent.items.filter((itemId) => itemId !== f.id);
+					}
+				} else {
+					this.items = this.items.filter((itemId) => itemId !== f.id);
+				}
+				this.folders.delete(f.id);
+			});
+
+			if (this.selectedFolderID === id) {
+				this.selectedFolderID = null;
+			}
+		} catch (error) {
+			console.error('Failed to permanently delete folder and children:', error);
+			throw error;
 		}
 	}
 
