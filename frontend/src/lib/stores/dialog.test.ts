@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { uiStore } from './ui.svelte';
+import { uiStore } from './dialog.svelte';
 
 describe('UIStore', () => {
 	beforeEach(() => {
@@ -15,7 +15,7 @@ describe('UIStore', () => {
 		expect(uiStore.noteDialog.type).toBe('delete');
 		expect(uiStore.noteDialog.title).toBe('Delete Note');
 		expect(uiStore.noteDialog.description).toContain('Test Note');
-		
+
 		uiStore.noteDialog.onConfirm();
 		expect(onConfirm).toHaveBeenCalled();
 	});

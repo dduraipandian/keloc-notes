@@ -8,7 +8,7 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 	import { notesStore } from '$lib/stores/notes.svelte';
-	import { uiStore } from '$lib/stores/ui.svelte';
+	import { uiStore } from '$lib/stores/dialog.svelte';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
 	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none';
@@ -202,10 +202,7 @@
 	</ContextMenu.Content>
 {/snippet}
 
-{#snippet MenuItemNoChildSnippet(
-	item: FolderItem,
-	depth: number
-)}
+{#snippet MenuItemNoChildSnippet(item: FolderItem, depth: number)}
 	<Sidebar.MenuButton
 		class={[
 			menuButtonStyle,

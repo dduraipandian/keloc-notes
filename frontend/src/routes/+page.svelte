@@ -3,8 +3,8 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Info from '@lucide/svelte/icons/info';
 	import { folderStore } from '$lib/stores/folders.svelte';
-	import { uiStore } from '$lib/stores/ui.svelte';
-	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
+	import { uiStore } from '$lib/stores/dialog.svelte';
+	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);
 
@@ -127,51 +127,8 @@
 	</div>
 {/if}
 
-<!-- Note Dialog -->
-<AlertDialog.Root bind:open={uiStore.noteDialog.open}>
-	<AlertDialog.Content>
-		<AlertDialog.Header>
-			<AlertDialog.Title>{uiStore.noteDialog.title}</AlertDialog.Title>
-			<AlertDialog.Description>{uiStore.noteDialog.description}</AlertDialog.Description>
-		</AlertDialog.Header>
-		<AlertDialog.Footer>
-			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-			<AlertDialog.Action
-				class={uiStore.noteDialog.type === 'delete' ? 'bg-destructive hover:bg-destructive/90' : ''}
-				onclick={() => {
-					uiStore.noteDialog.onConfirm();
-					uiStore.noteDialog.open = false;
-				}}
-			>
-				{uiStore.noteDialog.confirmLabel}
-			</AlertDialog.Action>
-		</AlertDialog.Footer>
-	</AlertDialog.Content>
-</AlertDialog.Root>
-
-<!-- Folder Dialog -->
-<AlertDialog.Root bind:open={uiStore.folderDialog.open}>
-	<AlertDialog.Content>
-		<AlertDialog.Header>
-			<AlertDialog.Title>{uiStore.folderDialog.title}</AlertDialog.Title>
-			<AlertDialog.Description>{uiStore.folderDialog.description}</AlertDialog.Description>
-		</AlertDialog.Header>
-		<AlertDialog.Footer>
-			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-			<AlertDialog.Action
-				class={uiStore.folderDialog.type === 'delete'
-					? 'bg-destructive hover:bg-destructive/90'
-					: ''}
-				onclick={() => {
-					uiStore.folderDialog.onConfirm();
-					uiStore.folderDialog.open = false;
-				}}
-			>
-				{uiStore.folderDialog.confirmLabel}
-			</AlertDialog.Action>
-		</AlertDialog.Footer>
-	</AlertDialog.Content>
-</AlertDialog.Root>
+<Alert dialog={uiStore.noteDialog} />
+<Alert dialog={uiStore.folderDialog} />
 
 <style>
 	textarea {

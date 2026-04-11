@@ -9,7 +9,7 @@
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
-	import { uiStore } from '$lib/stores/ui.svelte';
+	import { uiStore } from '$lib/stores/dialog.svelte';
 
 	let searchQuery = $state('');
 
