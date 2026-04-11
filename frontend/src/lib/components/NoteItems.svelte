@@ -58,7 +58,7 @@
 					<SquarePen size={16} />
 				</button>
 			{/if}
-			{#if notesStore.selectedNote}
+			{#if notesStore.selectedNote && notesStore.selectedNote.deletedAt == null}
 				<button
 					class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
 					title="Trash"

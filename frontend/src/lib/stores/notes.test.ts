@@ -132,6 +132,8 @@ describe('NotesStore', () => {
 		expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(1);
 		// Persistence called with properties
 		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: stamp }));
+		// Cleared selection must be persisted
+		expect(idbr.putSetting).toHaveBeenCalledWith('selectedNoteID', null);
 	});
 
 	it('should recover a note from trash', () => {
@@ -146,7 +148,7 @@ describe('NotesStore', () => {
 		addNoteToStore(note as any);
 		(notesStore as any).isInitialized = true;
 
-		vi.spyOn(folderStore, 'findItemById').mockReturnValue(null);
+		vi.spyOn(folderStore, 'findItemById').mockReturnValue({ id: 'f1', deletedAt: null } as any);
 
 		notesStore.recoverNote('1');
 
@@ -264,6 +266,36 @@ describe('NotesStore', () => {
 		expect(notesStore.notes.get('note-x')?.folderId).toBeNull(); // Ejected to root
 	});
 
+	it('should root the note if parent folder metadata is missing during recovery', () => {
+		const note = { id: 'orphan', folderId: 'non-existent', deletedAt: 123 };
+		addNoteToStore(note as any);
+		(notesStore as any).isInitialized = true;
+
+		// Mock folderStore to return null for this ID (missing from system)
+		vi.spyOn(folderStore, 'findItemById').mockReturnValue(null);
+
+		notesStore.recoverNote('orphan');
+
+		expect(notesStore.notes.get('orphan')?.deletedAt).toBeNull();
+		expect(notesStore.notes.get('orphan')?.folderId).toBeNull();
+	});
+
+	it('should only recover notes in a folder that match the target batch epoch', () => {
+		(notesStore as any).isInitialized = true;
+		const epoch = 5000;
+		const olderEpoch = 1000;
+
+		// n1 was deleted in the same batch as the folder — should be recovered
+		addNoteToStore({ id: 'n1', folderId: 'f1', deletedAt: epoch } as any);
+		// n2 was deleted earlier independently — should stay deleted
+		addNoteToStore({ id: 'n2', folderId: 'f1', deletedAt: olderEpoch } as any);
+
+		notesStore.recoverNotesInFolder('f1', epoch);
+
+		expect(notesStore.notes.get('n1')?.deletedAt).toBeNull();
+		expect(notesStore.notes.get('n2')?.deletedAt).toBe(olderEpoch);
+	});
+
 	describe('Index Management', () => {
 		it('should update index when note is moved between folders', () => {
 			const noteID = 'move-me';
@@ -310,7 +342,7 @@ describe('NotesStore', () => {
 			addNoteToStore(note as any);
 			(notesStore as any).isInitialized = true;
 
-			vi.spyOn(folderStore, 'findItemById').mockReturnValue(null);
+			vi.spyOn(folderStore, 'findItemById').mockReturnValue({ id: 'special-folder', deletedAt: null } as any);
 
 			notesStore.recoverNote('orig');
 
@@ -355,6 +387,34 @@ describe('NotesStore', () => {
 
 			expect(notesStore.selectedNoteID).toBe('1');
 			expect(idbr.putSetting).toHaveBeenCalledWith('selectedNoteID', '1');
+		});
+
+		it('should persist null selectedNoteID when deselecting', async () => {
+			(notesStore as any).isInitialized = true;
+			addNoteToStore({ id: '1' });
+			notesStore.selectNote('1');
+			vi.clearAllMocks();
+
+			notesStore.selectNote(null);
+
+			expect(notesStore.selectedNoteID).toBeNull();
+			expect(idbr.putSetting).toHaveBeenCalledWith('selectedNoteID', null);
+		});
+
+		it('should persist null selectedNoteID when deleting notes in a folder', () => {
+			(notesStore as any).isInitialized = true;
+			addNoteToStore({ id: 'n1', folderId: 'f1' });
+			addNoteToStore({ id: 'n2', folderId: 'f1' });
+			addNoteToStore({ id: 'n3', folderId: 'f2' });
+			notesStore.selectedNoteID = 'n1';
+
+			notesStore.deleteNotesInFolder('f1', 9999);
+
+			expect(notesStore.notes.get('n1')?.deletedAt).toBe(9999);
+			expect(notesStore.notes.get('n2')?.deletedAt).toBe(9999);
+			expect(notesStore.notes.get('n3')?.deletedAt).toBeNull(); // sibling folder untouched
+			expect(notesStore.selectedNoteID).toBeNull();
+			expect(idbr.putSetting).toHaveBeenCalledWith('selectedNoteID', null);
 		});
 	});
 });

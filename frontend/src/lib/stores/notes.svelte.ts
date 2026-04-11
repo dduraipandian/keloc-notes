@@ -90,7 +90,9 @@ class NotesStore {
 			if (currentFolder && currentFolder.deletedAt != null) {
 				// Aggregate all deleted notes from this folder and its subfolders
 				const subtreeIds = this.getFolderSubtreeIds(folderId!);
-				resultNotes = allNotes.filter((n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt != null);
+				resultNotes = allNotes.filter(
+					(n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt != null
+				);
 			} else {
 				const fid = folderId ?? 'root';
 				resultNotes = allNotes.filter((n) => (n.folderId ?? 'root') === fid && n.deletedAt == null);
@@ -106,9 +108,9 @@ class NotesStore {
 		const ids = new Set<string>([rootId]);
 		const folder = folderStore.findItemById(rootId);
 		if (folder && folder.items) {
-			folder.items.forEach(childId => {
+			folder.items.forEach((childId) => {
 				const childSubtree = this.getFolderSubtreeIds(childId);
-				childSubtree.forEach(id => ids.add(id));
+				childSubtree.forEach((id) => ids.add(id));
 			});
 		}
 		return ids;
@@ -126,7 +128,8 @@ class NotesStore {
 		const currentFolder = folderStore.findItemById(folderId || '');
 		if (currentFolder && currentFolder.deletedAt != null) {
 			const subtreeIds = this.getFolderSubtreeIds(folderId!);
-			return allNotes.filter((n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt != null).length;
+			return allNotes.filter((n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt != null)
+				.length;
 		}
 
 		const fid = folderId ?? 'root';
@@ -151,8 +154,8 @@ class NotesStore {
 		};
 		let n = $state(newNote);
 		this.notes.set(newNote.id, n);
-		this.persist(newNote.id);
 		this.selectedNoteID = newNote.id;
+		this.persist(newNote.id);
 	}
 
 	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {
@@ -170,15 +173,14 @@ class NotesStore {
 
 	deleteNote(id: NoteID, batchTimestamp?: number) {
 		const note = this.notes.get(id);
-		if (note) {
-			note.deletedAt = batchTimestamp ?? Date.now();
-			this.notes.set(id, note);
-			this.persist(id);
-		}
-
 		if (this.selectedNoteID === id) {
 			this.selectedNoteID = null;
 		}
+		if (note) {
+			note.deletedAt = batchTimestamp ?? Date.now();
+			this.notes.set(id, note);
+		}
+		this.persist(id);
 	}
 
 	recoverNote(id: NoteID, recoverFolder: boolean = false) {
@@ -212,10 +214,10 @@ class NotesStore {
 			if ((note.folderId ?? 'root') === folderId && note.deletedAt == null) {
 				note.deletedAt = batchTimestamp;
 				this.notes.set(note.id, note);
-				this.persist(note.id);
 				if (this.selectedNoteID === note.id) {
 					this.selectedNoteID = null;
 				}
+				this.persist(note.id);
 			}
 		}
 	}
@@ -235,7 +237,7 @@ class NotesStore {
 
 	selectNote(id: NoteID | null) {
 		this.selectedNoteID = id;
-		if (id) this.persist(id);
+		this.persist(id!);
 	}
 }
 

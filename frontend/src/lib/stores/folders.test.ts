@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { folderStore, type FolderItem } from './folders.svelte';
 import * as idbr from './idbr';
+import { notesStore } from './notes.svelte';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock crypto.randomUUID
@@ -150,6 +151,36 @@ describe('FolderStore', () => {
 		expect(folderStore.folders.get('childB')?.deletedAt).toBe(oldEpoch);
 	});
 
+	it('should root the folder if its parent metadata is missing during recovery', () => {
+		(folderStore as any).isInitialized = true;
+		const folder: FolderItem = { id: 'f1', title: 'F1', url: '#', parentId: 'missing-parent', deletedAt: 123 };
+		folderStore.folders.set('f1', folder);
+		
+		// Mock has to return false for missing-parent
+		const hasSpy = vi.spyOn((folderStore as any).folders, 'has').mockImplementation((id) => {
+			if (id === 'missing-parent') return false;
+			return true;
+		});
+
+		folderStore.recoverFolderAndChildren('f1');
+
+		expect(folderStore.folders.get('f1')?.parentId).toBeNull();
+		expect(folderStore.folders.get('f1')?.deletedAt).toBeNull();
+	});
+
+	it('should recover all notes within the folder hierarchy during folder recovery', () => {
+		(folderStore as any).isInitialized = true;
+		const epoch = 123;
+		const folder: FolderItem = { id: 'f1', title: 'F1', url: '#', deletedAt: epoch };
+		folderStore.folders.set('f1', folder);
+		
+		const recoverNotesSpy = vi.spyOn(notesStore, 'recoverNotesInFolder');
+
+		folderStore.recoverFolderAndChildren('f1');
+
+		expect(recoverNotesSpy).toHaveBeenCalledWith('f1', epoch);
+	});
+
 	it('should start renaming correctly', () => {
 		vi.useFakeTimers();
 		folderStore.startRename('folder-1');
@@ -169,6 +200,54 @@ describe('FolderStore', () => {
 		folderStore.deleteFolder('item');
 
 		expect(folderStore.selectedFolderID).toBeNull();
+	});
+
+	it('should cascade delete notes when a folder is deleted', () => {
+		(folderStore as any).isInitialized = true;
+		const epoch = 123456789;
+		const folder: FolderItem = { id: 'f1', title: 'F1', url: '#', items: [] };
+		folderStore.folders.set('f1', folder);
+		folderStore.items = ['f1'];
+
+		const deleteNotesSpy = vi.spyOn(notesStore, 'deleteNotesInFolder');
+
+		folderStore.deleteFolder('f1', epoch);
+
+		expect(deleteNotesSpy).toHaveBeenCalledWith('f1', epoch);
+	});
+
+	it('should clear editingId when the folder being renamed is deleted', () => {
+		(folderStore as any).isInitialized = true;
+		const folder: FolderItem = { id: 'f1', title: 'F1', url: '#' };
+		folderStore.folders.set('f1', folder);
+		folderStore.items = ['f1'];
+		(folderStore as any).editingId = 'f1';
+
+		folderStore.deleteFolder('f1');
+
+		expect(folderStore.editingId).toBeNull();
+	});
+
+	it('should not rename folder to an empty string', () => {
+		(folderStore as any).isInitialized = true;
+		const folder: FolderItem = { id: 'f1', title: 'Original', url: '#' };
+		folderStore.folders.set('f1', folder);
+
+		folderStore.renameFolder('f1', '');
+
+		expect(folderStore.folders.get('f1')?.title).toBe('Original');
+		expect(idbr.putFolder).not.toHaveBeenCalled();
+	});
+
+	it('should not rename folder to a whitespace-only string', () => {
+		(folderStore as any).isInitialized = true;
+		const folder: FolderItem = { id: 'f1', title: 'Original', url: '#' };
+		folderStore.folders.set('f1', folder);
+
+		folderStore.renameFolder('f1', '   ');
+
+		expect(folderStore.folders.get('f1')?.title).toBe('Original');
+		expect(idbr.putFolder).not.toHaveBeenCalled();
 	});
 
 	describe('Persistence', () => {
