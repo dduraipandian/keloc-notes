@@ -5,7 +5,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
-	import { noteService, trashService } from '$lib/stores/services';
+	import { folderService, noteService, trashService } from '$lib/stores/services';
 	import { groupNotesByDate } from '$lib/utils';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
@@ -16,7 +16,10 @@
 
 	const filteredNotes = $derived(
 		noteService
-			.getNotesForFolder(folderStore.selectedFolderID ?? null, folderStore.getSelectedFolder()?.type)
+			.getNotesForFolder(
+				folderStore.selectedFolderID ?? null,
+				folderStore.getSelectedFolder()?.type
+			)
 			.filter(
 				(n) =>
 					n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

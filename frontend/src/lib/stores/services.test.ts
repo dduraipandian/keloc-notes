@@ -243,7 +243,7 @@ describe('TrashService', () => {
 		};
 
 		const service = new TrashService(folders as any, notes as any);
-		vi.spyOn(service as any, 'findTopDeletedAncestor').mockReturnValue(null);
+		vi.spyOn((service as any).tree, 'findTopDeletedAncestor').mockReturnValue(null);
 
 		service.recoverNote('note-1');
 

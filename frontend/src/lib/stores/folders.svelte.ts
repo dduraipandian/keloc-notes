@@ -151,18 +151,6 @@ class FolderStore {
 		this.clearEditingIfSelected(id);
 	}
 
-	findTopDeletedAncestor(folderId: string): FolderItem | null {
-		const folder = this.folders.get(folderId);
-		if (!folder || folder.deletedAt == null) return null;
-
-		if (!folder.parentId) return folder;
-
-		const parent = this.folders.get(folder.parentId);
-		if (!parent || parent.deletedAt == null) return folder;
-
-		return this.findTopDeletedAncestor(folder.parentId);
-	}
-
 	restoreFolder(id: string, targetBatch?: number) {
 		const folder = this.folders.get(id);
 		if (!folder || folder.deletedAt == null) return;
@@ -175,30 +163,6 @@ class FolderStore {
 			this.folders.set(id, folder);
 			this.persist(id);
 		}
-	}
-
-	getFolderPath(id: string): string {
-		const folder = this.folders.get(id);
-		if (!folder) return '';
-
-		const segment = `${folder.title}:${folder.id}`;
-		if (!folder.parentId) return segment;
-
-		const parentPath = this.getFolderPath(folder.parentId);
-		return parentPath ? `${parentPath}/${segment}` : segment;
-	}
-
-	// Returns snapshots of a folder and all its descendants.
-	collectFolderSubtree(id: string): FolderItem[] {
-		const result: FolderItem[] = [];
-		const collect = (fid: string) => {
-			const f = this.folders.get(fid);
-			if (!f) return;
-			result.push($state.snapshot(f));
-			if (f.items) f.items.forEach(collect);
-		};
-		collect(id);
-		return result;
 	}
 
 	applyPermanentDeleteState(foldersToDelete: FolderItem[]) {
@@ -215,17 +179,6 @@ class FolderStore {
 			}
 			this.folders.delete(f.id);
 		});
-	}
-
-	restoreParentPath(parentId: string | null | undefined) {
-		if (!parentId) return;
-		const parent = this.folders.get(parentId);
-		if (parent && parent.deletedAt != null) {
-			parent.deletedAt = null;
-			this.folders.set(parentId, parent);
-			this.persist(parentId);
-			this.restoreParentPath(parent.parentId);
-		}
 	}
 
 	rootFolderIfParentMissing(id: string) {

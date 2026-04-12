@@ -377,7 +377,7 @@ describe('FolderStore', () => {
 			folderStore.folders.set('sibling', sibling);
 			folderStore.items = ['L1'];
 
-			folderStore.restoreParentPath('L2');
+			trashService.recoverFolder('L2');
 
 			expect(folderStore.folders.get('L2')?.deletedAt).toBeNull();
 			expect(folderStore.folders.get('L1')?.deletedAt).toBeNull();
@@ -399,8 +399,8 @@ describe('FolderStore', () => {
 			folderStore.items = ['A'];
 
 			// Only B should be a root, because its parent A is NOT deleted
-			expect(folderStore.trashItems).toContain('B');
-			expect(folderStore.trashItems).not.toContain('C');
+			expect(folderService.getTrashRootIds()).toContain('B');
+			expect(folderService.getTrashRootIds()).not.toContain('C');
 		});
 
 		it('should find the top deleted ancestor correctly', () => {
@@ -415,7 +415,7 @@ describe('FolderStore', () => {
 			folderStore.folders.set('B', b);
 			folderStore.folders.set('C', c);
 
-			const top = folderStore.findTopDeletedAncestor('C');
+			const top = folderService.findTopDeletedAncestor('C');
 			expect(top?.id).toBe('B');
 		});
 
@@ -430,7 +430,7 @@ describe('FolderStore', () => {
 			folderStore.folders.set('L2', l2);
 			folderStore.items = ['L1'];
 
-			folderStore.restoreParentPath('L2');
+			trashService.recoverFolder('L2');
 
 			expect(folderStore.folders.get('L2')?.deletedAt).toBeNull();
 			expect(folderStore.folders.get('L1')?.deletedAt).toBeNull();

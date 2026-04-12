@@ -4,7 +4,6 @@ import { trashRepository } from './repositories';
 
 type FolderStoreLike = {
 	findItemById(id: FolderID): FolderItem | null;
-	findTopDeletedAncestor(folderId: FolderID): FolderItem | null;
 	getDefaultFolderId(): FolderID;
 	createFolder(): void;
 	selectFolder(id: FolderID | null): void;
@@ -14,11 +13,8 @@ type FolderStoreLike = {
 	openFolder(id: FolderID): void;
 	deleteFolder(id: FolderID, batchTimestamp?: number): void;
 	restoreFolder(id: FolderID, targetBatch?: number): void;
-	restoreParentPath(parentId: FolderID | null | undefined): void;
 	rootFolderIfParentMissing(id: FolderID): void;
-	collectFolderSubtree(id: FolderID): FolderItem[];
 	applyPermanentDeleteState(foldersToDelete: FolderItem[]): void;
-	getFolderPath(id: FolderID): string;
 	clearSelectionIfSelected(id: FolderID): void;
 	trashItems: FolderID[];
 };
@@ -39,35 +35,8 @@ type NotesStoreLike = {
 	clearSelectionIfSelected(id: NoteID): void;
 };
 
-export class FolderService {
-	constructor(
-		private readonly folders: FolderStoreLike = folderStore,
-		private readonly notes: NotesStoreLike = notesStore
-	) {}
-
-	create() {
-		this.folders.createFolder();
-	}
-
-	select(folderId: FolderID | null) {
-		this.folders.selectFolder(folderId);
-	}
-
-	startRename(folderId: FolderID) {
-		this.folders.startRename(folderId);
-	}
-
-	cancelRename() {
-		this.folders.cancelRename();
-	}
-
-	rename(folderId: FolderID, newTitle: string) {
-		this.folders.renameFolder(folderId, newTitle);
-	}
-
-	toggle(folderId: FolderID) {
-		this.folders.openFolder(folderId);
-	}
+class FolderTreeHelper {
+	constructor(private readonly folders: FolderStoreLike) {}
 
 	findTopDeletedAncestor(folderId: FolderID): FolderItem | null {
 		const folder = this.folders.findItemById(folderId);
@@ -102,8 +71,82 @@ export class FolderService {
 		];
 	}
 
+	getFolderSubtreeIds(rootId: FolderID) {
+		const ids = new Set<FolderID>([rootId]);
+		const folder = this.folders.findItemById(rootId);
+		if (!folder?.items) return ids;
+
+		for (const childId of folder.items) {
+			const childSubtree = this.getFolderSubtreeIds(childId);
+			childSubtree.forEach((id) => ids.add(id));
+		}
+
+		return ids;
+	}
+
 	getTrashRootIds(): FolderID[] {
 		return this.folders.trashItems;
+	}
+
+	restoreParentPath(parentId: FolderID | null | undefined) {
+		if (!parentId) return;
+
+		const parent = this.folders.findItemById(parentId);
+		if (!parent || parent.deletedAt == null) return;
+
+		this.folders.restoreFolder(parentId, parent.deletedAt);
+		this.restoreParentPath(parent.parentId);
+	}
+}
+
+export class FolderService {
+	private readonly tree: FolderTreeHelper;
+
+	constructor(
+		private readonly folders: FolderStoreLike = folderStore,
+		private readonly notes: NotesStoreLike = notesStore
+	) {
+		this.tree = new FolderTreeHelper(folders);
+	}
+
+	create() {
+		this.folders.createFolder();
+	}
+
+	select(folderId: FolderID | null) {
+		this.folders.selectFolder(folderId);
+	}
+
+	startRename(folderId: FolderID) {
+		this.folders.startRename(folderId);
+	}
+
+	cancelRename() {
+		this.folders.cancelRename();
+	}
+
+	rename(folderId: FolderID, newTitle: string) {
+		this.folders.renameFolder(folderId, newTitle);
+	}
+
+	toggle(folderId: FolderID) {
+		this.folders.openFolder(folderId);
+	}
+
+	findTopDeletedAncestor(folderId: FolderID): FolderItem | null {
+		return this.tree.findTopDeletedAncestor(folderId);
+	}
+
+	getFolderPath(folderId: FolderID): string {
+		return this.tree.getFolderPath(folderId);
+	}
+
+	collectFolderSubtree(folderId: FolderID): FolderItem[] {
+		return this.tree.collectFolderSubtree(folderId);
+	}
+
+	getTrashRootIds(): FolderID[] {
+		return this.tree.getTrashRootIds();
 	}
 
 	delete(folderId: FolderID, batchTimestamp?: number) {
@@ -126,10 +169,14 @@ export class FolderService {
 }
 
 export class NoteService {
+	private readonly tree: FolderTreeHelper;
+
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
 		private readonly notes: NotesStoreLike = notesStore
-	) {}
+	) {
+		this.tree = new FolderTreeHelper(folders);
+	}
 
 	create(folderId: FolderID | null) {
 		let actualFolderId = folderId;
@@ -165,7 +212,7 @@ export class NoteService {
 		} else {
 			const currentFolder = folderId ? this.folders.findItemById(folderId) : null;
 			if (currentFolder && currentFolder.deletedAt != null) {
-				const subtreeIds = this.getFolderSubtreeIds(folderId);
+				const subtreeIds = this.tree.getFolderSubtreeIds(folderId);
 				resultNotes = allNotes.filter(
 					(note) =>
 						note.folderId != null &&
@@ -188,27 +235,18 @@ export class NoteService {
 	getNoteCountForFolder(folderId: FolderID | null, folderType?: FolderType) {
 		return this.getNotesForFolder(folderId, folderType).length;
 	}
-
-	private getFolderSubtreeIds(rootId: FolderID) {
-		const ids = new Set<FolderID>([rootId]);
-		const folder = this.folders.findItemById(rootId);
-		if (!folder?.items) return ids;
-
-		for (const childId of folder.items) {
-			const childSubtree = this.getFolderSubtreeIds(childId);
-			childSubtree.forEach((id) => ids.add(id));
-		}
-
-		return ids;
-	}
 }
 
 export class TrashService {
+	private readonly tree: FolderTreeHelper;
+
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
 		private readonly notes: NotesStoreLike = notesStore,
 		private readonly trash = trashRepository
-	) {}
+	) {
+		this.tree = new FolderTreeHelper(folders);
+	}
 
 	recoverFolder(folderId: FolderID, targetBatch?: number) {
 		const folder = this.folders.findItemById(folderId);
@@ -220,7 +258,7 @@ export class TrashService {
 		if (!targetBatch) {
 			this.folders.rootFolderIfParentMissing(folderId);
 			const currentFolder = this.folders.findItemById(folderId);
-			this.restoreParentPath(currentFolder?.parentId);
+			this.tree.restoreParentPath(currentFolder?.parentId);
 		}
 	}
 
@@ -228,7 +266,7 @@ export class TrashService {
 		const note = this.notes.getNote(noteId);
 		if (!note) return;
 
-		const isHierarchical = !!(note.folderId && this.findTopDeletedAncestor(note.folderId));
+		const isHierarchical = !!(note.folderId && this.tree.findTopDeletedAncestor(note.folderId));
 		let restoredFolderId: FolderID | null | undefined = undefined;
 
 		if (note.folderId) {
@@ -236,7 +274,7 @@ export class TrashService {
 			if (parentFolder) {
 				if (parentFolder.deletedAt != null) {
 					if (isHierarchical) {
-						const topRoot = this.findTopDeletedAncestor(note.folderId);
+						const topRoot = this.tree.findTopDeletedAncestor(note.folderId);
 						if (topRoot) this.recoverFolder(topRoot.id);
 					} else {
 						restoredFolderId = null;
@@ -255,7 +293,7 @@ export class TrashService {
 		if (!folder || folder.deletedAt == null) return;
 
 		const batch = targetBatch ?? folder.deletedAt;
-		const foldersToDelete = this.collectFolderSubtree(folderId);
+		const foldersToDelete = this.tree.collectFolderSubtree(folderId);
 		const notesToDelete = this.collectFolderNotesWithPaths(foldersToDelete, batch);
 
 		try {
@@ -273,7 +311,7 @@ export class TrashService {
 		const note = this.notes.getNote(noteId);
 		if (!note) return;
 
-		const folderPath = note.folderId ? this.getFolderPath(note.folderId) : 'root';
+		const folderPath = note.folderId ? this.tree.getFolderPath(note.folderId) : 'root';
 		const fullPath = note.folderId ? `${folderPath}/${note.title}:${note.id}` : `${note.title}:${note.id}`;
 
 		try {
@@ -287,7 +325,7 @@ export class TrashService {
 	}
 
 	async empty() {
-		const foldersToDelete = this.getTrashRootIds().flatMap((id) => this.collectFolderSubtree(id));
+		const foldersToDelete = this.tree.getTrashRootIds().flatMap((id) => this.tree.collectFolderSubtree(id));
 		const deletedFolderIds = new Set(foldersToDelete.map((f) => f.id));
 		const folderNotes = this.collectFolderNotesWithPaths(foldersToDelete);
 		const individualNotes = this.collectAllDeletedNotesWithPaths();
@@ -325,7 +363,7 @@ export class TrashService {
 		batch?: number
 	): { note: NoteItem; path: string }[] {
 		return folders.flatMap((folder) => {
-			const folderPath = this.getFolderPath(folder.id);
+			const folderPath = this.tree.getFolderPath(folder.id);
 			const notes =
 				batch !== undefined
 					? this.notes.getNotesToArchive(folder.id, batch)
@@ -340,57 +378,10 @@ export class TrashService {
 
 	private collectAllDeletedNotesWithPaths(): { note: NoteItem; path: string }[] {
 		return this.notes.getDeletedNotes().map((note) => {
-			const folderPath = note.folderId ? this.getFolderPath(note.folderId) : null;
+			const folderPath = note.folderId ? this.tree.getFolderPath(note.folderId) : null;
 			const path = folderPath ? `${folderPath}/${note.title}:${note.id}` : `${note.title}:${note.id}`;
 			return { note: structuredClone(note), path };
 		});
-	}
-
-	private findTopDeletedAncestor(folderId: FolderID): FolderItem | null {
-		const folder = this.folders.findItemById(folderId);
-		if (!folder || folder.deletedAt == null) return null;
-
-		if (!folder.parentId) return folder;
-
-		const parent = this.folders.findItemById(folder.parentId);
-		if (!parent || parent.deletedAt == null) return folder;
-
-		return this.findTopDeletedAncestor(folder.parentId);
-	}
-
-	private getFolderPath(folderId: FolderID): string {
-		const folder = this.folders.findItemById(folderId);
-		if (!folder) return '';
-
-		const segment = `${folder.title}:${folder.id}`;
-		if (!folder.parentId) return segment;
-
-		const parentPath = this.getFolderPath(folder.parentId);
-		return parentPath ? `${parentPath}/${segment}` : segment;
-	}
-
-	private collectFolderSubtree(folderId: FolderID): FolderItem[] {
-		const folder = this.folders.findItemById(folderId);
-		if (!folder) return [];
-
-		return [
-			structuredClone(folder),
-			...(folder.items ?? []).flatMap((childId) => this.collectFolderSubtree(childId))
-		];
-	}
-
-	private getTrashRootIds(): FolderID[] {
-		return this.folders.trashItems;
-	}
-
-	private restoreParentPath(parentId: FolderID | null | undefined) {
-		if (!parentId) return;
-
-		const parent = this.folders.findItemById(parentId);
-		if (!parent || parent.deletedAt == null) return;
-
-		this.folders.restoreFolder(parentId, parent.deletedAt);
-		this.restoreParentPath(parent.parentId);
 	}
 }
 

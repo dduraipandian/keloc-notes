@@ -34,9 +34,6 @@
 			<Sidebar.MenuItem>
 				{@render MenuItemSnippet(folderStore.folders.get('deleted-notes')!, 0, true)}
 			</Sidebar.MenuItem>
-			<Sidebar.MenuItem>
-				{@render MenuItemSnippet(folderStore.folders.get('notes')!, 0, false)}
-			</Sidebar.MenuItem>
 		</Sidebar.Menu>
 	</Sidebar.Header>
 	<Sidebar.Content class="pt-0">

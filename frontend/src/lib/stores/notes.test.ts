@@ -267,7 +267,7 @@ describe('NotesStore', () => {
 			deletedAt: epoch
 		};
 		vi.spyOn(folderStore, 'findItemById').mockReturnValue(a);
-		vi.spyOn(trashService as any, 'findTopDeletedAncestor').mockReturnValue(null);
+		vi.spyOn((trashService as any).tree, 'findTopDeletedAncestor').mockReturnValue(null);
 
 		// Recover note ONLY
 		trashService.recoverNote('note-x');
