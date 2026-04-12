@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { notesStore, type NoteItem } from './notes.svelte';
 import * as idbr from './idbr';
 import { folderStore, type FolderItem } from './folders.svelte';
-import { trashService } from './services';
+import { noteService, trashService } from './services';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock IDBR module
@@ -330,7 +330,7 @@ describe('NotesStore', () => {
 			} as any);
 			vi.spyOn(folderStore, 'getDefaultFolderId').mockReturnValue('default-folder');
 
-			notesStore.createNote('deleted-notes');
+			noteService.create('deleted-notes');
 
 			const note = notesStore.notes.get('test-uuid');
 			expect(note?.folderId).toBe('default-folder');

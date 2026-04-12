@@ -60,6 +60,33 @@ describe('NoteService', () => {
 		expect(folders.getDefaultFolderId).toHaveBeenCalled();
 		expect(notes.createNote).toHaveBeenCalledWith('notes');
 	});
+
+	it('should delegate note updates', () => {
+		const folders = {};
+		const notes = { updateNote: vi.fn() };
+
+		new NoteService(folders as any, notes as any).update('note-1', { title: 'Updated' });
+
+		expect(notes.updateNote).toHaveBeenCalledWith('note-1', { title: 'Updated' });
+	});
+
+	it('should delegate note selection', () => {
+		const folders = {};
+		const notes = { selectNote: vi.fn() };
+
+		new NoteService(folders as any, notes as any).select('note-1');
+
+		expect(notes.selectNote).toHaveBeenCalledWith('note-1');
+	});
+
+	it('should delegate soft deletion', () => {
+		const folders = {};
+		const notes = { deleteNote: vi.fn() };
+
+		new NoteService(folders as any, notes as any).delete('note-1', 123);
+
+		expect(notes.deleteNote).toHaveBeenCalledWith('note-1', 123);
+	});
 });
 
 describe('TrashService', () => {

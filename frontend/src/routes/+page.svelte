@@ -4,7 +4,7 @@
 	import Info from '@lucide/svelte/icons/info';
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { trashService } from '$lib/stores/services';
+	import { noteService, trashService } from '$lib/stores/services';
 	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);
@@ -69,7 +69,7 @@
 					</div>
 					<textarea
 						bind:value={selectedNote.title}
-						oninput={() => notesStore.updateNote(selectedNote!.id, { title: selectedNote!.title })}
+						oninput={() => noteService.update(selectedNote!.id, { title: selectedNote!.title })}
 						placeholder="Note Title"
 						readonly={selectedNote.deletedAt != null}
 						onclick={() => {
@@ -94,7 +94,7 @@
 							if (selectedNote.deletedAt != null) handleRestoreInit();
 						}}
 						oninput={() =>
-							notesStore.updateNote(selectedNote!.id, { content: selectedNote!.content })}
+							noteService.update(selectedNote!.id, { content: selectedNote!.content })}
 						placeholder="Start writing..."
 						class="w-full flex-1 resize-none bg-transparent leading-relaxed text-foreground/90 outline-none placeholder:text-muted-foreground/10"
 						spellcheck="false"

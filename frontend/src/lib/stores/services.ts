@@ -23,6 +23,9 @@ type FolderStoreLike = {
 
 type NotesStoreLike = {
 	createNote(folderId: FolderID | null): void;
+	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>): void;
+	deleteNote(id: NoteID, batchTimestamp?: number): void;
+	selectNote(id: NoteID | null): void;
 	getNote(id: NoteID): NoteItem | null;
 	restoreNote(id: NoteID, folderId?: FolderID | null): void;
 	restoreNotesInFolder(folderId: FolderID, targetBatch?: number): void;
@@ -76,6 +79,18 @@ export class NoteService {
 		}
 
 		this.notes.createNote(actualFolderId);
+	}
+
+	update(noteId: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {
+		this.notes.updateNote(noteId, updates);
+	}
+
+	select(noteId: NoteID | null) {
+		this.notes.selectNote(noteId);
+	}
+
+	delete(noteId: NoteID, batchTimestamp?: number) {
+		this.notes.deleteNote(noteId, batchTimestamp);
 	}
 }
 

@@ -145,16 +145,9 @@ class NotesStore {
 	}
 
 	createNote(folderId: FolderID | null) {
-		let actualFolderId = folderId;
-		const folder = folderId ? folderStore.findItemById(folderId) : null;
-
-		if (!folderId || folder?.type === 'all' || folder?.type === 'trash') {
-			actualFolderId = folderStore.getDefaultFolderId();
-		}
-
 		const newNote: NoteItem = {
 			id: crypto.randomUUID(),
-			folderId: actualFolderId,
+			folderId,
 			title: 'Untitled Note',
 			content: '',
 			updatedAt: new Date().toISOString(),

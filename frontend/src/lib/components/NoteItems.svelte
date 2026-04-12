@@ -71,7 +71,7 @@
 					title="Trash"
 					onclick={() =>
 						uiStore.confirmNoteDelete(notesStore.selectedNote!.title, () =>
-							notesStore.deleteNote(notesStore.selectedNoteID!)
+							noteService.delete(notesStore.selectedNoteID!)
 						)}
 				>
 					<Trash2 size={16} />
@@ -109,7 +109,7 @@
 							<ContextMenu.Trigger>
 								<Item.Root
 									variant={isSelected ? 'muted' : 'default'}
-									onclick={() => notesStore.selectNote(note.id)}
+									onclick={() => noteService.select(note.id)}
 								>
 									<Item.Content>
 										<Item.Title class="flex w-full items-center gap-2 overflow-hidden">
@@ -147,7 +147,7 @@
 		{:else}
 			<ContextMenu.Item
 				class="text-[13px] text-destructive focus:text-destructive"
-				onSelect={() => uiStore.confirmNoteDelete(note.title, () => notesStore.deleteNote(note.id))}
+				onSelect={() => uiStore.confirmNoteDelete(note.title, () => noteService.delete(note.id))}
 				>Delete</ContextMenu.Item
 			>
 		{/if}
