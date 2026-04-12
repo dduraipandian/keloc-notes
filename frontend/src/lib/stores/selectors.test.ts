@@ -80,7 +80,7 @@ describe('FolderSidebarSelector', () => {
 				items: ['notes'],
 				folders: new Map([['notes', { id: 'notes', title: 'Notes', url: '#' }]])
 			} as any,
-			{} as any,
+			{ getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
 			{ getNoteCountForFolder: vi.fn().mockReturnValue(3) } as any,
 			{ selectedFolderID: 'notes', getSelectedFolder: vi.fn() } as any
 		);
@@ -101,25 +101,28 @@ describe('FolderSidebarSelector', () => {
 		const selector = new FolderSidebarSelector(
 			{
 				folders: new Map([
+					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
 					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }],
 					['deleted-folder', { id: 'deleted-folder', title: 'Deleted', url: '#', deletedAt: 123 }]
 				])
 			} as any,
-			{ getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']) } as any,
+			{ getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']), getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
 			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
 			{ selectedFolderID: 'deleted-notes', getSelectedFolder: vi.fn() } as any
 		);
 
-		expect(selector.getSections().find((section) => section.id === 'views')?.sources).toEqual([
-			expect.objectContaining({
-				id: 'deleted-notes',
-				kind: 'trash',
-				isTrashRoot: true,
-				isSelected: true,
-				children: [expect.objectContaining({ id: 'deleted-folder', isTrashTree: true })],
-				capabilities: expect.objectContaining({ emptyTrash: true })
-			})
-		]);
+		expect(selector.getSections().find((section) => section.id === 'views')?.sources).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: 'deleted-notes',
+					kind: 'trash',
+					isTrashRoot: true,
+					isSelected: true,
+					children: [expect.objectContaining({ id: 'deleted-folder', isTrashTree: true })],
+					capabilities: expect.objectContaining({ emptyTrash: true })
+				})
+			])
+		);
 	});
 
 	it('should hide deleted children in the regular tree', () => {
@@ -132,7 +135,7 @@ describe('FolderSidebarSelector', () => {
 					['child-b', { id: 'child-b', title: 'B', url: '#', deletedAt: 123 }]
 				])
 			} as any,
-			{} as any,
+			{ getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
 			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
 			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
 		);
@@ -148,7 +151,7 @@ describe('FolderSidebarSelector', () => {
 				items: ['notes'],
 				folders: new Map([['notes', { id: 'notes', title: 'Notes', url: '#', type: 'regular' }]])
 			} as any,
-			{} as any,
+			{ getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
 			{ getNoteCountForFolder: vi.fn().mockReturnValue(3) } as any,
 			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
 		);
@@ -160,16 +163,21 @@ describe('FolderSidebarSelector', () => {
 		const selector = new FolderSidebarSelector(
 			{
 				folders: new Map([
+					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
 					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }],
 					['deleted-folder', { id: 'deleted-folder', title: 'Deleted', url: '#', deletedAt: 123 }]
 				])
 			} as any,
-			{ getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']) } as any,
+			{ getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']), getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
 			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
 			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
 		);
 
-		const deletedFolder = selector.getSections().find((section) => section.id === 'views')?.sources[0]?.children[0];
+		const deletedFolder = selector
+			.getSections()
+			.find((section) => section.id === 'views')
+			?.sources.find((source) => source.id === 'deleted-notes')
+			?.children[0];
 
 		expect(deletedFolder?.capabilities).toEqual(
 			expect.objectContaining({
@@ -188,11 +196,12 @@ describe('FolderSidebarSelector', () => {
 			{
 				items: ['notes'],
 				folders: new Map([
+					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
 					['notes', { id: 'notes', title: 'Notes', url: '#', type: 'regular' }],
 					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }]
 				])
 			} as any,
-			{ getTrashRootIds: vi.fn().mockReturnValue([]) } as any,
+			{ getTrashRootIds: vi.fn().mockReturnValue([]), getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
 			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
 			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
 		);
@@ -201,5 +210,48 @@ describe('FolderSidebarSelector', () => {
 			expect.objectContaining({ id: 'views', label: null }),
 			expect.objectContaining({ id: 'folders', label: 'Folders' })
 		]);
+	});
+
+	it('should expose favorites as a virtual view with favorite folders as children', () => {
+		const selector = new FolderSidebarSelector(
+			{
+				folders: new Map([
+					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
+					['work', { id: 'work', title: 'Work', url: '#', isFavorite: true, deletedAt: null }]
+				])
+			} as any,
+			{ getTrashRootIds: vi.fn().mockReturnValue([]), getFavoriteFolderIds: vi.fn().mockReturnValue(['work']) } as any,
+			{ getNoteCountForFolder: vi.fn().mockImplementation((id: string) => (id === 'favorites' ? 2 : 1)) } as any,
+			{ selectedFolderID: 'favorites', getSelectedFolder: vi.fn() } as any
+		);
+
+		const favorites = selector.getSections().find((section) => section.id === 'views')?.sources.find((source) => source.id === 'favorites');
+
+		expect(favorites).toEqual(
+			expect.objectContaining({
+				kind: 'favorites',
+				isSelected: true,
+				noteCount: 2,
+				children: [expect.objectContaining({ id: 'work', kind: 'folder' })]
+			})
+		);
+	});
+
+	it('should hide deleted favorite folders from the favorites virtual view immediately', () => {
+		const selector = new FolderSidebarSelector(
+			{
+				folders: new Map([
+					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
+					['work', { id: 'work', title: 'Work', url: '#', isFavorite: true, deletedAt: 123 }]
+				])
+			} as any,
+			{ getTrashRootIds: vi.fn().mockReturnValue([]), getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
+			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
+			{ selectedFolderID: 'favorites', getSelectedFolder: vi.fn() } as any
+		);
+
+		const favorites = selector.getSections().find((section) => section.id === 'views')?.sources.find((source) => source.id === 'favorites');
+
+		expect(favorites?.children).toEqual([]);
 	});
 });

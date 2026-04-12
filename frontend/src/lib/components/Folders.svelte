@@ -2,6 +2,7 @@
 	import Folder from '@lucide/svelte/icons/folder';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FolderPlus from '@lucide/svelte/icons/folder-plus';
+	import Star from '@lucide/svelte/icons/star';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
@@ -65,20 +66,14 @@
 	<Sidebar.Footer class="mt-auto border-t-0 pb-6 pl-6">
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>
-				<Sidebar.MenuButton class="px-2 transition-none hover:bg-transparent">
-					{#snippet child({ props })}
-						<button
-							type="button"
-							class="group flex items-center gap-2 text-[13px] font-medium text-foreground/80 hover:text-foreground"
-							onclick={(e) => {
-								e.preventDefault();
-								folderService.create();
-							}}
-						>
-							<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
-							<span>New Folder</span>
-						</button>
-					{/snippet}
+				<Sidebar.MenuButton
+					class="group gap-2 px-2 text-[13px] font-medium text-foreground/80 transition-none hover:bg-transparent hover:text-foreground"
+					onclick={() => {
+						folderService.create();
+					}}
+				>
+					<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
+					<span>New Folder</span>
 				</Sidebar.MenuButton>
 			</Sidebar.MenuItem>
 		</Sidebar.Menu>
@@ -126,6 +121,8 @@
 										/>
 										{#if source.isTrashRoot}
 											<Trash2 size={16} class="text-destructive/70" />
+										{:else if source.kind === 'favorites'}
+											<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
 										{:else}
 											<Folder size={16} style="color: {folderColor}" class="opacity-80" />
 										{/if}
@@ -202,6 +199,14 @@
 					>New Folder</ContextMenu.Item
 				>
 			{/if}
+			{#if item.type !== 'system' && item.type !== 'trash'}
+				<ContextMenu.Item
+					class="text-[13px]"
+					onSelect={() => folderService.setFavorite(item.id, item.isFavorite !== true)}
+				>
+					{item.isFavorite ? 'Remove From Favorites' : 'Add To Favorites'}
+				</ContextMenu.Item>
+			{/if}
 			{#if source.capabilities.rename}
 				<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.startRename(item.id)}
 					>Rename</ContextMenu.Item
@@ -240,6 +245,8 @@
 				<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
 				{#if source.isTrashRoot}
 					<Trash2 size={16} class="text-destructive/70" />
+				{:else if source.kind === 'favorites'}
+					<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
 				{:else}
 					<Folder size={16} style="color: {folderColor}" class="opacity-80" />
 				{/if}

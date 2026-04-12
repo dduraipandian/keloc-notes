@@ -59,6 +59,29 @@ describe('FolderStore', () => {
 		expect(folderStore.folders.get('all')?.type).toBe('all');
 	});
 
+	it('should toggle a folder favorite flag', () => {
+		(folderStore as any).isInitialized = true;
+		const folder: FolderItem = { id: 'f1', title: 'Folder', url: '#', isFavorite: false };
+		folderStore.folders.set('f1', folder);
+
+		folderStore.setFavorite('f1', true);
+
+		expect(folderStore.folders.get('f1')?.isFavorite).toBe(true);
+		expect(foldersRepository.save).toHaveBeenCalledWith(expect.objectContaining({ isFavorite: true }));
+	});
+
+	it('should preserve a folder favorite flag across delete and restore', () => {
+		(folderStore as any).isInitialized = true;
+		const folder: FolderItem = { id: 'f1', title: 'Folder', url: '#', isFavorite: true, deletedAt: null };
+		folderStore.folders.set('f1', folder);
+
+		folderStore.deleteFolder('f1', 123);
+		folderStore.restoreFolder('f1', 123);
+
+		expect(folderStore.folders.get('f1')?.deletedAt).toBeNull();
+		expect(folderStore.folders.get('f1')?.isFavorite).toBe(true);
+	});
+
 	it('should provide a default folder id and create if none exists', () => {
 		(folderStore as any).isInitialized = true;
 		const id = folderStore.getDefaultFolderId();

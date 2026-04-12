@@ -126,6 +126,27 @@ describe('NotesStore', () => {
 		expect(notesRepository.save).toHaveBeenCalled();
 	});
 
+	it('should toggle a note favorite flag', () => {
+		addNoteToStore({ id: '1', folderId: 'f1', isFavorite: false });
+		(notesStore as any).isInitialized = true;
+
+		notesStore.setFavorite('1', true);
+
+		expect(notesStore.notes.get('1')?.isFavorite).toBe(true);
+		expect(notesRepository.save).toHaveBeenCalledWith(expect.objectContaining({ isFavorite: true }));
+	});
+
+	it('should preserve a note favorite flag across delete and restore', () => {
+		addNoteToStore({ id: '1', folderId: 'f1', isFavorite: true });
+		(notesStore as any).isInitialized = true;
+
+		notesStore.deleteNote('1', 123);
+		notesStore.restoreNote('1');
+
+		expect(notesStore.notes.get('1')?.deletedAt).toBeNull();
+		expect(notesStore.notes.get('1')?.isFavorite).toBe(true);
+	});
+
 	it('should soft-delete a note (move to trash) and clear selection', () => {
 		addNoteToStore({ id: '1', folderId: 'f1' });
 		notesStore.selectedNoteID = '1';

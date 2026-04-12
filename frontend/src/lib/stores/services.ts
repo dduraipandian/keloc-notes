@@ -5,6 +5,7 @@ import { selectionStore } from './selection.svelte';
 
 type FolderStoreLike = {
 	items: FolderID[];
+	folders: Map<FolderID, FolderItem>;
 	findItemById(id: FolderID): FolderItem | null;
 	getDefaultFolderId(): FolderID;
 	createFolder(parentId?: FolderID | null): FolderID | void;
@@ -12,6 +13,7 @@ type FolderStoreLike = {
 	cancelRename(): void;
 	renameFolder(id: FolderID, newTitle: string): void;
 	openFolder(id: FolderID): void;
+	setFavorite(id: FolderID, isFavorite: boolean): void;
 	deleteFolder(id: FolderID, batchTimestamp?: number): void;
 	restoreFolder(id: FolderID, targetBatch?: number): void;
 	rootFolderIfParentMissing(id: FolderID): void;
@@ -31,6 +33,7 @@ type NotesStoreLike = {
 	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>): void;
 	deleteNote(id: NoteID, batchTimestamp?: number): void;
 	selectNote(id: NoteID | null): void;
+	setFavorite(id: NoteID, isFavorite: boolean): void;
 	getNote(id: NoteID): NoteItem | null;
 	listNotes(): NoteItem[];
 	restoreNote(id: NoteID, folderId?: FolderID | null): void;
@@ -111,6 +114,22 @@ class FolderTreeHelper {
 		return this.folders.trashItems;
 	}
 
+	getFavoriteFolderIds(): FolderID[] {
+		const result: FolderID[] = [];
+		for (const [id, folder] of this.folders.folders.entries()) {
+			if (
+				folder &&
+				folder.isFavorite === true &&
+				folder.deletedAt == null &&
+				folder.type !== 'trash' &&
+				folder.type !== 'system'
+			) {
+				result.push(id);
+			}
+		}
+		return result;
+	}
+
 	getActiveFolderIds(): FolderID[] {
 		const result: FolderID[] = [];
 		for (const rootId of this.folders.items) {
@@ -164,7 +183,7 @@ class FolderTreeHelper {
 
 	private collectActiveFolderIds(folderId: FolderID, output: FolderID[]) {
 		const folder = this.folders.findItemById(folderId);
-		if (!folder || folder.type === 'trash' || folder.deletedAt != null) return;
+		if (!folder || folder.type === 'trash' || folder.type === 'system' || folder.deletedAt != null) return;
 
 		output.push(folder.id);
 
@@ -188,7 +207,12 @@ export class FolderService {
 	}
 
 	create() {
-		const newFolderId = this.folders.createFolder(this.selection.selectedFolderID);
+		const selectedFolder = this.selection.getSelectedFolder();
+		const parentFolderId =
+			selectedFolder && (selectedFolder.type === undefined || selectedFolder.type === 'regular')
+				? this.selection.selectedFolderID
+				: null;
+		const newFolderId = this.folders.createFolder(parentFolderId);
 		this.selection.selectFolder(newFolderId ?? null);
 	}
 
@@ -227,6 +251,14 @@ export class FolderService {
 
 	getTrashRootIds(): FolderID[] {
 		return this.tree.getTrashRootIds();
+	}
+
+	getFavoriteFolderIds(): FolderID[] {
+		return this.tree.getFavoriteFolderIds();
+	}
+
+	setFavorite(folderId: FolderID, isFavorite: boolean) {
+		this.folders.setFavorite(folderId, isFavorite);
 	}
 
 	delete(folderId: FolderID, batchTimestamp?: number) {
@@ -301,7 +333,7 @@ export class NoteService {
 		let actualFolderId = folderId;
 		const folder = folderId ? this.folders.findItemById(folderId) : null;
 
-		if (!folderId || folder?.type === 'all' || folder?.type === 'trash') {
+		if (!folderId || folder?.type === 'all' || folder?.type === 'trash' || folder?.type === 'system') {
 			actualFolderId = this.folders.getDefaultFolderId();
 		}
 
@@ -331,7 +363,17 @@ export class NoteService {
 		this.notes.selectNote(nextNoteId);
 	}
 
+	setFavorite(noteId: NoteID, isFavorite: boolean) {
+		this.notes.setFavorite(noteId, isFavorite);
+	}
+
 	getNotesForFolder(folderId: FolderID | null, folderType?: FolderType) {
+		if (folderId === 'favorites') {
+			return this.notes
+				.listNotes()
+				.filter((note) => note.deletedAt == null && note.isFavorite === true)
+				.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+		}
 		return this.tree.getNotesForFolder(folderId, folderType);
 	}
 

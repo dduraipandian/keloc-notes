@@ -23,6 +23,7 @@ type SelectionStoreLike = {
 type FolderServiceLike = {
 	findTopDeletedAncestor(folderId: FolderID): FolderItem | null;
 	getTrashRootIds(): FolderID[];
+	getFavoriteFolderIds(): FolderID[];
 };
 
 type NoteServiceLike = {
@@ -33,7 +34,7 @@ type NoteServiceLike = {
 export type SidebarSourceItem = {
 	id: FolderID;
 	item: FolderItem;
-	kind: 'folder' | 'trash';
+	kind: 'folder' | 'trash' | 'favorites';
 	title: string;
 	depth: number;
 	isTrashTree: boolean;
@@ -79,7 +80,8 @@ export class NoteListSelector {
 	}
 
 	canCreateNote() {
-		return this.selection.selectedFolderID !== 'deleted-notes';
+		const selectedFolder = this.selection.getSelectedFolder();
+		return selectedFolder?.type !== 'trash' && selectedFolder?.type !== 'system';
 	}
 
 	canDeleteSelectedNote() {
@@ -145,8 +147,9 @@ export class FolderSidebarSelector {
 			id: 'views',
 			label: null,
 			getRoots(selector) {
-				const trashRoot = selector.folders.folders.get('deleted-notes');
-				return trashRoot ? [trashRoot] : [];
+				return ['favorites', 'deleted-notes']
+					.map((id) => selector.folders.folders.get(id))
+					.filter((item): item is FolderItem => !!item);
 			}
 		},
 		{
@@ -155,7 +158,10 @@ export class FolderSidebarSelector {
 			getRoots(selector) {
 				return (selector.folders.items ?? [])
 					.map((itemId) => selector.folders.folders.get(itemId))
-					.filter((item): item is FolderItem => !!item && item.deletedAt == null && item.type !== 'trash');
+					.filter(
+						(item): item is FolderItem =>
+							!!item && item.deletedAt == null && item.type !== 'trash' && item.type !== 'system'
+					);
 			}
 		}
 	];
@@ -181,16 +187,21 @@ export class FolderSidebarSelector {
 
 	private buildSource(item: FolderItem, depth: number, isTrashTree = false): SidebarSourceItem {
 		const isTrashRoot = item.type === 'trash';
-		const childIds = isTrashRoot ? this.folderQueries.getTrashRootIds() : item.items || [];
+		const isFavoritesRoot = item.id === 'favorites';
+		const childIds = isTrashRoot
+			? this.folderQueries.getTrashRootIds()
+			: isFavoritesRoot
+				? this.folderQueries.getFavoriteFolderIds()
+				: item.items || [];
 		const visibleChildIds =
-			isTrashRoot || !isTrashTree
+			isTrashRoot || isFavoritesRoot || !isTrashTree
 				? childIds.filter((id) => isTrashRoot || this.folders.folders.get(id)?.deletedAt == null)
 				: [];
 
 		return {
 			id: item.id,
 			item,
-			kind: isTrashRoot ? 'trash' : 'folder',
+			kind: isTrashRoot ? 'trash' : isFavoritesRoot ? 'favorites' : 'folder',
 			title: item.title,
 			depth,
 			isTrashTree,
@@ -204,7 +215,7 @@ export class FolderSidebarSelector {
 				.filter((child): child is FolderItem => !!child)
 				.map((child) => this.buildSource(child, depth + 1, isTrashTree || isTrashRoot)),
 			capabilities: {
-				create: item.deletedAt == null,
+				create: item.deletedAt == null && item.type !== 'system',
 				rename: item.deletedAt == null && !isTrashTree && item.type !== 'system' && item.type !== 'trash',
 				delete: item.deletedAt == null && !isTrashTree && item.type !== 'system' && item.type !== 'trash',
 				recover: item.deletedAt != null,

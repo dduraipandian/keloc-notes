@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Search from '@lucide/svelte/icons/search';
+	import Star from '@lucide/svelte/icons/star';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -104,6 +105,9 @@
 								>
 									<Item.Content>
 										<Item.Title class="flex w-full items-center gap-2 overflow-hidden">
+											{#if note.isFavorite}
+												<Star size={12} class="shrink-0 fill-[#e0b64b] text-[#e0b64b]" />
+											{/if}
 											<span class="flex-1 truncate text-sm font-semibold text-foreground/90">
 												{note.title || 'Untitled Note'}
 											</span>
@@ -136,6 +140,13 @@
 				>Delete Permanently</ContextMenu.Item
 			>
 		{:else}
+			<ContextMenu.Item
+				class="text-[13px]"
+				onSelect={() => noteService.setFavorite(note.id, note.isFavorite !== true)}
+			>
+				{note.isFavorite ? 'Remove From Favorites' : 'Add To Favorites'}
+			</ContextMenu.Item>
+			<ContextMenu.Separator />
 			<ContextMenu.Item
 				class="text-[13px] text-destructive focus:text-destructive"
 				onSelect={() => uiStore.confirmNoteDelete(note.title, () => noteService.delete(note.id))}

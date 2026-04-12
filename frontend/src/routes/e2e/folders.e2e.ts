@@ -30,12 +30,19 @@ function getTrashFolder(page: import('@playwright/test').Page) {
 	return page.locator('div[data-sidebar="header"] ul li[data-sidebar="menu-item"]');
 }
 
+function getHeaderSidebarItem(page: import('@playwright/test').Page, label: string) {
+	return page
+		.locator('div[data-sidebar="header"] .notes-folder-label')
+		.filter({ hasText: label })
+		.first();
+}
+
 function getAlertDialog(page: import('@playwright/test').Page) {
 	return page.locator('div[data-slot="alert-dialog-content"]');
 }
 
 async function createFolder(page: import('@playwright/test').Page, title: string) {
-	await page.getByRole('link', { name: 'New Folder' }).click();
+	await page.getByRole('button', { name: 'New Folder' }).click();
 
 	const renameInput = page.locator('input:not([placeholder])');
 	await expect(renameInput).toBeVisible();
@@ -81,6 +88,22 @@ async function deleteFolder(page: import('@playwright/test').Page, title: string
 	await expect(getAlertDialog(page).getByRole('heading', { name: 'Delete Folder' })).toBeVisible();
 	await getAlertDialog(page).getByRole('button', { name: 'Delete Folder' }).click();
 	await expect(getAlertDialog(page)).toBeHidden();
+}
+
+async function addFolderToFavorites(page: import('@playwright/test').Page, title: string) {
+	const folderEntry = getSideBarFolderByLabel(page, title);
+	await folderEntry.click({ button: 'right' });
+	await page.getByText('Add To Favorites', { exact: true }).click();
+}
+
+async function addSelectedNoteToFavorites(page: import('@playwright/test').Page, title: string) {
+	await getNoteTitleInPane(page).getByText(title, { exact: true }).click({ button: 'right' });
+	await page.getByText('Add To Favorites', { exact: true }).click();
+}
+
+async function openFavorites(page: import('@playwright/test').Page) {
+	await getTrashFolder(page).getByText('Favorites', { exact: true }).click();
+	await expect(getNotePaneTitle(page, 'Favorites')).toBeVisible();
 }
 
 test('can create and rename a folder from the sidebar', async ({ page }) => {
@@ -288,4 +311,86 @@ test('complex soft delete and recover a folder from trash', async ({ page }) => 
 	await page.getByText('Recover Folder', { exact: true }).click();
 
 	await expect(getSideBarContent(page).getByText(subFolderTitle, { exact: true })).toBeVisible();
+});
+
+test('can favorite a note and see it in the Favorites virtual view', async ({ page }) => {
+	await page.goto('/');
+
+	const folderTitle = uniqueName('Favorites Folder');
+	const noteTitle = uniqueName('Favorite Note');
+
+	await createFolder(page, folderTitle);
+	await createNote(page, noteTitle, 'Starred note content.');
+	await addSelectedNoteToFavorites(page, noteTitle);
+
+	await page.getByText('Favorites', { exact: true }).click();
+
+	await expect(getNotePaneTitle(page, 'Favorites')).toBeVisible();
+	await expect(page.getByText(noteTitle, { exact: true })).toBeVisible();
+});
+
+test('can favorite a folder and see it nested under the Favorites virtual view', async ({ page }) => {
+	await page.goto('/');
+
+	const folderTitle = uniqueName('Favorite Folder');
+
+	await createFolder(page, folderTitle);
+	await addFolderToFavorites(page, folderTitle);
+
+	await page.getByText('Favorites', { exact: true }).click();
+
+	await expect(getTrashFolder(page).getByText('Favorites', { exact: true })).toBeVisible();
+	await expect(page.locator('div[data-sidebar="header"]').getByText(folderTitle, { exact: true })).toBeVisible();
+});
+
+test('deleted favorite notes disappear from Favorites and reappear there after restore', async ({ page }) => {
+	await page.goto('/');
+
+	const folderTitle = uniqueName('Favorite Delete Folder');
+	const noteTitle = uniqueName('Favorite Delete Note');
+
+	await createFolder(page, folderTitle);
+	await createNote(page, noteTitle, 'Favorite note lifecycle.');
+	await addSelectedNoteToFavorites(page, noteTitle);
+
+	await openFavorites(page);
+	await page.getByText(noteTitle, { exact: true }).click();
+	await deleteSelectedNote(page);
+
+	await expect(page.getByText(noteTitle, { exact: true })).toBeHidden();
+
+	await page.getByText('Recently Deleted', { exact: true }).click();
+	await page.getByText(noteTitle, { exact: true }).click();
+	await page.getByRole('button', { name: 'Restore Note' }).click();
+	await page
+		.locator('div[data-slot="alert-dialog-content"]')
+		.getByRole('button', { name: 'Restore' })
+		.click();
+
+	await openFavorites(page);
+	await expect(page.getByText(noteTitle, { exact: true })).toBeVisible();
+});
+
+test('deleted favorite folders disappear from Favorites and reappear there after restore', async ({ page }) => {
+	await page.goto('/');
+
+	const folderTitle = uniqueName('Favorite Delete Folder');
+
+	await createFolder(page, folderTitle);
+	await addFolderToFavorites(page, folderTitle);
+
+	await openFavorites(page);
+	await expect(getHeaderSidebarItem(page, folderTitle)).toBeVisible();
+
+	await deleteFolder(page, folderTitle);
+
+	await openFavorites(page);
+	await expect(getHeaderSidebarItem(page, folderTitle)).toBeHidden();
+
+	await page.getByText('Recently Deleted', { exact: true }).click();
+	await getTrashFolder(page).getByText(folderTitle, { exact: true }).click({ button: 'right' });
+	await page.getByText('Recover Folder', { exact: true }).click();
+
+	await openFavorites(page);
+	await expect(getHeaderSidebarItem(page, folderTitle)).toBeVisible();
 });

@@ -12,12 +12,31 @@ vi.mock('./repositories', () => ({
 describe('FolderService', () => {
 	it('should delegate folder creation', () => {
 		const folders = { createFolder: vi.fn() };
-		const selection = { selectedFolderID: 'parent', selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
+		const selection = {
+			selectedFolderID: 'parent',
+			selectFolder: vi.fn(),
+			getSelectedFolder: vi.fn().mockReturnValue({ id: 'parent', type: 'regular' }),
+			clearFolderIfSelected: vi.fn()
+		};
 
 		new FolderService(folders as any, {} as any, selection as any).create();
 
 		expect(folders.createFolder).toHaveBeenCalledWith('parent');
 		expect(selection.selectFolder).toHaveBeenCalled();
+	});
+
+	it('should create at the root when a virtual view is selected', () => {
+		const folders = { createFolder: vi.fn() };
+		const selection = {
+			selectedFolderID: 'favorites',
+			selectFolder: vi.fn(),
+			getSelectedFolder: vi.fn().mockReturnValue({ id: 'favorites', type: 'system' }),
+			clearFolderIfSelected: vi.fn()
+		};
+
+		new FolderService(folders as any, {} as any, selection as any).create();
+
+		expect(folders.createFolder).toHaveBeenCalledWith(null);
 	});
 
 	it('should select the first note when a folder is selected', () => {
@@ -79,6 +98,14 @@ describe('FolderService', () => {
 		new FolderService(folders as any).toggle('folder-1');
 
 		expect(folders.openFolder).toHaveBeenCalledWith('folder-1');
+	});
+
+	it('should delegate folder favorite toggles', () => {
+		const folders = { setFavorite: vi.fn() };
+
+		new FolderService(folders as any).setFavorite('folder-1', true);
+
+		expect(folders.setFavorite).toHaveBeenCalledWith('folder-1', true);
 	});
 
 	it('should delegate folder deletion', () => {
@@ -179,6 +206,14 @@ describe('NoteService', () => {
 		expect(notes.selectNote).toHaveBeenCalledWith('note-1');
 	});
 
+	it('should delegate note favorite toggles', () => {
+		const notes = { setFavorite: vi.fn() };
+
+		new NoteService({} as any, notes as any).setFavorite('note-1', true);
+
+		expect(notes.setFavorite).toHaveBeenCalledWith('note-1', true);
+	});
+
 	it('should select the next note after deleting the current note', () => {
 		const folders = {
 			findItemById: vi.fn().mockReturnValue({ id: 'f1', type: 'regular' })
@@ -251,6 +286,20 @@ describe('NoteService', () => {
 		};
 
 		const result = new NoteService(folders as any, notes as any).getNotesForFolder('deleted-notes');
+
+		expect(result.map((note: any) => note.id)).toEqual(['1']);
+	});
+
+	it('should return favorite notes for the favorites virtual view', () => {
+		const notes = {
+			listNotes: vi.fn().mockReturnValue([
+				{ id: '1', folderId: 'f1', isFavorite: true, deletedAt: null, updatedAt: '2025-01-01T00:00:00Z' },
+				{ id: '2', folderId: 'f1', isFavorite: false, deletedAt: null, updatedAt: '2024-01-01T00:00:00Z' },
+				{ id: '3', folderId: 'f1', isFavorite: true, deletedAt: 123, updatedAt: '2023-01-01T00:00:00Z' }
+			])
+		};
+
+		const result = new NoteService({} as any, notes as any).getNotesForFolder('favorites', 'system' as any);
 
 		expect(result.map((note: any) => note.id)).toEqual(['1']);
 	});

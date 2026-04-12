@@ -7,6 +7,7 @@ export type FolderItem = {
 	title: string;
 	url: string;
 	type?: FolderType;
+	isFavorite?: boolean;
 	badge?: number;
 	items?: FolderID[];
 	isOpen?: boolean;
@@ -47,6 +48,7 @@ class FolderStore {
 		initialItems.forEach((item) => {
 			if (item.id) {
 				if (item.deletedAt === undefined) item.deletedAt = null;
+				if (item.isFavorite === undefined) item.isFavorite = false;
 				let i = $state(item);
 				this.folders.set(item.id, i);
 				if (!item.parentId) {
@@ -98,6 +100,7 @@ class FolderStore {
 			id: crypto.randomUUID(),
 			title: 'New Folder',
 			url: '#',
+			isFavorite: false,
 			items: [],
 			parentId: null,
 			deletedAt: null
@@ -213,6 +216,14 @@ class FolderStore {
 		}
 	}
 
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+		if (!folder) return;
+		folder.isFavorite = isFavorite;
+		this.folders.set(id, folder);
+		this.persist(id);
+	}
+
 	getDefaultFolderId(): string {
 		const findRegular = (ids: string[]): string | null => {
 			for (const id of ids) {
@@ -249,12 +260,23 @@ class FolderStore {
 // Initial mock data
 const initialData: FolderItem[] = [
 	{
+		id: 'favorites',
+		title: 'Favorites',
+		url: '#',
+		items: [],
+		parentId: null,
+		type: 'system',
+		isFavorite: false,
+		deletedAt: null
+	},
+	{
 		id: 'deleted-notes',
 		title: 'Recently Deleted',
 		url: '#',
 		items: [],
 		parentId: null,
 		type: 'trash',
+		isFavorite: false,
 		deletedAt: null
 	}
 ];

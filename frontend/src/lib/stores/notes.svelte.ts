@@ -10,6 +10,7 @@ export type NoteItem = {
 	title: string;
 	content: string;
 	updatedAt: string;
+	isFavorite?: boolean;
 	deletedAt?: number | null;
 };
 
@@ -39,6 +40,7 @@ class NotesStore {
 			allNotesData.forEach((note) => {
 				if (note && note.id) {
 					if (note.deletedAt === undefined) note.deletedAt = null;
+					if (note.isFavorite === undefined) note.isFavorite = false;
 					let n = $state(note);
 					allNotes.push(n);
 				}
@@ -87,6 +89,7 @@ class NotesStore {
 			title: 'Untitled Note',
 			content: '',
 			updatedAt: new Date().toISOString(),
+			isFavorite: false,
 			deletedAt: null
 		};
 		let n = $state(newNote);
@@ -167,6 +170,14 @@ class NotesStore {
 
 	listNotes(): NoteItem[] {
 		return Array.from(this.notes.values());
+	}
+
+	setFavorite(id: NoteID, isFavorite: boolean) {
+		const note = this.notes.get(id);
+		if (!note) return;
+		note.isFavorite = isFavorite;
+		this.notes.set(id, note);
+		this.persist(id);
 	}
 
 	removeNoteLocally(id: string) {
