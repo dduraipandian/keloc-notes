@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import { notesStore } from '$lib/stores/notes.svelte';
+	import { selectionStore } from '$lib/stores/selection.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import Alert from './alert.svelte';
 	import Folders from '$lib/components/Folders.svelte';
@@ -17,6 +18,7 @@
 	onMount(async () => {
 		try {
 			await folderStore.init();
+			await selectionStore.init();
 			await notesStore.init();
 		} catch (err) {
 			initError = err instanceof Error ? err.message : 'An unexpected error occurred.';

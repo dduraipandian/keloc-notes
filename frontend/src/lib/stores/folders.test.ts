@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { folderStore, type FolderItem } from './folders.svelte';
 import { notesStore } from './notes.svelte';
 import { folderService, trashService } from './services';
+import { selectionStore } from './selection.svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { foldersRepository, settingsRepository } from './repositories';
+import { foldersRepository } from './repositories';
 
 // Mock crypto.randomUUID
 global.crypto.randomUUID = vi.fn(() => 'test-uuid' as any);
@@ -37,6 +38,7 @@ describe('FolderStore', () => {
 		(folderStore as any).selectedFolderID = null;
 		(folderStore as any).editingId = null;
 		(folderStore as any).isInitialized = false;
+		selectionStore.__resetForTest();
 	});
 
 	it('should create a folder at the root when nothing is selected', () => {
@@ -265,16 +267,11 @@ describe('FolderStore', () => {
 		it('should load state on init', async () => {
 			const savedFolders = [{ id: 'f1', title: 'F1', url: '#' }];
 			vi.mocked(foldersRepository.list).mockResolvedValue(savedFolders as any);
-			vi.mocked(settingsRepository.getAll).mockResolvedValue({
-				selectedFolderID: 'f1',
-				selectedNoteID: null
-			});
 
 			await folderStore.init();
 
 			expect(folderStore.folders.has('f1')).toBe(true);
 			expect(folderStore.items).toContain('f1');
-			expect(folderStore.selectedFolderID).toBe('f1');
 		});
 
 		it('should throw error when initialization fails', async () => {
@@ -282,17 +279,6 @@ describe('FolderStore', () => {
 
 			await expect(folderStore.init()).rejects.toThrow('DB Error');
 			expect((folderStore as any).isInitialized).toBe(false);
-		});
-
-		it('should save setting when selection changes', async () => {
-			(folderStore as any).isInitialized = true;
-			const item: FolderItem = { id: 'item', title: 'Item', url: '#' };
-			folderStore.folders.set('item', item);
-			folderStore.items = ['item'];
-
-			folderStore.selectFolder('item');
-
-			expect(settingsRepository.save).toHaveBeenCalledWith('selectedFolderID', 'item');
 		});
 
 		it('should save folder when title changes (rename)', async () => {

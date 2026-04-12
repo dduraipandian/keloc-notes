@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { notesStore, type NoteItem } from './notes.svelte';
 import { folderStore, type FolderItem } from './folders.svelte';
 import { folderService, noteService, trashService } from './services';
+import { selectionStore } from './selection.svelte';
 import { SvelteMap } from 'svelte/reactivity';
 import { notesRepository, settingsRepository } from './repositories';
 
@@ -40,7 +41,9 @@ describe('NotesStore', () => {
 		// Clear singleton FolderStore to prevent cross-test pollution
 		(folderStore as any).items = [];
 		(folderStore as any).folders = new SvelteMap();
+		(folderStore as any).selectedFolderID = null;
 		(folderStore as any).isInitialized = false;
+		selectionStore.__resetForTest();
 	});
 
 	// Helper to add notes correctly for tests that don't use createNote

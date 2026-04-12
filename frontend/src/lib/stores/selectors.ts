@@ -2,6 +2,7 @@ import { groupNotesByDate } from '$lib/utils';
 import { folderStore, type FolderID, type FolderItem, type FolderType } from './folders.svelte';
 import { notesStore, type NoteItem } from './notes.svelte';
 import { folderService, noteService } from './services';
+import { selectionStore } from './selection.svelte';
 
 type FolderStoreLike = {
 	items: FolderID[];
@@ -16,6 +17,11 @@ type NotesStoreLike = {
 	selectedNoteID: string | null;
 };
 
+type SelectionStoreLike = {
+	selectedFolderID: FolderID | null;
+	getSelectedFolder(): FolderItem | null;
+};
+
 type FolderServiceLike = {
 	findTopDeletedAncestor(folderId: FolderID): FolderItem | null;
 	getTrashRootIds(): FolderID[];
@@ -26,20 +32,33 @@ type NoteServiceLike = {
 	getNoteCountForFolder(folderId: FolderID | null, folderType?: FolderType): number;
 };
 
+function createSelectionAdapter(folders: FolderStoreLike): SelectionStoreLike {
+	return {
+		get selectedFolderID() {
+			return folders.selectedFolderID;
+		},
+		getSelectedFolder() {
+			return folders.getSelectedFolder();
+		}
+	};
+}
+
 export class NoteListSelector {
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
 		private readonly notes: NotesStoreLike = notesStore,
 		private readonly folderQueries: FolderServiceLike = folderService,
-		private readonly noteQueries: NoteServiceLike = noteService
+		private readonly noteQueries: NoteServiceLike = noteService,
+		private readonly selection: SelectionStoreLike =
+			folders === folderStore ? selectionStore : createSelectionAdapter(folders)
 	) {}
 
 	getSelectedFolderTitle() {
-		return this.folders.getSelectedFolder()?.title ?? 'Notes';
+		return this.selection.getSelectedFolder()?.title ?? 'Notes';
 	}
 
 	canCreateNote() {
-		return this.folders.selectedFolderID !== 'deleted-notes';
+		return this.selection.selectedFolderID !== 'deleted-notes';
 	}
 
 	canDeleteSelectedNote() {
@@ -62,14 +81,14 @@ export class NoteListSelector {
 	}
 
 	getCreateNoteFolderId() {
-		return this.folders.getSelectedFolder()?.id ?? null;
+		return this.selection.getSelectedFolder()?.id ?? null;
 	}
 
 	getFilteredNotes(searchQuery: string) {
 		const normalizedQuery = searchQuery.trim().toLowerCase();
-		const selectedFolder = this.folders.getSelectedFolder();
+		const selectedFolder = this.selection.getSelectedFolder();
 		const visibleNotes = this.noteQueries.getNotesForFolder(
-			this.folders.selectedFolderID ?? null,
+			this.selection.selectedFolderID ?? null,
 			selectedFolder?.type
 		);
 
@@ -103,7 +122,9 @@ export class FolderSidebarSelector {
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
 		private readonly folderQueries: FolderServiceLike = folderService,
-		private readonly noteQueries: NoteServiceLike = noteService
+		private readonly noteQueries: NoteServiceLike = noteService,
+		private readonly selection: SelectionStoreLike =
+			folders === folderStore ? selectionStore : createSelectionAdapter(folders)
 	) {}
 
 	getRootItems() {
@@ -113,7 +134,7 @@ export class FolderSidebarSelector {
 	}
 
 	isSelectedFolder(folderId: FolderID) {
-		return this.folders.selectedFolderID === folderId;
+		return this.selection.selectedFolderID === folderId;
 	}
 
 	isEditingFolder(folderId: FolderID) {

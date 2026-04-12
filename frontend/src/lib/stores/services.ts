@@ -1,6 +1,7 @@
 import { folderStore, type FolderID, type FolderItem, type FolderType } from './folders.svelte';
 import { notesStore, type NoteID, type NoteItem } from './notes.svelte';
 import { trashRepository } from './repositories';
+import { selectionStore } from './selection.svelte';
 
 type FolderStoreLike = {
 	items: FolderID[];
@@ -20,6 +21,13 @@ type FolderStoreLike = {
 	applyPermanentDeleteState(foldersToDelete: FolderItem[]): void;
 	clearSelectionIfSelected(id: FolderID): void;
 	trashItems: FolderID[];
+};
+
+type SelectionStoreLike = {
+	selectedFolderID: FolderID | null;
+	selectFolder(id: FolderID | null): void;
+	getSelectedFolder(): FolderItem | null;
+	clearFolderIfSelected(id: FolderID): void;
 };
 
 type NotesStoreLike = {
@@ -48,6 +56,38 @@ function snapshotFolder(folder: FolderItem): FolderItem {
 function snapshotNote(note: NoteItem): NoteItem {
 	return {
 		...note
+	};
+}
+
+function createSelectionAdapter(folders: FolderStoreLike): SelectionStoreLike {
+	return {
+		get selectedFolderID() {
+			return folders.selectedFolderID;
+		},
+		selectFolder(id: FolderID | null) {
+			if (typeof folders.selectFolder === 'function') {
+				folders.selectFolder(id);
+				return;
+			}
+			folders.selectedFolderID = id;
+		},
+		getSelectedFolder() {
+			if (typeof folders.getSelectedFolder === 'function') {
+				return folders.getSelectedFolder();
+			}
+			if (!folders.selectedFolderID) return null;
+			if (typeof folders.findItemById !== 'function') return null;
+			return folders.findItemById(folders.selectedFolderID);
+		},
+		clearFolderIfSelected(id: FolderID) {
+			if (typeof folders.clearSelectionIfSelected === 'function') {
+				folders.clearSelectionIfSelected(id);
+				return;
+			}
+			if (folders.selectedFolderID === id) {
+				folders.selectFolder(null);
+			}
+		}
 	};
 }
 
@@ -172,20 +212,24 @@ class FolderTreeHelper {
 
 export class FolderService {
 	private readonly tree: FolderTreeHelper;
+	private readonly selection: SelectionStoreLike;
 
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
-		private readonly notes: NotesStoreLike = notesStore
+		private readonly notes: NotesStoreLike = notesStore,
+		selection: SelectionStoreLike = folders === folderStore ? selectionStore : createSelectionAdapter(folders)
 	) {
 		this.tree = new FolderTreeHelper(folders, notes);
+		this.selection = selection;
 	}
 
 	create() {
 		this.folders.createFolder();
+		this.selection.selectFolder(this.folders.selectedFolderID);
 	}
 
 	select(folderId: FolderID | null) {
-		this.folders.selectFolder(folderId);
+		this.selection.selectFolder(folderId);
 		this.syncNoteSelectionForFolder(folderId);
 	}
 
@@ -223,14 +267,14 @@ export class FolderService {
 
 	delete(folderId: FolderID, batchTimestamp?: number) {
 		const batch = batchTimestamp ?? Date.now();
-		const selectedFolderId = this.folders.selectedFolderID;
+		const selectedFolderId = this.selection.selectedFolderID;
 		const nextFolderId = this.getNextFolderSelectionAfterDelete(folderId);
 		const deletedIds = new Set(this.collectFolderSubtree(folderId).map((folder) => folder.id));
 		this.deleteFolderTree(folderId, batch);
 		if (nextFolderId) {
 			this.select(nextFolderId);
 		} else if (selectedFolderId && deletedIds.has(selectedFolderId)) {
-			this.folders.selectFolder(null);
+			this.selection.selectFolder(null);
 			this.notes.selectNote(null);
 		}
 	}
@@ -259,7 +303,7 @@ export class FolderService {
 	}
 
 	private getNextFolderSelectionAfterDelete(folderId: FolderID) {
-		const selectedFolderId = this.folders.selectedFolderID;
+		const selectedFolderId = this.selection.selectedFolderID;
 		const deletedIds = new Set(this.collectFolderSubtree(folderId).map((folder) => folder.id));
 
 		if (!selectedFolderId || !deletedIds.has(selectedFolderId)) {
@@ -278,12 +322,15 @@ export class FolderService {
 
 export class NoteService {
 	private readonly tree: FolderTreeHelper;
+	private readonly selection: SelectionStoreLike;
 
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
-		private readonly notes: NotesStoreLike = notesStore
+		private readonly notes: NotesStoreLike = notesStore,
+		selection: SelectionStoreLike = folders === folderStore ? selectionStore : createSelectionAdapter(folders)
 	) {
 		this.tree = new FolderTreeHelper(folders, notes);
+		this.selection = selection;
 	}
 
 	create(folderId: FolderID | null) {
@@ -294,7 +341,7 @@ export class NoteService {
 			actualFolderId = this.folders.getDefaultFolderId();
 		}
 
-		this.folders.selectFolder(actualFolderId);
+		this.selection.selectFolder(actualFolderId);
 		this.notes.createNote(actualFolderId);
 	}
 
@@ -307,9 +354,9 @@ export class NoteService {
 	}
 
 	delete(noteId: NoteID, batchTimestamp?: number) {
-		const currentFolder = this.folders.getSelectedFolder();
+		const currentFolder = this.selection.getSelectedFolder();
 		const visibleNotes = this.tree.getNotesForFolder(
-			this.folders.selectedFolderID ?? null,
+			this.selection.selectedFolderID ?? null,
 			currentFolder?.type
 		);
 		const currentIndex = visibleNotes.findIndex((note) => note.id === noteId);
@@ -331,13 +378,16 @@ export class NoteService {
 
 export class TrashService {
 	private readonly tree: FolderTreeHelper;
+	private readonly selection: SelectionStoreLike;
 
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
 		private readonly notes: NotesStoreLike = notesStore,
-		private readonly trash = trashRepository
+		private readonly trash = trashRepository,
+		selection: SelectionStoreLike = folders === folderStore ? selectionStore : createSelectionAdapter(folders)
 	) {
-		this.tree = new FolderTreeHelper(folders);
+		this.tree = new FolderTreeHelper(folders, notes);
+		this.selection = selection;
 	}
 
 	recoverFolder(folderId: FolderID, targetBatch?: number) {
@@ -353,13 +403,15 @@ export class TrashService {
 			this.tree.restoreParentPath(currentFolder?.parentId);
 		}
 
-		const restoredFolder = this.folders.findItemById(folderId);
-		const restoredFolderType = restoredFolder?.type;
-		const firstNote = restoredFolder
-			? this.tree.getNotesForFolder(folderId, restoredFolderType)[0] ?? null
-			: null;
+		const firstNote =
+			typeof this.notes.listNotes === 'function'
+				? this.notes
+						.listNotes()
+						.filter((note) => note.folderId === folderId && note.deletedAt == null)
+						.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0] ?? null
+				: null;
 
-		this.folders.selectFolder(folderId);
+		this.selection.selectFolder(folderId);
 		this.notes.selectNote(firstNote?.id ?? null);
 	}
 
@@ -388,7 +440,7 @@ export class TrashService {
 
 		this.notes.restoreNote(noteId, restoredFolderId);
 		const selectedFolderId = restoredFolderId !== undefined ? restoredFolderId : (note.folderId ?? null);
-		this.folders.selectFolder(selectedFolderId);
+		this.selection.selectFolder(selectedFolderId);
 		this.notes.selectNote(noteId);
 	}
 
@@ -404,7 +456,7 @@ export class TrashService {
 			await this.trash.permanentlyDeleteFolderTree(notesToDelete, foldersToDelete, Date.now());
 			notesToDelete.forEach(({ note }) => this.notes.removeNoteLocally(note.id));
 			this.folders.applyPermanentDeleteState(foldersToDelete);
-			this.folders.clearSelectionIfSelected(folderId);
+			this.selection.clearFolderIfSelected(folderId);
 		} catch (error) {
 			console.error('Failed to permanently delete folder and children:', error);
 			throw error;
@@ -443,7 +495,7 @@ export class TrashService {
 			await this.trash.permanentlyDeleteFolderTree(notesToDelete, foldersToDelete, Date.now());
 			notesToDelete.forEach(({ note }) => this.notes.removeNoteLocally(note.id));
 			this.folders.applyPermanentDeleteState(foldersToDelete);
-			deletedFolderIds.forEach((id) => this.folders.clearSelectionIfSelected(id));
+			deletedFolderIds.forEach((id) => this.selection.clearFolderIfSelected(id));
 		} catch (error) {
 			console.error('Failed to empty trash:', error);
 			throw error;

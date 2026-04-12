@@ -15,7 +15,7 @@ export type FolderItem = {
 };
 
 import { SvelteMap } from 'svelte/reactivity';
-import { foldersRepository, settingsRepository } from './repositories';
+import { foldersRepository } from './repositories';
 
 class FolderStore {
 	items = $state<string[]>([]);
@@ -63,13 +63,8 @@ class FolderStore {
 
 		try {
 			const allFolders = await foldersRepository.list();
-			const settings = await settingsRepository.getAll();
 			if (allFolders && allFolders.length > 0) {
 				this.loadItems(allFolders);
-
-				if (settings && settings.selectedFolderID) {
-					this.selectedFolderID = settings.selectedFolderID;
-				}
 			}
 			this.isInitialized = true;
 		} catch (error) {
@@ -86,12 +81,10 @@ class FolderStore {
 		if (folder) {
 			foldersRepository.save($state.snapshot(folder));
 		}
-		settingsRepository.save('selectedFolderID', this.selectedFolderID);
 	}
 
 	selectFolder(id: string | null) {
 		this.selectedFolderID = id;
-		if (this.selectedFolderID) this.persist(this.selectedFolderID);
 	}
 
 	startRename(id: string) {
@@ -194,9 +187,6 @@ class FolderStore {
 	clearSelectionIfSelected(id: string) {
 		if (this.selectedFolderID === id) {
 			this.selectedFolderID = null;
-			if (this.isInitialized) {
-				settingsRepository.save('selectedFolderID', null);
-			}
 		}
 	}
 
