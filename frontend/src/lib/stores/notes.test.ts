@@ -1,20 +1,28 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { notesStore, type NoteItem } from './notes.svelte';
-import * as idbr from './idbr';
 import { folderStore, type FolderItem } from './folders.svelte';
 import { noteService, trashService } from './services';
 import { SvelteMap } from 'svelte/reactivity';
+import { notesRepository, settingsRepository } from './repositories';
 
 // Mock IDBR module
-vi.mock('./idbr', () => ({
-	loadNotesState: vi.fn(),
-	saveNotesState: vi.fn(),
-	putNote: vi.fn(),
-	getAllNotes: vi.fn(),
-	putSetting: vi.fn(),
-	getAllSettings: vi.fn(),
-	initDB: vi.fn(),
-	getDB: vi.fn()
+vi.mock('./repositories', () => ({
+	foldersRepository: {
+		list: vi.fn(),
+		save: vi.fn()
+	},
+	notesRepository: {
+		list: vi.fn(),
+		save: vi.fn()
+	},
+	settingsRepository: {
+		getAll: vi.fn(),
+		save: vi.fn()
+	},
+	trashRepository: {
+		permanentlyDeleteFolderTree: vi.fn(),
+		permanentlyDeleteNote: vi.fn()
+	}
 }));
 
 // Mock crypto.randomUUID
@@ -56,7 +64,7 @@ describe('NotesStore', () => {
 		const note = notesStore.notes.get('test-uuid');
 		expect(note?.folderId).toBe('folder-1');
 		expect(notesStore.selectedNoteID).toBe('test-uuid');
-		expect(idbr.putNote).toHaveBeenCalled();
+		expect(notesRepository.save).toHaveBeenCalled();
 	});
 
 	it('should get notes for a specific folder sorted by date', () => {
@@ -113,7 +121,7 @@ describe('NotesStore', () => {
 		expect(new Date(updated!.updatedAt).getTime()).toBeGreaterThan(
 			new Date('2020-01-01T00:00:00Z').getTime()
 		);
-		expect(idbr.putNote).toHaveBeenCalled();
+		expect(notesRepository.save).toHaveBeenCalled();
 	});
 
 	it('should soft-delete a note (move to trash) and clear selection', () => {
@@ -132,9 +140,9 @@ describe('NotesStore', () => {
 		expect(noteService.getNoteCountForFolder('f1')).toBe(0);
 		expect(noteService.getNoteCountForFolder('deleted-notes')).toBe(1);
 		// Persistence called with properties
-		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: stamp }));
+		expect(notesRepository.save).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: stamp }));
 		// Cleared selection must be persisted
-		expect(idbr.putSetting).toHaveBeenCalledWith('selectedNoteID', null);
+		expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', null);
 	});
 
 	it('should recover a note from trash', () => {
@@ -155,7 +163,7 @@ describe('NotesStore', () => {
 
 		expect(notesStore.notes.get('1')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('1')?.folderId).toBe('f1'); // Remains in f1 if f1 is active
-		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: null }));
+		expect(notesRepository.save).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: null }));
 	});
 
 	it('should aggregate notes from sub-hierarchies in trash', () => {
@@ -365,8 +373,8 @@ describe('NotesStore', () => {
 				{ id: '1', folderId: 'f1', title: 'Active' },
 				{ id: '2', folderId: 'f1', title: 'Deleted', deletedAt: 444 }
 			];
-			vi.mocked(idbr.getAllNotes).mockResolvedValue(savedNotes as any);
-			vi.mocked(idbr.getAllSettings).mockResolvedValue({ selectedNoteID: '1' } as any);
+			vi.mocked(notesRepository.list).mockResolvedValue(savedNotes as any);
+			vi.mocked(settingsRepository.getAll).mockResolvedValue({ selectedNoteID: '1' } as any);
 
 			await notesStore.init();
 
@@ -377,7 +385,7 @@ describe('NotesStore', () => {
 		it('should save notes on createNote', async () => {
 			(notesStore as any).isInitialized = true;
 			notesStore.createNote('f1');
-			expect(idbr.putNote).toHaveBeenCalled();
+			expect(notesRepository.save).toHaveBeenCalled();
 		});
 
 		it('should save selectedNoteID on selectNote', async () => {
@@ -387,7 +395,7 @@ describe('NotesStore', () => {
 			notesStore.selectNote('1');
 
 			expect(notesStore.selectedNoteID).toBe('1');
-			expect(idbr.putSetting).toHaveBeenCalledWith('selectedNoteID', '1');
+			expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', '1');
 		});
 
 		it('should persist null selectedNoteID when deselecting', async () => {
@@ -399,7 +407,7 @@ describe('NotesStore', () => {
 			notesStore.selectNote(null);
 
 			expect(notesStore.selectedNoteID).toBeNull();
-			expect(idbr.putSetting).toHaveBeenCalledWith('selectedNoteID', null);
+			expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', null);
 		});
 
 		it('should persist null selectedNoteID when deleting notes in a folder', () => {
@@ -415,7 +423,7 @@ describe('NotesStore', () => {
 			expect(notesStore.notes.get('n2')?.deletedAt).toBe(9999);
 			expect(notesStore.notes.get('n3')?.deletedAt).toBeNull(); // sibling folder untouched
 			expect(notesStore.selectedNoteID).toBeNull();
-			expect(idbr.putSetting).toHaveBeenCalledWith('selectedNoteID', null);
+			expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', null);
 		});
 	});
 });

@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FolderService, NoteService, TrashService } from './services';
-import * as idbr from './idbr';
+import { trashRepository } from './repositories';
 
-vi.mock('./idbr', () => ({
-	permanentDeleteFolderTransactionally: vi.fn(),
-	permanentDeleteNoteTransactionally: vi.fn()
+vi.mock('./repositories', () => ({
+	trashRepository: {
+		permanentlyDeleteFolderTree: vi.fn(),
+		permanentlyDeleteNote: vi.fn()
+	}
 }));
 
 describe('FolderService', () => {
@@ -301,11 +303,11 @@ describe('TrashService', () => {
 			removeNoteLocally: vi.fn()
 		};
 
-		vi.mocked(idbr.permanentDeleteFolderTransactionally).mockResolvedValue(undefined as any);
+		vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockResolvedValue(undefined as any);
 
 		await new TrashService(folders as any, notes as any).permanentlyDeleteFolder('folder-1', 123);
 
-		expect(idbr.permanentDeleteFolderTransactionally).toHaveBeenCalled();
+		expect(trashRepository.permanentlyDeleteFolderTree).toHaveBeenCalled();
 		expect(folders.applyPermanentDeleteState).toHaveBeenCalledWith([{ id: 'folder-1', deletedAt: 123 }]);
 		expect(folders.clearSelectionIfSelected).toHaveBeenCalledWith('folder-1');
 	});
@@ -318,11 +320,11 @@ describe('TrashService', () => {
 			clearSelectionIfSelected: vi.fn()
 		};
 
-		vi.mocked(idbr.permanentDeleteNoteTransactionally).mockResolvedValue(undefined as any);
+		vi.mocked(trashRepository.permanentlyDeleteNote).mockResolvedValue(undefined as any);
 
 		await new TrashService(folders as any, notes as any).permanentlyDeleteNote('note-1');
 
-		expect(idbr.permanentDeleteNoteTransactionally).toHaveBeenCalledWith(
+		expect(trashRepository.permanentlyDeleteNote).toHaveBeenCalledWith(
 			expect.objectContaining({ id: 'note-1' }),
 			'Work:f1/Note 1:note-1',
 			expect.any(Number)
@@ -343,11 +345,11 @@ describe('TrashService', () => {
 			removeNoteLocally: vi.fn()
 		};
 
-		vi.mocked(idbr.permanentDeleteFolderTransactionally).mockResolvedValue(undefined as any);
+		vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockResolvedValue(undefined as any);
 
 		await new TrashService(folders as any, notes as any).empty();
 
-		expect(idbr.permanentDeleteFolderTransactionally).toHaveBeenCalled();
+		expect(trashRepository.permanentlyDeleteFolderTree).toHaveBeenCalled();
 		expect(folders.applyPermanentDeleteState).toHaveBeenCalled();
 	});
 });

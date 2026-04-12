@@ -1,10 +1,5 @@
 import { SvelteMap } from 'svelte/reactivity';
-import {
-	getAllNotes,
-	getAllSettings,
-	putNote,
-	putSetting
-} from './idbr';
+import { notesRepository, settingsRepository } from './repositories';
 import type { FolderID } from './folders.svelte';
 
 export type NoteID = string;
@@ -37,8 +32,8 @@ class NotesStore {
 		if (this.isInitialized) return;
 
 		try {
-			const allNotesData = await getAllNotes();
-			const settings = await getAllSettings();
+			const allNotesData = await notesRepository.list();
+			const settings = await settingsRepository.getAll();
 			let allNotes: NoteItem[] = [];
 
 			allNotesData.forEach((note) => {
@@ -70,9 +65,9 @@ class NotesStore {
 		if (!this.isInitialized) return;
 		const note = this.notes.get(id);
 		if (note) {
-			putNote($state.snapshot(note));
+			notesRepository.save($state.snapshot(note));
 		}
-		putSetting('selectedNoteID', this.selectedNoteID);
+		settingsRepository.save('selectedNoteID', this.selectedNoteID);
 	}
 
 	get selectedNote(): NoteItem | null {
@@ -183,7 +178,7 @@ class NotesStore {
 		if (this.selectedNoteID === id) {
 			this.selectedNoteID = null;
 			if (this.isInitialized) {
-				putSetting('selectedNoteID', null);
+				settingsRepository.save('selectedNoteID', null);
 			}
 		}
 	}

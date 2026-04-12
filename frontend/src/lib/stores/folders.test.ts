@@ -1,21 +1,31 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { folderStore, type FolderItem } from './folders.svelte';
-import * as idbr from './idbr';
 import { notesStore } from './notes.svelte';
 import { folderService, trashService } from './services';
 import { SvelteMap } from 'svelte/reactivity';
+import { foldersRepository, settingsRepository } from './repositories';
 
 // Mock crypto.randomUUID
 global.crypto.randomUUID = vi.fn(() => 'test-uuid' as any);
 
 // Mock IDBR module
-vi.mock('./idbr', () => ({
-	putFolder: vi.fn(),
-	getAllFolders: vi.fn(),
-	putSetting: vi.fn(),
-	getAllSettings: vi.fn(),
-	initDB: vi.fn(),
-	getDB: vi.fn()
+vi.mock('./repositories', () => ({
+	foldersRepository: {
+		list: vi.fn(),
+		save: vi.fn()
+	},
+	settingsRepository: {
+		getAll: vi.fn(),
+		save: vi.fn()
+	},
+	notesRepository: {
+		list: vi.fn(),
+		save: vi.fn()
+	},
+	trashRepository: {
+		permanentlyDeleteFolderTree: vi.fn(),
+		permanentlyDeleteNote: vi.fn()
+	}
 }));
 
 describe('FolderStore', () => {
@@ -38,7 +48,7 @@ describe('FolderStore', () => {
 		const folder = folderStore.folders.get('test-uuid');
 		expect(folder?.title).toBe('New Folder');
 		expect(folderStore.selectedFolderID).toBe('test-uuid');
-		expect(idbr.putFolder).toHaveBeenCalled();
+		expect(foldersRepository.save).toHaveBeenCalled();
 	});
 
 	it('should support folders with a type', () => {
@@ -237,7 +247,7 @@ describe('FolderStore', () => {
 		folderStore.renameFolder('f1', '');
 
 		expect(folderStore.folders.get('f1')?.title).toBe('Original');
-		expect(idbr.putFolder).not.toHaveBeenCalled();
+		expect(foldersRepository.save).not.toHaveBeenCalled();
 	});
 
 	it('should not rename folder to a whitespace-only string', () => {
@@ -248,14 +258,14 @@ describe('FolderStore', () => {
 		folderStore.renameFolder('f1', '   ');
 
 		expect(folderStore.folders.get('f1')?.title).toBe('Original');
-		expect(idbr.putFolder).not.toHaveBeenCalled();
+		expect(foldersRepository.save).not.toHaveBeenCalled();
 	});
 
 	describe('Persistence', () => {
 		it('should load state on init', async () => {
 			const savedFolders = [{ id: 'f1', title: 'F1', url: '#' }];
-			vi.mocked(idbr.getAllFolders).mockResolvedValue(savedFolders as any);
-			vi.mocked(idbr.getAllSettings).mockResolvedValue({
+			vi.mocked(foldersRepository.list).mockResolvedValue(savedFolders as any);
+			vi.mocked(settingsRepository.getAll).mockResolvedValue({
 				selectedFolderID: 'f1',
 				selectedNoteID: null
 			});
@@ -268,7 +278,7 @@ describe('FolderStore', () => {
 		});
 
 		it('should throw error when initialization fails', async () => {
-			vi.mocked(idbr.getAllFolders).mockRejectedValue(new Error('DB Error'));
+			vi.mocked(foldersRepository.list).mockRejectedValue(new Error('DB Error'));
 
 			await expect(folderStore.init()).rejects.toThrow('DB Error');
 			expect((folderStore as any).isInitialized).toBe(false);
@@ -282,7 +292,7 @@ describe('FolderStore', () => {
 
 			folderStore.selectFolder('item');
 
-			expect(idbr.putSetting).toHaveBeenCalledWith('selectedFolderID', 'item');
+			expect(settingsRepository.save).toHaveBeenCalledWith('selectedFolderID', 'item');
 		});
 
 		it('should save folder when title changes (rename)', async () => {
@@ -293,7 +303,7 @@ describe('FolderStore', () => {
 			folderStore.renameFolder('item', 'New Name');
 
 			expect(item.title).toBe('New Name');
-			expect(idbr.putFolder).toHaveBeenCalled();
+			expect(foldersRepository.save).toHaveBeenCalled();
 		});
 
 		it('should save folder when isOpen toggles', async () => {
@@ -304,7 +314,7 @@ describe('FolderStore', () => {
 			folderStore.openFolder('f1');
 
 			expect(item.isOpen).toBe(true);
-			expect(idbr.putFolder).toHaveBeenCalled();
+			expect(foldersRepository.save).toHaveBeenCalled();
 		});
 
 		it('should NOT save state if not initialized', () => {
@@ -314,7 +324,7 @@ describe('FolderStore', () => {
 
 			folderStore.persist('item');
 
-			expect(idbr.putFolder).not.toHaveBeenCalled();
+			expect(foldersRepository.save).not.toHaveBeenCalled();
 		});
 	});
 

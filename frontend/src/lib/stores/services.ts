@@ -1,9 +1,6 @@
 import { folderStore, type FolderID, type FolderItem, type FolderType } from './folders.svelte';
 import { notesStore, type NoteID, type NoteItem } from './notes.svelte';
-import {
-	permanentDeleteFolderTransactionally,
-	permanentDeleteNoteTransactionally
-} from './idbr';
+import { trashRepository } from './repositories';
 
 type FolderStoreLike = {
 	findItemById(id: FolderID): FolderItem | null;
@@ -171,7 +168,8 @@ export class NoteService {
 export class TrashService {
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
-		private readonly notes: NotesStoreLike = notesStore
+		private readonly notes: NotesStoreLike = notesStore,
+		private readonly trash = trashRepository
 	) {}
 
 	recoverFolder(folderId: FolderID, targetBatch?: number) {
@@ -223,7 +221,7 @@ export class TrashService {
 		const notesToDelete = this.collectFolderNotesWithPaths(foldersToDelete, batch);
 
 		try {
-			await permanentDeleteFolderTransactionally(notesToDelete, foldersToDelete, Date.now());
+			await this.trash.permanentlyDeleteFolderTree(notesToDelete, foldersToDelete, Date.now());
 			notesToDelete.forEach(({ note }) => this.notes.removeNoteLocally(note.id));
 			this.folders.applyPermanentDeleteState(foldersToDelete);
 			this.folders.clearSelectionIfSelected(folderId);
@@ -241,7 +239,7 @@ export class TrashService {
 		const fullPath = note.folderId ? `${folderPath}/${note.title}:${note.id}` : `${note.title}:${note.id}`;
 
 		try {
-			await permanentDeleteNoteTransactionally(structuredClone(note), fullPath, Date.now());
+			await this.trash.permanentlyDeleteNote(structuredClone(note), fullPath, Date.now());
 			this.notes.removeNoteLocally(noteId);
 			this.notes.clearSelectionIfSelected(noteId);
 		} catch (error) {
@@ -262,7 +260,7 @@ export class TrashService {
 		];
 
 		try {
-			await permanentDeleteFolderTransactionally(notesToDelete, foldersToDelete, Date.now());
+			await this.trash.permanentlyDeleteFolderTree(notesToDelete, foldersToDelete, Date.now());
 			notesToDelete.forEach(({ note }) => this.notes.removeNoteLocally(note.id));
 			this.folders.applyPermanentDeleteState(foldersToDelete);
 			deletedFolderIds.forEach((id) => this.folders.clearSelectionIfSelected(id));
