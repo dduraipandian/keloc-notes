@@ -4,6 +4,36 @@ function uniqueName(prefix: string) {
 	return `${prefix}-${Math.floor(Math.random() * 1000)}`;
 }
 
+function getSideBarContent(page: import('@playwright/test').Page) {
+	return page.locator('div[data-sidebar="content"] ul li[data-sidebar="menu-item"]');
+}
+
+function getSideBarFolderByLabel(page: import('@playwright/test').Page, label: string) {
+	return getSideBarContent(page)
+		.locator('span.notes-folder-label')
+		.filter({ has: page.getByText(label, { exact: true }) });
+}
+
+function getNotePaneTitle(page: import('@playwright/test').Page, title: string) {
+	return page.locator('aside header h2').getByText(title, { exact: true });
+}
+
+function getNoteEditorTitle(page: import('@playwright/test').Page) {
+	return page.getByRole('textbox', { name: 'Note Title' });
+}
+
+function getNoteTitleInPane(page: import('@playwright/test').Page) {
+	return page.locator('aside div[data-slot="item-title"]');
+}
+
+function getTrashFolder(page: import('@playwright/test').Page) {
+	return page.locator('div[data-sidebar="header"] ul li[data-sidebar="menu-item"]');
+}
+
+function getAlertDialog(page: import('@playwright/test').Page) {
+	return page.locator('div[data-slot="alert-dialog-content"]');
+}
+
 async function createFolder(page: import('@playwright/test').Page, title: string) {
 	await page.getByRole('link', { name: 'New Folder' }).click();
 
@@ -14,10 +44,8 @@ async function createFolder(page: import('@playwright/test').Page, title: string
 	await renameInput.fill(title);
 	await renameInput.press('Enter');
 
-	await expect(
-		page.locator('li[data-sidebar="menu-item"]').getByText(title, { exact: true })
-	).toBeVisible();
-	await expect(page.locator('aside header h2').getByText(title, { exact: true })).toBeVisible();
+	await expect(getSideBarFolderByLabel(page, title)).toBeVisible();
+	await expect(getNotePaneTitle(page, title)).toBeVisible();
 }
 
 async function createNote(page: import('@playwright/test').Page, title: string, content?: string) {
@@ -32,7 +60,27 @@ async function createNote(page: import('@playwright/test').Page, title: string, 
 		await bodyInput.fill(content);
 	}
 
-	await expect(page.getByRole('textbox', { name: 'Note Title' })).toHaveValue(title);
+	await expect(getNoteEditorTitle(page)).toHaveValue(title);
+}
+
+async function openFolder(page: import('@playwright/test').Page, title: string) {
+	await getSideBarContent(page).getByText(title, { exact: true }).click();
+	await expect(getNotePaneTitle(page, title)).toBeVisible();
+}
+
+async function deleteSelectedNote(page: import('@playwright/test').Page) {
+	await page.getByTitle('Trash').click();
+	await expect(getAlertDialog(page).getByRole('heading', { name: 'Delete Note' })).toBeVisible();
+	await getAlertDialog(page).getByRole('button', { name: 'Delete Note' }).click();
+}
+
+async function deleteFolder(page: import('@playwright/test').Page, title: string) {
+	const folderEntry = getSideBarFolderByLabel(page, title);
+	await folderEntry.click({ button: 'right' });
+	await page.getByText('Delete', { exact: true }).click();
+	await expect(getAlertDialog(page).getByRole('heading', { name: 'Delete Folder' })).toBeVisible();
+	await getAlertDialog(page).getByRole('button', { name: 'Delete Folder' }).click();
+	await expect(getAlertDialog(page)).toBeHidden();
 }
 
 test('can create and rename a folder from the sidebar', async ({ page }) => {
@@ -52,6 +100,70 @@ test('can create a note in the selected folder', async ({ page }) => {
 
 	await expect(page.getByPlaceholder('Note Title')).toHaveValue(noteTitle);
 	await expect(page.getByText(noteTitle, { exact: true })).toBeVisible();
+});
+
+test('selecting a folder shows its first visible note', async ({ page }) => {
+	await page.goto('/');
+
+	const folderTitle = uniqueName('Folder First Note');
+	const olderNoteTitle = uniqueName('Older Note');
+	const newerNoteTitle = uniqueName('Newer Note');
+	const otherFolderTitle = uniqueName('Other Folder');
+
+	await createFolder(page, folderTitle);
+	await createNote(page, olderNoteTitle, 'Older content');
+	await createNote(page, newerNoteTitle, 'Newer content');
+
+	await createFolder(page, otherFolderTitle);
+	await openFolder(page, folderTitle);
+
+	await expect(getNoteEditorTitle(page)).toHaveValue(newerNoteTitle);
+	await expect(getNoteTitleInPane(page).first()).toContainText(newerNoteTitle);
+});
+
+test('deleting the selected note selects the next visible note and updates the editor', async ({
+	page
+}) => {
+	await page.goto('/');
+
+	const folderTitle = uniqueName('Delete Note Folder');
+	const fallbackNoteTitle = uniqueName('Fallback Note');
+	const selectedNoteTitle = uniqueName('Selected Note');
+	const fallbackContent = 'This note should be selected after delete.';
+
+	await createFolder(page, folderTitle);
+	await createNote(page, fallbackNoteTitle, fallbackContent);
+	await createNote(page, selectedNoteTitle, 'Delete me');
+
+	await expect(getNoteEditorTitle(page)).toHaveValue(selectedNoteTitle);
+	await deleteSelectedNote(page);
+
+	await expect(getNoteEditorTitle(page)).toHaveValue(fallbackNoteTitle);
+	await expect(page.getByPlaceholder('Start writing...')).toHaveValue(fallbackContent);
+	await expect(getNotePaneTitle(page, folderTitle)).toBeVisible();
+});
+
+test('deleting the selected folder selects the next folder', async ({ page }) => {
+	await page.goto('/');
+
+	const parentFolderTitle = uniqueName('Parent Folder');
+	const nextFolderTitle = uniqueName('Next Folder');
+	const nextFolderNoteTitle = uniqueName('Next Folder Note');
+	const deletedFolderTitle = uniqueName('Deleted Folder');
+
+	await createFolder(page, parentFolderTitle);
+	await createFolder(page, nextFolderTitle);
+	await createNote(page, nextFolderNoteTitle, 'Next folder content');
+
+	await openFolder(page, parentFolderTitle);
+	await createFolder(page, deletedFolderTitle);
+	await expect(getNotePaneTitle(page, deletedFolderTitle)).toBeVisible();
+
+	await deleteFolder(page, deletedFolderTitle);
+
+	await expect(getSideBarFolderByLabel(page, deletedFolderTitle)).toBeHidden();
+	await expect(getNotePaneTitle(page, nextFolderTitle)).toBeVisible();
+	await expect(getNoteEditorTitle(page)).toHaveValue(nextFolderNoteTitle);
 });
 
 test('can soft delete and recover a note from trash', async ({ page }) => {
@@ -83,9 +195,31 @@ test('can soft delete and recover a note from trash', async ({ page }) => {
 	await expect(
 		page.getByText('This note is in the Trash. Restore it to edit.', { exact: true })
 	).toBeHidden();
-	await expect(page.getByPlaceholder('Note Title')).toHaveValue(noteTitle);
+	await expect(getNoteEditorTitle(page)).toHaveValue(noteTitle);
 
-	await expect(page.locator('aside div[data-slot="item-title"]')).toContainText(noteTitle);
+	await expect(getNoteTitleInPane(page)).toContainText(noteTitle);
+});
+
+test('recovering a note re-selects the proper folder and note', async ({ page }) => {
+	await page.goto('/');
+
+	const folderTitle = uniqueName('Recover Note Folder');
+	const noteTitle = uniqueName('Recover Selected Note');
+
+	await createFolder(page, folderTitle);
+	await createNote(page, noteTitle, 'Return me to the original folder.');
+	await deleteSelectedNote(page);
+
+	await page.getByText('Recently Deleted', { exact: true }).click();
+	await page.getByText(noteTitle, { exact: true }).click();
+	await page.getByRole('button', { name: 'Restore Note' }).click();
+	await page
+		.locator('div[data-slot="alert-dialog-content"]')
+		.getByRole('button', { name: 'Restore' })
+		.click();
+
+	await expect(getNotePaneTitle(page, folderTitle)).toBeVisible();
+	await expect(getNoteEditorTitle(page)).toHaveValue(noteTitle);
 });
 
 test('can soft delete and recover a folder from trash', async ({ page }) => {
@@ -94,9 +228,7 @@ test('can soft delete and recover a folder from trash', async ({ page }) => {
 	const folderTitle = uniqueName('Recoverable Folder');
 	await createFolder(page, folderTitle);
 
-	const folderEntry = page.locator('li[data-sidebar="menu-item"]').filter({
-		has: page.getByText(folderTitle, { exact: true })
-	});
+	const folderEntry = getSideBarFolderByLabel(page, folderTitle);
 
 	await folderEntry.click({ button: 'right' });
 	await page.getByText('Delete', { exact: true }).click();
@@ -105,9 +237,7 @@ test('can soft delete and recover a folder from trash', async ({ page }) => {
 	await page.getByRole('button', { name: 'Delete Folder' }).click();
 
 	await page.getByText('Recently Deleted', { exact: true }).click();
-	const deletedFolderEntry = page
-		.locator('div[data-sidebar="header"] ul li[data-sidebar="menu-item"]')
-		.getByText(folderTitle, { exact: true });
+	const deletedFolderEntry = getTrashFolder(page).getByText(folderTitle, { exact: true });
 	await page.locator('.custom-scrollbar').click();
 	await expect(deletedFolderEntry).toBeVisible();
 
@@ -116,9 +246,46 @@ test('can soft delete and recover a folder from trash', async ({ page }) => {
 	});
 	await page.getByText('Recover Folder', { exact: true }).click();
 
-	await expect(
-		page
-			.locator('div[data-sidebar="content"] ul li[data-sidebar="menu-item"]')
-			.getByText(folderTitle, { exact: true })
-	).toBeVisible();
+	await expect(getSideBarContent(page).getByText(folderTitle, { exact: true })).toBeVisible();
+});
+
+test('complex soft delete and recover a folder from trash', async ({ page }) => {
+	await page.goto('/');
+
+	const parentFolderTitle = uniqueName('Parent Folder');
+	const subFolderTitle = uniqueName('Sub Folder');
+	const subSubFolderTitle = uniqueName('Sub Sub Folder');
+	const subSubFolderNoteTitle = uniqueName('Sub Sub Folder Note');
+	const subSubSubFolderTitle = uniqueName('Sub Sub Sub Folder');
+	const subSubSubFolderNoteTitle = uniqueName('Sub Sub Sub Folder Note');
+
+	await createFolder(page, parentFolderTitle);
+	await createFolder(page, subFolderTitle);
+	await createFolder(page, subSubFolderTitle);
+	await createNote(page, subSubFolderNoteTitle, 'Sub Sub Folder Note');
+	await createFolder(page, subSubSubFolderTitle);
+	await createNote(page, subSubSubFolderNoteTitle, 'Sub Sub Sub Folder Note');
+
+	await openFolder(page, subSubFolderTitle);
+	await openFolder(page, subSubFolderTitle);
+	await deleteSelectedNote(page);
+
+	await openFolder(page, subFolderTitle);
+	const folderEntry = getSideBarFolderByLabel(page, subFolderTitle);
+
+	await folderEntry.click({ button: 'right' });
+	await page.getByText('Delete', { exact: true }).click();
+	await page.getByRole('button', { name: 'Delete Folder' }).click();
+
+	await page.getByText('Recently Deleted', { exact: true }).click();
+	await expect(getNoteTitleInPane(page).getByText(subSubFolderNoteTitle)).toBeVisible();
+
+	const deletedFolderEntry = getTrashFolder(page).getByText(subFolderTitle, { exact: true });
+	await expect(deletedFolderEntry).toBeVisible();
+	await deletedFolderEntry.click({
+		button: 'right'
+	});
+	await page.getByText('Recover Folder', { exact: true }).click();
+
+	await expect(getSideBarContent(page).getByText(subFolderTitle, { exact: true })).toBeVisible();
 });

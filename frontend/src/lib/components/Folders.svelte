@@ -132,7 +132,8 @@
 												onclick={(e) => e.stopPropagation()}
 											/>
 										{:else}
-											<span class="ml-2 truncate text-left text-[13px] font-medium"
+											<span
+												class="notes-folder-label ml-2 truncate text-left text-[13px] font-medium"
 												>{item.title}</span
 											>
 										{/if}
@@ -246,7 +247,9 @@
 						onclick={(e) => e.stopPropagation()}
 					/>
 				{:else}
-					<span class="ml-2 truncate text-left text-[13px] font-medium">{item.title}</span>
+					<span class="notes-folder-label ml-2 truncate text-left text-[13px] font-medium"
+						>{item.title}</span
+					>
 				{/if}
 			</div>
 		{/snippet}

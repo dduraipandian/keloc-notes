@@ -352,6 +352,15 @@ export class TrashService {
 			const currentFolder = this.folders.findItemById(folderId);
 			this.tree.restoreParentPath(currentFolder?.parentId);
 		}
+
+		const restoredFolder = this.folders.findItemById(folderId);
+		const restoredFolderType = restoredFolder?.type;
+		const firstNote = restoredFolder
+			? this.tree.getNotesForFolder(folderId, restoredFolderType)[0] ?? null
+			: null;
+
+		this.folders.selectFolder(folderId);
+		this.notes.selectNote(firstNote?.id ?? null);
 	}
 
 	recoverNote(noteId: NoteID) {

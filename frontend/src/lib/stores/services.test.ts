@@ -378,14 +378,43 @@ describe('TrashService', () => {
 		const folders = {
 			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', deletedAt: 123, items: [] }),
 			restoreFolder: vi.fn(),
-			rootFolderIfParentMissing: vi.fn()
+			rootFolderIfParentMissing: vi.fn(),
+			selectFolder: vi.fn()
 		};
-		const notes = { restoreNotesInFolder: vi.fn() };
+		const notes = {
+			restoreNotesInFolder: vi.fn(),
+			listNotes: vi.fn().mockReturnValue([]),
+			selectNote: vi.fn()
+		};
 
 		new TrashService(folders as any, notes as any).recoverFolder('folder-1', 123);
 
 		expect(folders.restoreFolder).toHaveBeenCalledWith('folder-1', 123);
 		expect(notes.restoreNotesInFolder).toHaveBeenCalledWith('folder-1', 123);
+		expect(folders.selectFolder).toHaveBeenCalledWith('folder-1');
+		expect(notes.selectNote).toHaveBeenCalledWith(null);
+	});
+
+	it('should select the first restored note when recovering a folder', () => {
+		const folders = {
+			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', deletedAt: 123, type: 'regular', items: [] }),
+			restoreFolder: vi.fn(),
+			rootFolderIfParentMissing: vi.fn(),
+			selectFolder: vi.fn()
+		};
+		const notes = {
+			restoreNotesInFolder: vi.fn(),
+			listNotes: vi.fn().mockReturnValue([
+				{ id: 'note-2', folderId: 'folder-1', deletedAt: null, updatedAt: '2025-01-02T00:00:00Z' },
+				{ id: 'note-1', folderId: 'folder-1', deletedAt: null, updatedAt: '2025-01-01T00:00:00Z' }
+			]),
+			selectNote: vi.fn()
+		};
+
+		new TrashService(folders as any, notes as any).recoverFolder('folder-1', 123);
+
+		expect(folders.selectFolder).toHaveBeenCalledWith('folder-1');
+		expect(notes.selectNote).toHaveBeenCalledWith('note-2');
 	});
 
 	it('should repair the folder path when recovering a top-level deleted folder', () => {
@@ -393,13 +422,19 @@ describe('TrashService', () => {
 		const folders = {
 			findItemById: vi.fn().mockImplementation((id: string) => (id === 'folder-1' ? folder : null)),
 			restoreFolder: vi.fn(),
-			rootFolderIfParentMissing: vi.fn()
+			rootFolderIfParentMissing: vi.fn(),
+			selectFolder: vi.fn()
 		};
-		const notes = { restoreNotesInFolder: vi.fn() };
+		const notes = {
+			restoreNotesInFolder: vi.fn(),
+			listNotes: vi.fn().mockReturnValue([]),
+			selectNote: vi.fn()
+		};
 
 		new TrashService(folders as any, notes as any).recoverFolder('folder-1');
 
 		expect(folders.rootFolderIfParentMissing).toHaveBeenCalledWith('folder-1');
+		expect(folders.selectFolder).toHaveBeenCalledWith('folder-1');
 	});
 
 	it('should delegate permanent folder deletion', async () => {
