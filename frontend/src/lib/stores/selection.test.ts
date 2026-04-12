@@ -29,7 +29,6 @@ describe('SelectionStore', () => {
 		selectionStore.__resetForTest();
 		(folderStore as any).items = [];
 		(folderStore as any).folders = new SvelteMap<string, FolderItem>();
-		(folderStore as any).selectedFolderID = null;
 	});
 
 	it('should load a persisted selection when the folder exists', async () => {
@@ -39,7 +38,6 @@ describe('SelectionStore', () => {
 		await selectionStore.init();
 
 		expect(selectionStore.selectedFolderID).toBe('folder-1');
-		expect(folderStore.selectedFolderID).toBe('folder-1');
 	});
 
 	it('should clear a stale persisted selection', async () => {
@@ -48,7 +46,6 @@ describe('SelectionStore', () => {
 		await selectionStore.init();
 
 		expect(selectionStore.selectedFolderID).toBeNull();
-		expect(folderStore.selectedFolderID).toBeNull();
 		expect(settingsRepository.save).toHaveBeenCalledWith('selectedFolderID', null);
 	});
 
@@ -61,7 +58,6 @@ describe('SelectionStore', () => {
 		selectionStore.selectFolder('folder-1');
 
 		expect(selectionStore.selectedFolderID).toBe('folder-1');
-		expect(folderStore.selectedFolderID).toBe('folder-1');
 		expect(settingsRepository.save).toHaveBeenCalledWith('selectedFolderID', 'folder-1');
 	});
 
@@ -75,7 +71,6 @@ describe('SelectionStore', () => {
 		selectionStore.clearFolderIfSelected('folder-1');
 
 		expect(selectionStore.selectedFolderID).toBeNull();
-		expect(folderStore.selectedFolderID).toBeNull();
 		expect(settingsRepository.save).toHaveBeenCalledWith('selectedFolderID', null);
 	});
 });

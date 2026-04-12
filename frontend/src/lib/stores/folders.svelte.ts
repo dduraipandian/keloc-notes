@@ -19,7 +19,6 @@ import { foldersRepository } from './repositories';
 
 class FolderStore {
 	items = $state<string[]>([]);
-	selectedFolderID = $state<string | null>(null);
 	editingId = $state<string | null>(null);
 	folders = new SvelteMap<string, FolderItem>();
 	private isInitialized = false;
@@ -83,10 +82,6 @@ class FolderStore {
 		}
 	}
 
-	selectFolder(id: string | null) {
-		this.selectedFolderID = id;
-	}
-
 	startRename(id: string) {
 		// Use setTimeout to ensure focus-return logic from menus is finished
 		setTimeout(() => {
@@ -98,7 +93,7 @@ class FolderStore {
 		this.editingId = null;
 	}
 
-	createFolder() {
+	createFolder(parentId: FolderID | null = null) {
 		const newFolder: FolderItem = {
 			id: crypto.randomUUID(),
 			title: 'New Folder',
@@ -108,10 +103,10 @@ class FolderStore {
 			deletedAt: null
 		};
 
-		if (!this.selectedFolderID) {
+		if (!parentId) {
 			this.items.unshift(newFolder.id);
 		} else {
-			const parent = this.folders.get(this.selectedFolderID);
+			const parent = this.folders.get(parentId);
 			if (parent) {
 				if (!parent.items) {
 					let i = $state([]);
@@ -126,9 +121,9 @@ class FolderStore {
 
 		let nf = $state(newFolder);
 		this.folders.set(newFolder.id, nf);
-		this.selectedFolderID = newFolder.id;
 		this.persist(newFolder.id);
 		this.startRename(newFolder.id);
+		return newFolder.id;
 	}
 
 	deleteFolder(id: string, batchTimestamp?: number) {
@@ -140,7 +135,6 @@ class FolderStore {
 		folder.deletedAt = ts;
 		this.folders.set(id, folder);
 		this.persist(id);
-		this.clearSelectionIfSelected(id);
 		this.clearEditingIfSelected(id);
 	}
 
@@ -160,7 +154,6 @@ class FolderStore {
 
 	applyPermanentDeleteState(foldersToDelete: FolderItem[]) {
 		foldersToDelete.forEach((f) => {
-			this.clearSelectionIfSelected(f.id);
 			this.clearEditingIfSelected(f.id);
 			if (f.parentId) {
 				const parent = this.folders.get(f.parentId);
@@ -181,12 +174,6 @@ class FolderStore {
 			folder.parentId = null;
 			this.folders.set(id, folder);
 			this.persist(id);
-		}
-	}
-
-	clearSelectionIfSelected(id: string) {
-		if (this.selectedFolderID === id) {
-			this.selectedFolderID = null;
 		}
 	}
 
@@ -256,14 +243,6 @@ class FolderStore {
 		this.items.unshift(newFolder.id);
 		this.persist(newFolder.id);
 		return newFolder.id;
-	}
-	getSelectedFolder(): FolderItem | null {
-		if (!this.selectedFolderID) return null;
-		let folder = this.folders.get(this.selectedFolderID);
-		if (!folder) {
-			folder = this.folders.get(this.getDefaultFolderId());
-		}
-		return folder || null;
 	}
 }
 

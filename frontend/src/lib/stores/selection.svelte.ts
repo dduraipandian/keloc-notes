@@ -25,7 +25,6 @@ class SelectionStore {
 	selectFolder(id: FolderID | null, persist = true) {
 		const resolvedId = this.resolveFolderId(id);
 		this.selectedFolderID = resolvedId;
-		folderStore.selectFolder(resolvedId);
 
 		if (persist && this.isInitialized) {
 			settingsRepository.save('selectedFolderID', this.selectedFolderID);

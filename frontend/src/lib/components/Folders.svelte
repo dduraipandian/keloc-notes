@@ -6,9 +6,9 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
-	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
+	import type { FolderItem } from '$lib/stores/folders.svelte';
 	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { folderSidebarSelector } from '$lib/stores/selectors';
+	import { folderSidebarSelector, type SidebarSourceItem } from '$lib/stores/selectors';
 	import { folderService, trashService } from '$lib/stores/services';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
@@ -30,27 +30,36 @@
 </script>
 
 <Sidebar.Root collapsible="none" class="h-full w-64 border-r-0 bg-sidebar/40">
+	{@const sections = folderSidebarSelector.getSections()}
 	<Sidebar.Header>
-		<Sidebar.Menu class="pt-6">
-			<Sidebar.MenuItem>
-				{@render MenuItemSnippet(folderStore.folders.get('deleted-notes')!, 0, true)}
-			</Sidebar.MenuItem>
-		</Sidebar.Menu>
+		{#if sections.find((section) => section.id === 'views')?.sources.length}
+			<Sidebar.Menu class="pt-6">
+				{#each sections.find((section) => section.id === 'views')!.sources as source}
+					<Sidebar.MenuItem>
+						{@render MenuItemSnippet(source)}
+					</Sidebar.MenuItem>
+				{/each}
+			</Sidebar.Menu>
+		{/if}
 	</Sidebar.Header>
 	<Sidebar.Content class="pt-0">
-		<Sidebar.Group>
-			<Sidebar.GroupLabel
-				class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-muted-foreground/40 uppercase"
-				>Folders</Sidebar.GroupLabel
-			>
-			<Sidebar.GroupContent>
-				<Sidebar.Menu>
-					{#each folderSidebarSelector.getRootItems() as item}
-						{@render MenuItemSnippet(item, 0)}
-					{/each}
-				</Sidebar.Menu>
-			</Sidebar.GroupContent>
-		</Sidebar.Group>
+		{#each sections.filter((section) => section.id !== 'views') as section}
+			<Sidebar.Group>
+				{#if section.label}
+					<Sidebar.GroupLabel
+						class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-muted-foreground/40 uppercase"
+						>{section.label}</Sidebar.GroupLabel
+					>
+				{/if}
+				<Sidebar.GroupContent>
+					<Sidebar.Menu>
+						{#each section.sources as source}
+							{@render MenuItemSnippet(source)}
+						{/each}
+					</Sidebar.Menu>
+				</Sidebar.GroupContent>
+			</Sidebar.Group>
+		{/each}
 	</Sidebar.Content>
 
 	<Sidebar.Footer class="mt-auto border-t-0 pb-6 pl-6">
@@ -58,8 +67,8 @@
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton class="px-2 transition-none hover:bg-transparent">
 					{#snippet child({ props })}
-						<a
-							href="#"
+						<button
+							type="button"
 							class="group flex items-center gap-2 text-[13px] font-medium text-foreground/80 hover:text-foreground"
 							onclick={(e) => {
 								e.preventDefault();
@@ -68,7 +77,7 @@
 						>
 							<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
 							<span>New Folder</span>
-						</a>
+						</button>
 					{/snippet}
 				</Sidebar.MenuButton>
 			</Sidebar.MenuItem>
@@ -76,15 +85,13 @@
 	</Sidebar.Footer>
 </Sidebar.Root>
 
-{#snippet MenuItemSnippet(item: FolderItem, depth: number, isTrashTree: boolean = false)}
-	{#if item && (isTrashTree || (item.deletedAt == null && item.type !== 'trash'))}
-		{@const isTrashRoot = item.type === 'trash'}
-		{@const childrenIds = folderSidebarSelector.getVisibleChildIds(item, isTrashTree)}
-		{#if childrenIds && childrenIds.length > 0}
+{#snippet MenuItemSnippet(source: SidebarSourceItem)}
+	{@const item = source.item}
+	{#if source.children.length > 0}
 			<Collapsible.Root
 				class="group/collapsible"
 				bind:open={
-					() => item.isOpen ?? false,
+					() => source.isOpen,
 					(v) => {
 						folderService.toggle(item.id);
 					}
@@ -93,36 +100,36 @@
 				<ContextMenu.Root>
 					<ContextMenu.Trigger>
 						<Sidebar.MenuItem>
-							<Collapsible.Trigger asChild>
+							<Collapsible.Trigger>
 								{#snippet child({ props })}
 									<Sidebar.MenuButton
 										class={[
 											menuButtonStyle,
-											folderSidebarSelector.isSelectedFolder(item.id)
+											source.isSelected
 												? 'bg-accent text-foreground shadow-sm'
 												: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
 										]}
 										{...props}
-										isActive={folderSidebarSelector.isSelectedFolder(item.id)}
+										isActive={source.isSelected}
 										onclick={(e) => {
 											(props as any).onclick?.(e);
 											folderService.select(item.id);
 										}}
 									>
-										<div style="width: {depth * 0.75}rem" class="shrink-0"></div>
+										<div style="width: {source.depth * 0.75}rem" class="shrink-0"></div>
 										<ChevronRight
 											size={14}
 											class={[
 												'shrink-0 text-muted-foreground/40 transition-transform duration-200',
-												item.isOpen ? 'rotate-90' : ''
+												source.isOpen ? 'rotate-90' : ''
 											]}
 										/>
-										{#if isTrashRoot}
+										{#if source.isTrashRoot}
 											<Trash2 size={16} class="text-destructive/70" />
 										{:else}
 											<Folder size={16} style="color: {folderColor}" class="opacity-80" />
 										{/if}
-										{#if folderSidebarSelector.isEditingFolder(item.id)}
+										{#if source.isEditing}
 											<input
 												bind:value={item.title}
 												class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
@@ -142,40 +149,36 @@
 							</Collapsible.Trigger>
 							<Sidebar.MenuBadge
 								class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-								>{folderSidebarSelector.getNoteCount(item)}</Sidebar.MenuBadge
+								>{source.noteCount}</Sidebar.MenuBadge
 							>
 							<Collapsible.Content>
 								<Sidebar.MenuSub class="m-0 border-l-0 p-0">
-									{#each childrenIds as subItemID}
-										{@render MenuItemSnippet(
-											folderStore.folders.get(subItemID)!,
-											depth + 1,
-											isTrashTree || isTrashRoot
-										)}
+									{#each source.children as child}
+										{@render MenuItemSnippet(child)}
 									{/each}
 								</Sidebar.MenuSub>
 							</Collapsible.Content>
 						</Sidebar.MenuItem>
 					</ContextMenu.Trigger>
-					{@render ContextMenuContentSnippet(item, isTrashTree)}
+					{@render ContextMenuContentSnippet(source)}
 				</ContextMenu.Root>
 			</Collapsible.Root>
 		{:else}
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
 					<Sidebar.MenuItem>
-						{@render MenuItemNoChildSnippet(item, depth)}
+						{@render MenuItemNoChildSnippet(source)}
 					</Sidebar.MenuItem>
 				</ContextMenu.Trigger>
-				{@render ContextMenuContentSnippet(item, isTrashTree)}
+				{@render ContextMenuContentSnippet(source)}
 			</ContextMenu.Root>
 		{/if}
-	{/if}
 {/snippet}
 
-{#snippet ContextMenuContentSnippet(item: FolderItem, isTrashTree: boolean = false)}
+{#snippet ContextMenuContentSnippet(source: SidebarSourceItem)}
+	{@const item = source.item}
 	<ContextMenu.Content class="w-36">
-		{#if item.deletedAt != null}
+		{#if source.capabilities.recover}
 			<ContextMenu.Item class="text-[13px]" onSelect={() => trashService.recoverFolder(item.id)}
 				>Recover Folder</ContextMenu.Item
 			>
@@ -187,57 +190,60 @@
 						trashService.permanentlyDeleteFolder(item.id)
 					)}>Delete Permanently</ContextMenu.Item
 			>
-		{:else if isTrashTree}
+		{:else if source.capabilities.emptyTrash}
 			<ContextMenu.Item
 				class="text-[13px] text-destructive focus:text-destructive"
 				onSelect={() => uiStore.confirmEmptyTrash(() => trashService.empty())}
 				>Empty Trash</ContextMenu.Item
 			>
-		{:else if item.type == 'system'}
-			<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.create()}
-				>New Folder</ContextMenu.Item
-			>
 		{:else}
-			<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.create()}
-				>New Folder</ContextMenu.Item
-			>
-			<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.startRename(item.id)}
-				>Rename</ContextMenu.Item
-			>
-			<ContextMenu.Separator />
-			<ContextMenu.Item
-				class="text-[13px] text-destructive focus:text-destructive"
-				onSelect={() =>
-					uiStore.confirmFolderDelete(item.title, () => folderService.delete(item.id))}
-				>Delete</ContextMenu.Item
-			>
+			{#if source.capabilities.create}
+				<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.create()}
+					>New Folder</ContextMenu.Item
+				>
+			{/if}
+			{#if source.capabilities.rename}
+				<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.startRename(item.id)}
+					>Rename</ContextMenu.Item
+				>
+			{/if}
+			{#if source.capabilities.delete}
+				<ContextMenu.Separator />
+				<ContextMenu.Item
+					class="text-[13px] text-destructive focus:text-destructive"
+					onSelect={() =>
+						uiStore.confirmFolderDelete(item.title, () => folderService.delete(item.id))}
+					>Delete</ContextMenu.Item
+				>
+			{/if}
 		{/if}
 	</ContextMenu.Content>
 {/snippet}
 
-{#snippet MenuItemNoChildSnippet(item: FolderItem, depth: number)}
+{#snippet MenuItemNoChildSnippet(source: SidebarSourceItem)}
+	{@const item = source.item}
 	<Sidebar.MenuButton
 		class={[
 			menuButtonStyle,
-			folderSidebarSelector.isSelectedFolder(item.id)
+			source.isSelected
 				? 'bg-accent text-foreground shadow-sm'
 				: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
 		]}
-		isActive={folderSidebarSelector.isSelectedFolder(item.id)}
+		isActive={source.isSelected}
 		onclick={() => {
 			folderService.select(item.id);
 		}}
 	>
 		{#snippet child({ props })}
 			<div class="flex w-full items-center" {...props}>
-				<div style="width: {depth * 0.75}rem" class="shrink-0"></div>
+				<div style="width: {source.depth * 0.75}rem" class="shrink-0"></div>
 				<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-				{#if item.type === 'trash'}
+				{#if source.isTrashRoot}
 					<Trash2 size={16} class="text-destructive/70" />
 				{:else}
 					<Folder size={16} style="color: {folderColor}" class="opacity-80" />
 				{/if}
-				{#if folderSidebarSelector.isEditingFolder(item.id)}
+				{#if source.isEditing}
 					<input
 						bind:value={item.title}
 						class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
@@ -255,6 +261,6 @@
 		{/snippet}
 	</Sidebar.MenuButton>
 	<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-		>{folderSidebarSelector.getNoteCount(item)}</Sidebar.MenuBadge
+		>{source.noteCount}</Sidebar.MenuBadge
 	>
 {/snippet}

@@ -4,14 +4,14 @@ import { FolderSidebarSelector, NoteListSelector } from './selectors';
 describe('NoteListSelector', () => {
 	it('should expose the selected folder title with a fallback', () => {
 		const selector = new NoteListSelector(
+			{ folders: new Map() } as any,
+			{} as any,
+			{} as any,
+			{} as any,
 			{
 				selectedFolderID: 'notes',
-				getSelectedFolder: () => ({ id: 'notes', title: 'Notes', url: '#' }),
-				folders: new Map()
-			} as any,
-			{} as any,
-			{} as any,
-			{} as any
+				getSelectedFolder: () => ({ id: 'notes', title: 'Notes', url: '#' })
+			} as any
 		);
 
 		expect(selector.getSelectedFolderTitle()).toBe('Notes');
@@ -19,11 +19,7 @@ describe('NoteListSelector', () => {
 
 	it('should filter notes by the current query', () => {
 		const selector = new NoteListSelector(
-			{
-				selectedFolderID: 'notes',
-				getSelectedFolder: () => ({ id: 'notes', title: 'Notes', url: '#', type: 'regular' }),
-				folders: new Map()
-			} as any,
+			{ folders: new Map() } as any,
 			{} as any,
 			{} as any,
 			{
@@ -31,6 +27,10 @@ describe('NoteListSelector', () => {
 					{ id: '1', title: 'Alpha', content: 'First', updatedAt: '2025-01-01T00:00:00Z' },
 					{ id: '2', title: 'Beta', content: 'Second', updatedAt: '2025-01-02T00:00:00Z' }
 				])
+			} as any,
+			{
+				selectedFolderID: 'notes',
+				getSelectedFolder: () => ({ id: 'notes', title: 'Notes', url: '#', type: 'regular' })
 			} as any
 		);
 
@@ -74,60 +74,132 @@ describe('NoteListSelector', () => {
 });
 
 describe('FolderSidebarSelector', () => {
-	it('should expose root folder items', () => {
+	it('should expose root folder sources', () => {
 		const selector = new FolderSidebarSelector(
 			{
 				items: ['notes'],
 				folders: new Map([['notes', { id: 'notes', title: 'Notes', url: '#' }]])
 			} as any,
 			{} as any,
-			{} as any
+			{ getNoteCountForFolder: vi.fn().mockReturnValue(3) } as any,
+			{ selectedFolderID: 'notes', getSelectedFolder: vi.fn() } as any
 		);
 
-		expect(selector.getRootItems()).toEqual([expect.objectContaining({ id: 'notes', title: 'Notes' })]);
+		expect(selector.getSections().find((section) => section.id === 'folders')?.sources).toEqual([
+			expect.objectContaining({
+				id: 'notes',
+				kind: 'folder',
+				title: 'Notes',
+				isSelected: true,
+				noteCount: 3,
+				capabilities: expect.objectContaining({ create: true, rename: true, delete: true })
+			})
+		]);
 	});
 
-	it('should expose trash root ids for the trash folder', () => {
+	it('should expose header sources for trash', () => {
 		const selector = new FolderSidebarSelector(
-			{ folders: new Map() } as any,
+			{
+				folders: new Map([
+					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }],
+					['deleted-folder', { id: 'deleted-folder', title: 'Deleted', url: '#', deletedAt: 123 }]
+				])
+			} as any,
 			{ getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']) } as any,
-			{} as any
+			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
+			{ selectedFolderID: 'deleted-notes', getSelectedFolder: vi.fn() } as any
 		);
 
-		expect(
-			selector.getVisibleChildIds({ id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' } as any)
-		).toEqual(['deleted-folder']);
+		expect(selector.getSections().find((section) => section.id === 'views')?.sources).toEqual([
+			expect.objectContaining({
+				id: 'deleted-notes',
+				kind: 'trash',
+				isTrashRoot: true,
+				isSelected: true,
+				children: [expect.objectContaining({ id: 'deleted-folder', isTrashTree: true })],
+				capabilities: expect.objectContaining({ emptyTrash: true })
+			})
+		]);
 	});
 
 	it('should hide deleted children in the regular tree', () => {
 		const selector = new FolderSidebarSelector(
 			{
+				items: ['parent'],
 				folders: new Map([
+					['parent', { id: 'parent', title: 'Parent', url: '#', items: ['child-a', 'child-b'] }],
 					['child-a', { id: 'child-a', title: 'A', url: '#', deletedAt: null }],
 					['child-b', { id: 'child-b', title: 'B', url: '#', deletedAt: 123 }]
 				])
 			} as any,
 			{} as any,
-			{} as any
+			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
+			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
 		);
 
-		expect(
-			selector.getVisibleChildIds({
-				id: 'parent',
-				title: 'Parent',
-				url: '#',
-				items: ['child-a', 'child-b']
-			} as any)
-		).toEqual(['child-a']);
+		expect(selector.getSections().find((section) => section.id === 'folders')?.sources[0]?.children).toEqual([
+			expect.objectContaining({ id: 'child-a' })
+		]);
 	});
 
-	it('should expose note counts for a folder item', () => {
+	it('should expose note counts for a folder source', () => {
 		const selector = new FolderSidebarSelector(
+			{
+				items: ['notes'],
+				folders: new Map([['notes', { id: 'notes', title: 'Notes', url: '#', type: 'regular' }]])
+			} as any,
 			{} as any,
-			{} as any,
-			{ getNoteCountForFolder: vi.fn().mockReturnValue(3) } as any
+			{ getNoteCountForFolder: vi.fn().mockReturnValue(3) } as any,
+			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
 		);
 
-		expect(selector.getNoteCount({ id: 'notes', title: 'Notes', url: '#', type: 'regular' } as any)).toBe(3);
+		expect(selector.getSections().find((section) => section.id === 'folders')?.sources[0]?.noteCount).toBe(3);
+	});
+
+	it('should expose trash item capabilities through the shared source model', () => {
+		const selector = new FolderSidebarSelector(
+			{
+				folders: new Map([
+					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }],
+					['deleted-folder', { id: 'deleted-folder', title: 'Deleted', url: '#', deletedAt: 123 }]
+				])
+			} as any,
+			{ getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']) } as any,
+			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
+			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
+		);
+
+		const deletedFolder = selector.getSections().find((section) => section.id === 'views')?.sources[0]?.children[0];
+
+		expect(deletedFolder?.capabilities).toEqual(
+			expect.objectContaining({
+				recover: true,
+				permanentDelete: true,
+				create: false,
+				rename: false,
+				delete: false,
+				emptyTrash: false
+			})
+		);
+	});
+
+	it('should expose sidebar sections through the registry', () => {
+		const selector = new FolderSidebarSelector(
+			{
+				items: ['notes'],
+				folders: new Map([
+					['notes', { id: 'notes', title: 'Notes', url: '#', type: 'regular' }],
+					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }]
+				])
+			} as any,
+			{ getTrashRootIds: vi.fn().mockReturnValue([]) } as any,
+			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
+			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
+		);
+
+		expect(selector.getSections()).toEqual([
+			expect.objectContaining({ id: 'views', label: null }),
+			expect.objectContaining({ id: 'folders', label: 'Folders' })
+		]);
 	});
 });

@@ -41,7 +41,6 @@ describe('NotesStore', () => {
 		// Clear singleton FolderStore to prevent cross-test pollution
 		(folderStore as any).items = [];
 		(folderStore as any).folders = new SvelteMap();
-		(folderStore as any).selectedFolderID = null;
 		(folderStore as any).isInitialized = false;
 		selectionStore.__resetForTest();
 	});
@@ -166,7 +165,7 @@ describe('NotesStore', () => {
 
 		expect(notesStore.notes.get('1')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('1')?.folderId).toBe('f1'); // Remains in f1 if f1 is active
-		expect(folderStore.selectedFolderID).toBe('f1');
+		expect(selectionStore.selectedFolderID).toBe('f1');
 		expect(notesStore.selectedNoteID).toBe('1');
 		expect(notesRepository.save).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: null }));
 	});
@@ -246,7 +245,7 @@ describe('NotesStore', () => {
 		expect(recoverSpy).toHaveBeenCalledWith('A');
 		expect(notesStore.notes.get('note-x')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('note-x')?.folderId).toBe('A');
-		expect(folderStore.selectedFolderID).toBe('A');
+		expect(selectionStore.selectedFolderID).toBe('A');
 		expect(notesStore.selectedNoteID).toBe('note-x');
 	});
 
@@ -281,7 +280,7 @@ describe('NotesStore', () => {
 
 		expect(notesStore.notes.get('note-x')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('note-x')?.folderId).toBeNull(); // Ejected to root
-		expect(folderStore.selectedFolderID).toBeNull();
+		expect(selectionStore.selectedFolderID).toBeNull();
 		expect(notesStore.selectedNoteID).toBe('note-x');
 	});
 
@@ -297,7 +296,7 @@ describe('NotesStore', () => {
 
 		expect(notesStore.notes.get('orphan')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('orphan')?.folderId).toBeNull();
-		expect(folderStore.selectedFolderID).toBeNull();
+		expect(selectionStore.selectedFolderID).toBeNull();
 		expect(notesStore.selectedNoteID).toBe('orphan');
 	});
 
@@ -370,7 +369,7 @@ describe('NotesStore', () => {
 			expect(noteService.getNoteCountForFolder('deleted-notes')).toBe(0);
 			expect(noteService.getNoteCountForFolder('special-folder')).toBe(1);
 			expect(notesStore.notes.get('orig')?.deletedAt).toBeNull();
-			expect(folderStore.selectedFolderID).toBe('special-folder');
+			expect(selectionStore.selectedFolderID).toBe('special-folder');
 			expect(notesStore.selectedNoteID).toBe('orig');
 		});
 

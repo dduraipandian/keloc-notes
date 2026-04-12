@@ -5,12 +5,9 @@ import { selectionStore } from './selection.svelte';
 
 type FolderStoreLike = {
 	items: FolderID[];
-	selectedFolderID: FolderID | null;
 	findItemById(id: FolderID): FolderItem | null;
-	getSelectedFolder(): FolderItem | null;
 	getDefaultFolderId(): FolderID;
-	createFolder(): void;
-	selectFolder(id: FolderID | null): void;
+	createFolder(parentId?: FolderID | null): FolderID | void;
 	startRename(id: FolderID): void;
 	cancelRename(): void;
 	renameFolder(id: FolderID, newTitle: string): void;
@@ -19,7 +16,6 @@ type FolderStoreLike = {
 	restoreFolder(id: FolderID, targetBatch?: number): void;
 	rootFolderIfParentMissing(id: FolderID): void;
 	applyPermanentDeleteState(foldersToDelete: FolderItem[]): void;
-	clearSelectionIfSelected(id: FolderID): void;
 	trashItems: FolderID[];
 };
 
@@ -56,38 +52,6 @@ function snapshotFolder(folder: FolderItem): FolderItem {
 function snapshotNote(note: NoteItem): NoteItem {
 	return {
 		...note
-	};
-}
-
-function createSelectionAdapter(folders: FolderStoreLike): SelectionStoreLike {
-	return {
-		get selectedFolderID() {
-			return folders.selectedFolderID;
-		},
-		selectFolder(id: FolderID | null) {
-			if (typeof folders.selectFolder === 'function') {
-				folders.selectFolder(id);
-				return;
-			}
-			folders.selectedFolderID = id;
-		},
-		getSelectedFolder() {
-			if (typeof folders.getSelectedFolder === 'function') {
-				return folders.getSelectedFolder();
-			}
-			if (!folders.selectedFolderID) return null;
-			if (typeof folders.findItemById !== 'function') return null;
-			return folders.findItemById(folders.selectedFolderID);
-		},
-		clearFolderIfSelected(id: FolderID) {
-			if (typeof folders.clearSelectionIfSelected === 'function') {
-				folders.clearSelectionIfSelected(id);
-				return;
-			}
-			if (folders.selectedFolderID === id) {
-				folders.selectFolder(null);
-			}
-		}
 	};
 }
 
@@ -167,7 +131,7 @@ class FolderTreeHelper {
 			resultNotes = allNotes.filter((note) => note.deletedAt != null);
 		} else {
 			const currentFolder = folderId ? this.folders.findItemById(folderId) : null;
-			if (currentFolder && currentFolder.deletedAt != null) {
+			if (folderId != null && currentFolder && currentFolder.deletedAt != null) {
 				const subtreeIds = this.getFolderSubtreeIds(folderId);
 				resultNotes = allNotes.filter(
 					(note) =>
@@ -217,15 +181,15 @@ export class FolderService {
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
 		private readonly notes: NotesStoreLike = notesStore,
-		selection: SelectionStoreLike = folders === folderStore ? selectionStore : createSelectionAdapter(folders)
+		selection: SelectionStoreLike = selectionStore
 	) {
 		this.tree = new FolderTreeHelper(folders, notes);
 		this.selection = selection;
 	}
 
 	create() {
-		this.folders.createFolder();
-		this.selection.selectFolder(this.folders.selectedFolderID);
+		const newFolderId = this.folders.createFolder(this.selection.selectedFolderID);
+		this.selection.selectFolder(newFolderId ?? null);
 	}
 
 	select(folderId: FolderID | null) {
@@ -327,7 +291,7 @@ export class NoteService {
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
 		private readonly notes: NotesStoreLike = notesStore,
-		selection: SelectionStoreLike = folders === folderStore ? selectionStore : createSelectionAdapter(folders)
+		selection: SelectionStoreLike = selectionStore
 	) {
 		this.tree = new FolderTreeHelper(folders, notes);
 		this.selection = selection;
@@ -384,7 +348,7 @@ export class TrashService {
 		private readonly folders: FolderStoreLike = folderStore,
 		private readonly notes: NotesStoreLike = notesStore,
 		private readonly trash = trashRepository,
-		selection: SelectionStoreLike = folders === folderStore ? selectionStore : createSelectionAdapter(folders)
+		selection: SelectionStoreLike = selectionStore
 	) {
 		this.tree = new FolderTreeHelper(folders, notes);
 		this.selection = selection;

@@ -35,7 +35,6 @@ describe('FolderStore', () => {
 		// Reset store state before each test
 		(folderStore as any).items = [];
 		(folderStore as any).folders = new SvelteMap<string, FolderItem>();
-		(folderStore as any).selectedFolderID = null;
 		(folderStore as any).editingId = null;
 		(folderStore as any).isInitialized = false;
 		selectionStore.__resetForTest();
@@ -43,13 +42,13 @@ describe('FolderStore', () => {
 
 	it('should create a folder at the root when nothing is selected', () => {
 		(folderStore as any).isInitialized = true;
-		folderStore.createFolder();
+		const createdId = folderStore.createFolder();
 
 		expect(folderStore.items.length).toBe(1);
 		expect(folderStore.items[0]).toBe('test-uuid');
+		expect(createdId).toBe('test-uuid');
 		const folder = folderStore.folders.get('test-uuid');
 		expect(folder?.title).toBe('New Folder');
-		expect(folderStore.selectedFolderID).toBe('test-uuid');
 		expect(foldersRepository.save).toHaveBeenCalled();
 	});
 
@@ -83,17 +82,16 @@ describe('FolderStore', () => {
 		const parent: FolderItem = { id: 'parent', title: 'Parent', url: '#', items: [] };
 		folderStore.folders.set('parent', parent);
 		folderStore.items = ['parent'];
-		folderStore.selectFolder('parent');
 
-		folderStore.createFolder();
+		const createdId = folderStore.createFolder('parent');
 
 		expect(parent.items?.length).toBe(1);
 		expect(parent.items?.[0]).toBe('test-uuid');
 		expect(parent.isOpen).toBe(true);
+		expect(createdId).toBe('test-uuid');
 
 		const child = folderStore.folders.get('test-uuid');
 		expect(child?.parentId).toBe('parent');
-		expect(folderStore.selectedFolderID).toBe('test-uuid');
 	});
 
 	it('should soft delete a folder and cascade deletedAt batches', () => {
@@ -208,11 +206,11 @@ describe('FolderStore', () => {
 		const item: FolderItem = { id: 'item', title: 'Item', url: '#' };
 		folderStore.folders.set('item', item);
 		folderStore.items = ['item'];
-		folderStore.selectFolder('item');
+		selectionStore.selectFolder('item', false);
 
 		folderService.delete('item');
 
-		expect(folderStore.selectedFolderID).toBeNull();
+		expect(selectionStore.selectedFolderID).toBeNull();
 	});
 
 	it('should cascade delete notes when a folder is deleted', () => {
@@ -435,13 +433,13 @@ describe('FolderStore', () => {
 			folderStore.folders.set('leaf', leaf);
 			folderStore.items = ['parent'];
 
-			folderStore.selectFolder('leaf');
-			expect(folderStore.selectedFolderID).toBe('leaf');
+			selectionStore.selectFolder('leaf', false);
+			expect(selectionStore.selectedFolderID).toBe('leaf');
 
 			folderService.delete('parent');
 
 			expect(folderStore.folders.get('parent')?.deletedAt).toBeDefined();
-			expect(folderStore.selectedFolderID).toBeNull();
+			expect(selectionStore.selectedFolderID).toBeNull();
 		});
 	});
 });

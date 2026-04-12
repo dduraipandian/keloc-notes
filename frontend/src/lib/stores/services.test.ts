@@ -12,17 +12,19 @@ vi.mock('./repositories', () => ({
 describe('FolderService', () => {
 	it('should delegate folder creation', () => {
 		const folders = { createFolder: vi.fn() };
+		const selection = { selectedFolderID: 'parent', selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 
-		new FolderService(folders as any).create();
+		new FolderService(folders as any, {} as any, selection as any).create();
 
-		expect(folders.createFolder).toHaveBeenCalled();
+		expect(folders.createFolder).toHaveBeenCalledWith('parent');
+		expect(selection.selectFolder).toHaveBeenCalled();
 	});
 
 	it('should select the first note when a folder is selected', () => {
 		const folders = {
-			selectFolder: vi.fn(),
 			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', type: 'regular' })
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([
 				{ id: 'note-2', folderId: 'folder-1', updatedAt: '2025-01-02T00:00:00Z', deletedAt: null },
@@ -31,23 +33,23 @@ describe('FolderService', () => {
 			selectNote: vi.fn()
 		};
 
-		new FolderService(folders as any, notes as any).select('folder-1');
+		new FolderService(folders as any, notes as any, selection as any).select('folder-1');
 
-		expect(folders.selectFolder).toHaveBeenCalledWith('folder-1');
+		expect(selection.selectFolder).toHaveBeenCalledWith('folder-1');
 		expect(notes.selectNote).toHaveBeenCalledWith('note-2');
 	});
 
 	it('should clear note selection when selecting an empty folder', () => {
 		const folders = {
-			selectFolder: vi.fn(),
 			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', type: 'regular' })
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([]),
 			selectNote: vi.fn()
 		};
 
-		new FolderService(folders as any, notes as any).select('folder-1');
+		new FolderService(folders as any, notes as any, selection as any).select('folder-1');
 
 		expect(notes.selectNote).toHaveBeenCalledWith(null);
 	});
@@ -82,7 +84,6 @@ describe('FolderService', () => {
 	it('should delegate folder deletion', () => {
 		const folders = {
 			items: ['folder-1', 'folder-2'],
-			selectedFolderID: 'folder-1',
 			findItemById: vi.fn().mockImplementation((id: string) =>
 				id === 'folder-1'
 					? { id: 'folder-1', items: ['child-1'] }
@@ -91,41 +92,40 @@ describe('FolderService', () => {
 						: { id: 'folder-2', items: [] }
 			),
 			deleteFolder: vi.fn(),
-			selectFolder: vi.fn()
 		};
+		const selection = { selectedFolderID: 'folder-1', selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			deleteNotesInFolder: vi.fn(),
 			listNotes: vi.fn().mockReturnValue([]),
 			selectNote: vi.fn()
 		};
 
-		new FolderService(folders as any, notes as any).delete('folder-1', 123);
+		new FolderService(folders as any, notes as any, selection as any).delete('folder-1', 123);
 
 		expect(folders.deleteFolder).toHaveBeenCalledWith('folder-1', 123);
 		expect(folders.deleteFolder).toHaveBeenCalledWith('child-1', 123);
 		expect(notes.deleteNotesInFolder).toHaveBeenCalledWith('folder-1', 123);
 		expect(notes.deleteNotesInFolder).toHaveBeenCalledWith('child-1', 123);
-		expect(folders.selectFolder).toHaveBeenCalledWith('folder-2');
+		expect(selection.selectFolder).toHaveBeenCalledWith('folder-2');
 		expect(notes.selectNote).toHaveBeenCalledWith(null);
 	});
 
 	it('should clear folder and note selection when deleting the last selectable folder', () => {
 		const folders = {
 			items: ['folder-1'],
-			selectedFolderID: 'folder-1',
 			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', items: [] }),
-			deleteFolder: vi.fn(),
-			selectFolder: vi.fn()
+			deleteFolder: vi.fn()
 		};
+		const selection = { selectedFolderID: 'folder-1', selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			deleteNotesInFolder: vi.fn(),
 			listNotes: vi.fn().mockReturnValue([]),
 			selectNote: vi.fn()
 		};
 
-		new FolderService(folders as any, notes as any).delete('folder-1', 123);
+		new FolderService(folders as any, notes as any, selection as any).delete('folder-1', 123);
 
-		expect(folders.selectFolder).toHaveBeenCalledWith(null);
+		expect(selection.selectFolder).toHaveBeenCalledWith(null);
 		expect(notes.selectNote).toHaveBeenCalledWith(null);
 	});
 });
@@ -134,31 +134,31 @@ describe('NoteService', () => {
 	it('should create in the selected regular folder', () => {
 		const folders = {
 			findItemById: vi.fn().mockReturnValue({ id: 'work', type: 'regular' }),
-			getDefaultFolderId: vi.fn(),
-			selectFolder: vi.fn()
+			getDefaultFolderId: vi.fn()
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = { createNote: vi.fn() };
 
-		new NoteService(folders as any, notes as any).create('work');
+		new NoteService(folders as any, notes as any, selection as any).create('work');
 
 		expect(notes.createNote).toHaveBeenCalledWith('work');
-		expect(folders.selectFolder).toHaveBeenCalledWith('work');
+		expect(selection.selectFolder).toHaveBeenCalledWith('work');
 		expect(folders.getDefaultFolderId).not.toHaveBeenCalled();
 	});
 
 	it('should fall back to the default folder for trash/system views', () => {
 		const folders = {
 			findItemById: vi.fn().mockReturnValue({ id: 'deleted-notes', type: 'trash' }),
-			getDefaultFolderId: vi.fn().mockReturnValue('notes'),
-			selectFolder: vi.fn()
+			getDefaultFolderId: vi.fn().mockReturnValue('notes')
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = { createNote: vi.fn() };
 
-		new NoteService(folders as any, notes as any).create('deleted-notes');
+		new NoteService(folders as any, notes as any, selection as any).create('deleted-notes');
 
 		expect(folders.getDefaultFolderId).toHaveBeenCalled();
 		expect(notes.createNote).toHaveBeenCalledWith('notes');
-		expect(folders.selectFolder).toHaveBeenCalledWith('notes');
+		expect(selection.selectFolder).toHaveBeenCalledWith('notes');
 	});
 
 	it('should delegate note updates', () => {
@@ -181,9 +181,13 @@ describe('NoteService', () => {
 
 	it('should select the next note after deleting the current note', () => {
 		const folders = {
-			selectedFolderID: 'f1',
-			getSelectedFolder: vi.fn().mockReturnValue({ id: 'f1', type: 'regular' }),
 			findItemById: vi.fn().mockReturnValue({ id: 'f1', type: 'regular' })
+		};
+		const selection = {
+			selectedFolderID: 'f1',
+			selectFolder: vi.fn(),
+			getSelectedFolder: vi.fn().mockReturnValue({ id: 'f1', type: 'regular' }),
+			clearFolderIfSelected: vi.fn()
 		};
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([
@@ -194,7 +198,7 @@ describe('NoteService', () => {
 			selectNote: vi.fn()
 		};
 
-		new NoteService(folders as any, notes as any).delete('note-1', 123);
+		new NoteService(folders as any, notes as any, selection as any).delete('note-1', 123);
 
 		expect(notes.deleteNote).toHaveBeenCalledWith('note-1', 123);
 		expect(notes.selectNote).toHaveBeenCalledWith('note-2');
@@ -202,9 +206,13 @@ describe('NoteService', () => {
 
 	it('should clear selection when deleting the last visible note', () => {
 		const folders = {
-			selectedFolderID: 'f1',
-			getSelectedFolder: vi.fn().mockReturnValue({ id: 'f1', type: 'regular' }),
 			findItemById: vi.fn().mockReturnValue({ id: 'f1', type: 'regular' })
+		};
+		const selection = {
+			selectedFolderID: 'f1',
+			selectFolder: vi.fn(),
+			getSelectedFolder: vi.fn().mockReturnValue({ id: 'f1', type: 'regular' }),
+			clearFolderIfSelected: vi.fn()
 		};
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([
@@ -214,7 +222,7 @@ describe('NoteService', () => {
 			selectNote: vi.fn()
 		};
 
-		new NoteService(folders as any, notes as any).delete('note-1', 123);
+		new NoteService(folders as any, notes as any, selection as any).delete('note-1', 123);
 
 		expect(notes.selectNote).toHaveBeenCalledWith(null);
 	});
@@ -293,9 +301,9 @@ describe('TrashService', () => {
 				return null;
 			}),
 			restoreFolder: vi.fn(),
-			rootFolderIfParentMissing: vi.fn(),
-			selectFolder: vi.fn()
+			rootFolderIfParentMissing: vi.fn()
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'folder-a' }),
 			restoreNotesInFolder: vi.fn(),
@@ -303,31 +311,31 @@ describe('TrashService', () => {
 			selectNote: vi.fn()
 		};
 
-		new TrashService(folders as any, notes as any).recoverNote('note-1');
+		new TrashService(folders as any, notes as any, trashRepository as any, selection as any).recoverNote('note-1');
 
 		expect(folders.findItemById).toHaveBeenCalledWith('folder-a');
 		expect(folders.restoreFolder).toHaveBeenCalledWith('folder-a', 123);
 		expect(notes.restoreNotesInFolder).toHaveBeenCalledWith('folder-a', 123);
 		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', undefined);
-		expect(folders.selectFolder).toHaveBeenCalledWith('folder-a');
+		expect(selection.selectFolder).toHaveBeenCalledWith('folder-a');
 		expect(notes.selectNote).toHaveBeenCalledWith('note-1');
 	});
 
 	it('should recover only the note when no deleted ancestor exists', () => {
 		const folders = {
-			findItemById: vi.fn().mockReturnValue({ id: 'folder-a', deletedAt: null }),
-			selectFolder: vi.fn()
+			findItemById: vi.fn().mockReturnValue({ id: 'folder-a', deletedAt: null })
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'folder-a' }),
 			restoreNote: vi.fn(),
 			selectNote: vi.fn()
 		};
 
-		new TrashService(folders as any, notes as any).recoverNote('note-1');
+		new TrashService(folders as any, notes as any, trashRepository as any, selection as any).recoverNote('note-1');
 
 		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', undefined);
-		expect(folders.selectFolder).toHaveBeenCalledWith('folder-a');
+		expect(selection.selectFolder).toHaveBeenCalledWith('folder-a');
 		expect(notes.selectNote).toHaveBeenCalledWith('note-1');
 	});
 
@@ -337,40 +345,40 @@ describe('TrashService', () => {
 				if (id === 'folder-a') return { id: 'folder-a', deletedAt: 123, parentId: null, items: [] };
 				return null;
 			}),
-			restoreFolder: vi.fn(),
-			selectFolder: vi.fn()
+			restoreFolder: vi.fn()
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'folder-a' }),
 			restoreNote: vi.fn(),
 			selectNote: vi.fn()
 		};
 
-		const service = new TrashService(folders as any, notes as any);
+		const service = new TrashService(folders as any, notes as any, trashRepository as any, selection as any);
 		vi.spyOn((service as any).tree, 'findTopDeletedAncestor').mockReturnValue(null);
 
 		service.recoverNote('note-1');
 
 		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', null);
-		expect(folders.selectFolder).toHaveBeenCalledWith(null);
+		expect(selection.selectFolder).toHaveBeenCalledWith(null);
 		expect(notes.selectNote).toHaveBeenCalledWith('note-1');
 	});
 
 	it('should root the note when its parent folder metadata is missing', () => {
 		const folders = {
-			findItemById: vi.fn().mockReturnValue(null),
-			selectFolder: vi.fn()
+			findItemById: vi.fn().mockReturnValue(null)
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'missing-folder' }),
 			restoreNote: vi.fn(),
 			selectNote: vi.fn()
 		};
 
-		new TrashService(folders as any, notes as any).recoverNote('note-1');
+		new TrashService(folders as any, notes as any, trashRepository as any, selection as any).recoverNote('note-1');
 
 		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', null);
-		expect(folders.selectFolder).toHaveBeenCalledWith(null);
+		expect(selection.selectFolder).toHaveBeenCalledWith(null);
 		expect(notes.selectNote).toHaveBeenCalledWith('note-1');
 	});
 
@@ -378,20 +386,20 @@ describe('TrashService', () => {
 		const folders = {
 			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', deletedAt: 123, items: [] }),
 			restoreFolder: vi.fn(),
-			rootFolderIfParentMissing: vi.fn(),
-			selectFolder: vi.fn()
+			rootFolderIfParentMissing: vi.fn()
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			restoreNotesInFolder: vi.fn(),
 			listNotes: vi.fn().mockReturnValue([]),
 			selectNote: vi.fn()
 		};
 
-		new TrashService(folders as any, notes as any).recoverFolder('folder-1', 123);
+		new TrashService(folders as any, notes as any, trashRepository as any, selection as any).recoverFolder('folder-1', 123);
 
 		expect(folders.restoreFolder).toHaveBeenCalledWith('folder-1', 123);
 		expect(notes.restoreNotesInFolder).toHaveBeenCalledWith('folder-1', 123);
-		expect(folders.selectFolder).toHaveBeenCalledWith('folder-1');
+		expect(selection.selectFolder).toHaveBeenCalledWith('folder-1');
 		expect(notes.selectNote).toHaveBeenCalledWith(null);
 	});
 
@@ -399,9 +407,9 @@ describe('TrashService', () => {
 		const folders = {
 			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', deletedAt: 123, type: 'regular', items: [] }),
 			restoreFolder: vi.fn(),
-			rootFolderIfParentMissing: vi.fn(),
-			selectFolder: vi.fn()
+			rootFolderIfParentMissing: vi.fn()
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			restoreNotesInFolder: vi.fn(),
 			listNotes: vi.fn().mockReturnValue([
@@ -411,9 +419,9 @@ describe('TrashService', () => {
 			selectNote: vi.fn()
 		};
 
-		new TrashService(folders as any, notes as any).recoverFolder('folder-1', 123);
+		new TrashService(folders as any, notes as any, trashRepository as any, selection as any).recoverFolder('folder-1', 123);
 
-		expect(folders.selectFolder).toHaveBeenCalledWith('folder-1');
+		expect(selection.selectFolder).toHaveBeenCalledWith('folder-1');
 		expect(notes.selectNote).toHaveBeenCalledWith('note-2');
 	});
 
@@ -422,19 +430,19 @@ describe('TrashService', () => {
 		const folders = {
 			findItemById: vi.fn().mockImplementation((id: string) => (id === 'folder-1' ? folder : null)),
 			restoreFolder: vi.fn(),
-			rootFolderIfParentMissing: vi.fn(),
-			selectFolder: vi.fn()
+			rootFolderIfParentMissing: vi.fn()
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			restoreNotesInFolder: vi.fn(),
 			listNotes: vi.fn().mockReturnValue([]),
 			selectNote: vi.fn()
 		};
 
-		new TrashService(folders as any, notes as any).recoverFolder('folder-1');
+		new TrashService(folders as any, notes as any, trashRepository as any, selection as any).recoverFolder('folder-1');
 
 		expect(folders.rootFolderIfParentMissing).toHaveBeenCalledWith('folder-1');
-		expect(folders.selectFolder).toHaveBeenCalledWith('folder-1');
+		expect(selection.selectFolder).toHaveBeenCalledWith('folder-1');
 	});
 
 	it('should delegate permanent folder deletion', async () => {
@@ -443,9 +451,9 @@ describe('TrashService', () => {
 				if (id === 'folder-1') return { id: 'folder-1', title: 'Folder', deletedAt: 123, items: [] };
 				return null;
 			}),
-			applyPermanentDeleteState: vi.fn(),
-			clearSelectionIfSelected: vi.fn()
+			applyPermanentDeleteState: vi.fn()
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			getNotesToArchive: vi.fn().mockReturnValue([]),
 			removeNoteLocally: vi.fn()
@@ -453,13 +461,13 @@ describe('TrashService', () => {
 
 		vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockResolvedValue(undefined as any);
 
-		await new TrashService(folders as any, notes as any).permanentlyDeleteFolder('folder-1', 123);
+		await new TrashService(folders as any, notes as any, trashRepository as any, selection as any).permanentlyDeleteFolder('folder-1', 123);
 
 		expect(trashRepository.permanentlyDeleteFolderTree).toHaveBeenCalled();
 		expect(folders.applyPermanentDeleteState).toHaveBeenCalledWith([
 			expect.objectContaining({ id: 'folder-1', deletedAt: 123 })
 		]);
-		expect(folders.clearSelectionIfSelected).toHaveBeenCalledWith('folder-1');
+		expect(selection.clearFolderIfSelected).toHaveBeenCalledWith('folder-1');
 	});
 
 	it('should delegate permanent note deletion', async () => {
@@ -494,9 +502,9 @@ describe('TrashService', () => {
 				return null;
 			}),
 			trashItems: ['folder-1'],
-			applyPermanentDeleteState: vi.fn(),
-			clearSelectionIfSelected: vi.fn()
+			applyPermanentDeleteState: vi.fn()
 		};
+		const selection = { selectedFolderID: null, selectFolder: vi.fn(), getSelectedFolder: vi.fn(), clearFolderIfSelected: vi.fn() };
 		const notes = {
 			getDeletedNotes: vi.fn().mockReturnValue([]),
 			removeNoteLocally: vi.fn()
@@ -504,7 +512,7 @@ describe('TrashService', () => {
 
 		vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockResolvedValue(undefined as any);
 
-		await new TrashService(folders as any, notes as any).empty();
+		await new TrashService(folders as any, notes as any, trashRepository as any, selection as any).empty();
 
 		expect(trashRepository.permanentlyDeleteFolderTree).toHaveBeenCalled();
 		expect(folders.applyPermanentDeleteState).toHaveBeenCalled();
