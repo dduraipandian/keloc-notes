@@ -1,17 +1,16 @@
-export type FolderType = 'all' | 'trash' | 'regular' | 'system';
-
 export type FolderID = string;
 
 export type FolderItem = {
 	id: FolderID;
 	title: string;
-	url: string;
-	type?: FolderType;
-	badge?: number;
+	/** @deprecated Not used by any UI — kept optional for DB migration compat. */
+	url?: string;
 	items?: FolderID[];
 	isOpen?: boolean;
 	parentId?: FolderID | null;
 	deletedAt?: number | null;
+	/** When true, the folder cannot be renamed or deleted (e.g. the protected 'Notes' root). */
+	isProtected?: boolean;
 };
 
 import { SvelteMap } from 'svelte/reactivity';
@@ -25,6 +24,7 @@ import {
 	permanentDeleteFolderTransactionally
 } from './idbr';
 import { notesStore } from './notes.svelte';
+import { PROTECTED_NOTES_FOLDER_ID } from './sources/constants';
 
 class FolderStore {
 	items = $state<string[]>([]);
@@ -36,7 +36,7 @@ class FolderStore {
 	trashItems = $derived.by(() => {
 		const deletedIds: string[] = [];
 		for (const [id, folder] of this.folders.entries()) {
-			if (folder.type !== 'trash' && folder.deletedAt != null) {
+			if (folder.deletedAt != null) {
 				const parent = folder.parentId ? this.folders.get(folder.parentId) : null;
 				if (!parent || parent.deletedAt == null) {
 					deletedIds.push(id);
@@ -80,11 +80,52 @@ class FolderStore {
 					this.selectedFolderID = settings.selectedFolderID;
 				}
 			}
+			this.ensureProtectedNotesFolder();
 			this.isInitialized = true;
 		} catch (error) {
 			console.error('Failed to load folders from storage:', error);
 			throw error;
 		}
+	}
+
+	/**
+	 * Guarantees the protected Notes folder exists and is correctly flagged.
+	 * Runs after loadItems so existing DB data is already in the map.
+	 *
+	 * Handles three cases:
+	 *   1. First run / fresh DB — folder not in map at all: create and persist.
+	 *   2. Existing DB with an unprotected 'notes' (from old getDefaultFolderId
+	 *      fallback) — mark isProtected and persist.
+	 *   3. Already correct — no-op.
+	 */
+	private ensureProtectedNotesFolder() {
+		const existing = this.folders.get(PROTECTED_NOTES_FOLDER_ID);
+		if (existing) {
+			if (!existing.isProtected) {
+				existing.isProtected = true;
+				this.folders.set(PROTECTED_NOTES_FOLDER_ID, existing);
+				putFolder($state.snapshot(existing));
+			}
+			// Ensure it's in the root items list
+			if (!this.items.includes(PROTECTED_NOTES_FOLDER_ID)) {
+				this.items.unshift(PROTECTED_NOTES_FOLDER_ID);
+			}
+			return;
+		}
+
+		// Create fresh protected notes folder
+		const folder: FolderItem = {
+			id: PROTECTED_NOTES_FOLDER_ID,
+			title: 'Notes',
+				items: [],
+			parentId: null,
+			deletedAt: null,
+			isProtected: true
+		};
+		let f = $state(folder);
+		this.folders.set(PROTECTED_NOTES_FOLDER_ID, f);
+		this.items.unshift(PROTECTED_NOTES_FOLDER_ID);
+		putFolder($state.snapshot(f));
 	}
 
 	persist(id: string) {
@@ -114,30 +155,30 @@ class FolderStore {
 		this.editingId = null;
 	}
 
-	createFolder() {
+	createFolder(parentId?: string | null) {
+		// If an explicit parentId is not given, fall back to the currently selected folder.
+		const resolvedParentId = parentId !== undefined ? parentId : this.selectedFolderID;
+
 		const newFolder: FolderItem = {
 			id: crypto.randomUUID(),
 			title: 'New Folder',
-			url: '#',
-			items: [],
+				items: [],
 			parentId: null,
 			deletedAt: null
 		};
 
-		if (!this.selectedFolderID) {
+		const parent = resolvedParentId ? (this.folders.get(resolvedParentId) ?? null) : null;
+		if (!parent) {
 			this.items.unshift(newFolder.id);
 		} else {
-			const parent = this.folders.get(this.selectedFolderID);
-			if (parent) {
-				if (!parent.items) {
-					let i = $state([]);
-					parent.items = i;
-				}
-				parent.items.unshift(newFolder.id);
-				parent.isOpen = true;
-				newFolder.parentId = parent.id;
-				this.persist(parent.id);
+			if (!parent.items) {
+				let i = $state([]);
+				parent.items = i;
 			}
+			parent.items.unshift(newFolder.id);
+			parent.isOpen = true;
+			newFolder.parentId = parent.id;
+			this.persist(parent.id);
 		}
 
 		let nf = $state(newFolder);
@@ -150,6 +191,7 @@ class FolderStore {
 	deleteFolder(id: string, batchTimestamp?: number) {
 		const folder = this.folders.get(id);
 		if (!folder) return;
+		if (folder.isProtected) return; // protected folders cannot be deleted
 
 		const ts = batchTimestamp ?? Date.now();
 
@@ -292,7 +334,9 @@ class FolderStore {
 			const notes =
 				batch !== undefined
 					? notesStore.getNotesToArchive(f.id, batch)
-					: notesStore.getNotesForFolder(f.id);
+					: Array.from(notesStore.notes.values()).filter(
+							(n) => n.folderId === f.id && n.deletedAt == null
+						);
 			return notes.map((n) => ({
 				note: $state.snapshot(n),
 				path: `${folderPath}/${n.title}:${n.id}`
@@ -355,7 +399,7 @@ class FolderStore {
 		this.editingId = null;
 		const folder = this.folders.get(id);
 
-		if (folder && newTitle.trim() !== '') {
+		if (folder && !folder.isProtected && newTitle.trim() !== '') {
 			folder.title = newTitle;
 			this.persist(id);
 		}
@@ -370,35 +414,8 @@ class FolderStore {
 	}
 
 	getDefaultFolderId(): string {
-		const findRegular = (ids: string[]): string | null => {
-			for (const id of ids) {
-				const folder = this.folders.get(id);
-				if (!folder) continue;
-				if (!folder.type || folder.type === 'regular') return folder.id;
-				if (folder.items) {
-					const found = findRegular(folder.items);
-					if (found) return found;
-				}
-			}
-			return null;
-		};
-
-		const regularFolderId = findRegular(this.items);
-		if (regularFolderId) return regularFolderId;
-
-		const newFolder: FolderItem = {
-			id: 'notes',
-			title: 'Notes',
-			url: '#',
-			items: [],
-			parentId: null,
-			deletedAt: null
-		};
-		let nf = $state(newFolder);
-		this.folders.set(newFolder.id, nf);
-		this.items.unshift(newFolder.id);
-		this.persist(newFolder.id);
-		return newFolder.id;
+		// The protected notes folder is guaranteed to exist after init().
+		return PROTECTED_NOTES_FOLDER_ID;
 	}
 	getSelectedFolder(): FolderItem | null {
 		if (!this.selectedFolderID) return null;
@@ -408,27 +425,27 @@ class FolderStore {
 		}
 		return folder || null;
 	}
+
+	/** Test helper — clears all state without touching IDB. */
+	__resetForTest() {
+		this.folders.clear();
+		(this as any).items = [];
+		this.selectedFolderID = null;
+		this.editingId = null;
+		(this as any).isInitialized = false;
+	}
 }
 
-// Initial mock data
+// Seed only the protected notes folder for new installs.
+// Existing DBs are handled by ensureProtectedNotesFolder() in init().
 const initialData: FolderItem[] = [
 	{
-		id: 'deleted-notes',
-		title: 'Recently Deleted',
-		url: '#',
-		items: [],
-		parentId: null,
-		type: 'trash',
-		deletedAt: null
-	},
-	{
-		id: 'notes',
+		id: PROTECTED_NOTES_FOLDER_ID,
 		title: 'Notes',
-		url: '#',
 		items: [],
 		parentId: null,
-		type: 'system',
-		deletedAt: null
+		deletedAt: null,
+		isProtected: true
 	}
 ];
 

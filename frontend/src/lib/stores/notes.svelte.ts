@@ -6,7 +6,8 @@ import {
 	putSetting,
 	permanentDeleteNoteTransactionally
 } from './idbr';
-import { folderStore, type FolderType, type FolderID } from './folders.svelte';
+import { folderStore, type FolderID } from './folders.svelte';
+import { TRASH_VIEW_ID, PROTECTED_NOTES_FOLDER_ID } from './sources/constants';
 
 export type NoteID = string;
 
@@ -21,9 +22,29 @@ export type NoteItem = {
 
 class NotesStore {
 	notes = new SvelteMap<NoteID, NoteItem>();
-	folderNotes = new SvelteMap<FolderID, NoteID[]>();
 	selectedNoteID = $state<NoteID | null>(null);
 	private isInitialized = false;
+
+	/**
+	 * Note count per folder id (and TRASH_VIEW_ID for deleted notes).
+	 * Computed on access from the live SvelteMap — reads establish reactive tracking in
+	 * Svelte templates so badge components re-render when notes change.
+	 */
+	get folderCountIndex(): Map<string, number> {
+		const counts = new Map<string, number>();
+		let trashCount = 0;
+		for (const note of this.notes.values()) {
+			if (note.deletedAt != null) {
+				trashCount++;
+				continue;
+			}
+			if (note.folderId) {
+				counts.set(note.folderId, (counts.get(note.folderId) ?? 0) + 1);
+			}
+		}
+		counts.set(TRASH_VIEW_ID, trashCount);
+		return counts;
+	}
 
 	constructor(initialNotes: NoteItem[] = []) {
 		if (initialNotes.length > 0) {
@@ -40,26 +61,28 @@ class NotesStore {
 		try {
 			const allNotesData = await getAllNotes();
 			const settings = await getAllSettings();
-			let allNotes: NoteItem[] = [];
-			let deletedNotes: NoteItem[] = [];
+			const allNotes: NoteItem[] = [];
 
 			allNotesData.forEach((note) => {
 				if (note && note.id) {
 					if (note.deletedAt === undefined) note.deletedAt = null;
+					// Migrate orphan notes: notes with no folderId go to the protected
+					// Notes folder. Idempotent — safe to re-run on every load.
+					if (note.folderId == null && note.deletedAt == null) {
+						note.folderId = PROTECTED_NOTES_FOLDER_ID;
+						putNote(note);
+					}
 					let n = $state(note);
 					allNotes.push(n);
 				}
 			});
 			this.notes.clear();
-			this.folderNotes.clear();
 
-			if (allNotes) {
-				allNotes.forEach((note) => {
-					this.notes.set(note.id, note);
-				});
-				if (settings && settings.selectedNoteID) {
-					this.selectedNoteID = settings.selectedNoteID;
-				}
+			allNotes.forEach((note) => {
+				this.notes.set(note.id, note);
+			});
+			if (settings && settings.selectedNoteID) {
+				this.selectedNoteID = settings.selectedNoteID;
 			}
 			this.isInitialized = true;
 		} catch (error) {
@@ -83,72 +106,12 @@ class NotesStore {
 		return this.notes.get(this.selectedNoteID) || null;
 	}
 
-	getNotesForFolder(folderId: string | null, folderType?: FolderType): NoteItem[] {
-		let resultNotes: NoteItem[] = [];
-		const allNotes = Array.from(this.notes.values());
-
-		if (folderType === 'all') {
-			resultNotes = allNotes.filter((n) => n.deletedAt == null);
-		} else if (folderId === 'deleted-notes') {
-			resultNotes = allNotes.filter((n) => n.deletedAt != null);
-		} else {
-			const currentFolder = folderStore.findItemById(folderId || '');
-			if (currentFolder && currentFolder.deletedAt != null) {
-				// Aggregate all deleted notes from this folder and its subfolders
-				const subtreeIds = this.getFolderSubtreeIds(folderId!);
-				resultNotes = allNotes.filter(
-					(n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt === currentFolder.deletedAt
-				);
-			} else {
-				const fid = folderId ?? 'root';
-				resultNotes = allNotes.filter((n) => (n.folderId ?? 'root') === fid && n.deletedAt == null);
-			}
-		}
-
-		return resultNotes.sort(
-			(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-		);
-	}
-
-	private getFolderSubtreeIds(rootId: string): Set<string> {
-		const ids = new Set<string>([rootId]);
-		const folder = folderStore.findItemById(rootId);
-		if (folder && folder.items) {
-			folder.items.forEach((childId) => {
-				const childSubtree = this.getFolderSubtreeIds(childId);
-				childSubtree.forEach((id) => ids.add(id));
-			});
-		}
-		return ids;
-	}
-
-	getNoteCountForFolder(folderId: string | null, folderType?: FolderType): number {
-		const allNotes = Array.from(this.notes.values());
-
-		if (folderType === 'all') {
-			return allNotes.filter((n) => n.deletedAt == null).length;
-		} else if (folderId === 'deleted-notes') {
-			return allNotes.filter((n) => n.deletedAt != null).length;
-		}
-
-		const currentFolder = folderStore.findItemById(folderId || '');
-		if (currentFolder && currentFolder.deletedAt != null) {
-			const subtreeIds = this.getFolderSubtreeIds(folderId!);
-			return allNotes.filter((n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt != null)
-				.length;
-		}
-
-		const fid = folderId ?? 'root';
-		return allNotes.filter((n) => (n.folderId ?? 'root') === fid && n.deletedAt == null).length;
-	}
-
 	createNote(folderId: FolderID | null) {
-		let actualFolderId = folderId;
 		const folder = folderId ? folderStore.findItemById(folderId) : null;
-
-		if (!folderId || folder?.type === 'all' || folder?.type === 'trash') {
-			actualFolderId = folderStore.getDefaultFolderId();
-		}
+		// If folderId is null, points to a missing folder, or a deleted folder,
+		// fall back to the protected notes folder.
+		const actualFolderId =
+			folder && folder.deletedAt == null ? folderId : folderStore.getDefaultFolderId();
 
 		const newNote: NoteItem = {
 			id: crypto.randomUUID(),
@@ -167,12 +130,7 @@ class NotesStore {
 	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {
 		const note = this.notes.get(id);
 		if (note) {
-			const oldFolderId = note.folderId;
-			Object.assign(note, {
-				...updates,
-				updatedAt: new Date().toISOString()
-			});
-
+			this.notes.set(id, { ...note, ...updates, updatedAt: new Date().toISOString() });
 			this.persist(id);
 		}
 	}
@@ -183,8 +141,7 @@ class NotesStore {
 			this.selectedNoteID = null;
 		}
 		if (note) {
-			note.deletedAt = batchTimestamp ?? Date.now();
-			this.notes.set(id, note);
+			this.notes.set(id, { ...note, deletedAt: batchTimestamp ?? Date.now() });
 		}
 		this.persist(id);
 	}
@@ -192,6 +149,7 @@ class NotesStore {
 	recoverNote(id: NoteID, recoverFolder: boolean = false) {
 		const note = this.notes.get(id);
 		if (note) {
+			let targetFolderId = note.folderId;
 			if (note.folderId) {
 				const f = folderStore.findItemById(note.folderId);
 				if (f) {
@@ -200,16 +158,16 @@ class NotesStore {
 							const topRoot = folderStore.findTopDeletedAncestor(note.folderId);
 							if (topRoot) folderStore.recoverFolderAndChildren(topRoot.id);
 						} else {
-							note.folderId = 'notes'; // Recover to root if not choosing to restore hierarchy
+							// Don't restore folder hierarchy — land note in the protected Notes folder
+							targetFolderId = PROTECTED_NOTES_FOLDER_ID;
 						}
 					}
 				} else {
-					// Parent folder metadata is missing from system
-					note.folderId = 'notes';
+					// Parent folder missing from store — land in protected Notes folder
+					targetFolderId = PROTECTED_NOTES_FOLDER_ID;
 				}
 			}
-			note.deletedAt = null;
-			this.notes.set(id, note);
+			this.notes.set(id, { ...note, folderId: targetFolderId, deletedAt: null });
 			this.persist(id);
 		}
 	}
@@ -217,9 +175,8 @@ class NotesStore {
 	deleteNotesInFolder(folderId: string, batchTimestamp: number) {
 		const allNotes = Array.from(this.notes.values());
 		for (const note of allNotes) {
-			if ((note.folderId ?? 'root') === folderId && note.deletedAt == null) {
-				note.deletedAt = batchTimestamp;
-				this.notes.set(note.id, note);
+			if (note.folderId === folderId && note.deletedAt == null) {
+				this.notes.set(note.id, { ...note, deletedAt: batchTimestamp });
 				if (this.selectedNoteID === note.id) {
 					this.selectedNoteID = null;
 				}
@@ -254,10 +211,9 @@ class NotesStore {
 	recoverNotesInFolder(folderId: string, targetBatch?: number) {
 		const allNotes = Array.from(this.notes.values());
 		for (const note of allNotes) {
-			if ((note.folderId ?? 'root') === folderId && note.deletedAt != null) {
+			if (note.folderId === folderId && note.deletedAt != null) {
 				if (!targetBatch || note.deletedAt === targetBatch) {
-					note.deletedAt = null;
-					this.notes.set(note.id, note);
+					this.notes.set(note.id, { ...note, deletedAt: null });
 					this.persist(note.id);
 				}
 			}
@@ -265,8 +221,15 @@ class NotesStore {
 	}
 	getNotesToArchive(folderId: string, targetBatch: number): NoteItem[] {
 		return Array.from(this.notes.values()).filter(
-			(n) => (n.folderId ?? 'root') === folderId && n.deletedAt === targetBatch
+			(n) => n.folderId === folderId && n.deletedAt === targetBatch
 		);
+	}
+
+	/** Test helper — clears all note state without touching IDB. */
+	__resetForTest() {
+		this.notes.clear();
+		this.selectedNoteID = null;
+		(this as any).isInitialized = false;
 	}
 
 	removeNoteLocally(id: string) {
@@ -281,37 +244,5 @@ class NotesStore {
 		this.persist(id!);
 	}
 }
-
-const initialMockNotes: NoteItem[] = [
-	{
-		id: '1',
-		folderId: 'notes',
-		title: 'Weekly Goals',
-		content:
-			'15-SEP-2025, Monday\n- Complete UI framework component test cases\n- Understand B-Tree in depth',
-		updatedAt: '2025-09-15T08:48:00Z'
-	},
-	{
-		id: '2',
-		folderId: 'notes',
-		title: 'Methodologies',
-		content: 'Rice Theorem - Let S be a set of languages...',
-		updatedAt: '2025-08-25T10:00:00Z'
-	},
-	{
-		id: '3',
-		folderId: 'notes',
-		title: 'Tech Blogs',
-		content: 'Function Point Analysis - Measuring software size...',
-		updatedAt: '2022-03-15T14:30:00Z'
-	},
-	{
-		id: '4',
-		folderId: 'work',
-		title: 'Sprint Planning',
-		content: 'Discussing the new sidebar architecture...',
-		updatedAt: new Date().toISOString()
-	}
-];
 
 export const notesStore = new NotesStore([]);

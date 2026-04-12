@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { folderStore, type FolderItem } from './folders.svelte';
 import * as idbr from './idbr';
 import { notesStore } from './notes.svelte';
-import { SvelteMap } from 'svelte/reactivity';
+import { PROTECTED_NOTES_FOLDER_ID } from './sources/constants';
 
 // Mock crypto.randomUUID
 global.crypto.randomUUID = vi.fn(() => 'test-uuid' as any);
@@ -20,12 +20,7 @@ vi.mock('./idbr', () => ({
 describe('FolderStore', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		// Reset store state before each test
-		(folderStore as any).items = [];
-		(folderStore as any).folders = new SvelteMap<string, FolderItem>();
-		(folderStore as any).selectedFolderID = null;
-		(folderStore as any).editingId = null;
-		(folderStore as any).isInitialized = false;
+		folderStore.__resetForTest();
 	});
 
 	it('should create a folder at the root when nothing is selected', () => {
@@ -40,29 +35,10 @@ describe('FolderStore', () => {
 		expect(idbr.putFolder).toHaveBeenCalled();
 	});
 
-	it('should support folders with a type', () => {
-		const folder: FolderItem = { id: 'all', title: 'All', url: '#', type: 'all' };
-		folderStore.folders.set('all', folder);
-		folderStore.items = ['all'];
-		expect(folderStore.folders.get('all')?.type).toBe('all');
-	});
-
-	it('should provide a default folder id and create if none exists', () => {
-		(folderStore as any).isInitialized = true;
+	it('getDefaultFolderId always returns the protected notes folder id', () => {
+		// No longer creates a folder — just returns the constant.
 		const id = folderStore.getDefaultFolderId();
-		expect(id).toBe('notes');
-		expect(folderStore.folders.has('notes')).toBe(true);
-		expect(folderStore.items).toContain('notes');
-	});
-
-	it('should return existing regular folder as default', () => {
-		const folder: FolderItem = { id: 'existing', title: 'Existing', url: '#' };
-		folderStore.folders.set('existing', folder);
-		folderStore.items = ['existing'];
-
-		const id = folderStore.getDefaultFolderId();
-		expect(id).toBe('existing');
-		expect(folderStore.items.length).toBe(1);
+		expect(id).toBe(PROTECTED_NOTES_FOLDER_ID);
 	});
 
 	it('should create a folder inside a selected folder', () => {
@@ -143,11 +119,8 @@ describe('FolderStore', () => {
 
 		folderStore.recoverFolderAndChildren('parent');
 
-		// Parent and Child A match batch and recover
 		expect(folderStore.folders.get('parent')?.deletedAt).toBeNull();
 		expect(folderStore.folders.get('childA')?.deletedAt).toBeNull();
-
-		// Child B was deleted long before, should remain flagged!
 		expect(folderStore.folders.get('childB')?.deletedAt).toBe(oldEpoch);
 	});
 
@@ -155,9 +128,8 @@ describe('FolderStore', () => {
 		(folderStore as any).isInitialized = true;
 		const folder: FolderItem = { id: 'f1', title: 'F1', url: '#', parentId: 'missing-parent', deletedAt: 123 };
 		folderStore.folders.set('f1', folder);
-		
-		// Mock has to return false for missing-parent
-		const hasSpy = vi.spyOn((folderStore as any).folders, 'has').mockImplementation((id) => {
+
+		const hasSpy = vi.spyOn((folderStore as any).folders, 'has').mockImplementation((id: unknown) => {
 			if (id === 'missing-parent') return false;
 			return true;
 		});
@@ -173,7 +145,7 @@ describe('FolderStore', () => {
 		const epoch = 123;
 		const folder: FolderItem = { id: 'f1', title: 'F1', url: '#', deletedAt: epoch };
 		folderStore.folders.set('f1', folder);
-		
+
 		const recoverNotesSpy = vi.spyOn(notesStore, 'recoverNotesInFolder');
 
 		folderStore.recoverFolderAndChildren('f1');
@@ -250,6 +222,101 @@ describe('FolderStore', () => {
 		expect(idbr.putFolder).not.toHaveBeenCalled();
 	});
 
+	describe('Protected notes folder', () => {
+		it('deleteFolder is a no-op on the protected notes folder', () => {
+			(folderStore as any).isInitialized = true;
+			const notes: FolderItem = {
+				id: PROTECTED_NOTES_FOLDER_ID,
+				title: 'Notes',
+				url: '#',
+				isProtected: true,
+				deletedAt: null
+			};
+			folderStore.folders.set(PROTECTED_NOTES_FOLDER_ID, notes);
+			folderStore.items = [PROTECTED_NOTES_FOLDER_ID];
+
+			folderStore.deleteFolder(PROTECTED_NOTES_FOLDER_ID);
+
+			expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.deletedAt).toBeNull();
+			expect(idbr.putFolder).not.toHaveBeenCalled();
+		});
+
+		it('renameFolder is a no-op on the protected notes folder', () => {
+			(folderStore as any).isInitialized = true;
+			const notes: FolderItem = {
+				id: PROTECTED_NOTES_FOLDER_ID,
+				title: 'Notes',
+				url: '#',
+				isProtected: true
+			};
+			folderStore.folders.set(PROTECTED_NOTES_FOLDER_ID, notes);
+
+			folderStore.renameFolder(PROTECTED_NOTES_FOLDER_ID, 'Hacked');
+
+			expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.title).toBe('Notes');
+			expect(idbr.putFolder).not.toHaveBeenCalled();
+		});
+
+		it('subfolders inside the protected notes folder can be deleted', () => {
+			(folderStore as any).isInitialized = true;
+			const notes: FolderItem = {
+				id: PROTECTED_NOTES_FOLDER_ID,
+				title: 'Notes',
+				url: '#',
+				isProtected: true,
+				items: ['sub']
+			};
+			const sub: FolderItem = { id: 'sub', title: 'Sub', url: '#', parentId: PROTECTED_NOTES_FOLDER_ID };
+			folderStore.folders.set(PROTECTED_NOTES_FOLDER_ID, notes);
+			folderStore.folders.set('sub', sub);
+			folderStore.items = [PROTECTED_NOTES_FOLDER_ID];
+
+			folderStore.deleteFolder('sub');
+
+			expect(folderStore.folders.get('sub')?.deletedAt).toBeDefined();
+			expect(folderStore.folders.get('sub')?.deletedAt).not.toBeNull();
+		});
+
+		it('subfolders inside the protected notes folder can be renamed', () => {
+			(folderStore as any).isInitialized = true;
+			const sub: FolderItem = {
+				id: 'sub',
+				title: 'Old Name',
+				url: '#',
+				parentId: PROTECTED_NOTES_FOLDER_ID
+			};
+			folderStore.folders.set('sub', sub);
+
+			folderStore.renameFolder('sub', 'New Name');
+
+			expect(folderStore.folders.get('sub')?.title).toBe('New Name');
+		});
+
+		it('ensureProtectedNotesFolder (via init) marks an existing unprotected notes folder as protected', async () => {
+			// Simulate old DB: 'notes' folder exists but lacks isProtected
+			const oldNotes = { id: PROTECTED_NOTES_FOLDER_ID, title: 'Notes', url: '#' };
+			vi.mocked(idbr.getAllFolders).mockResolvedValue([oldNotes] as any);
+			vi.mocked(idbr.getAllSettings).mockResolvedValue({} as any);
+
+			await folderStore.init();
+
+			expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.isProtected).toBe(true);
+			// Should have persisted the updated folder
+			expect(idbr.putFolder).toHaveBeenCalled();
+		});
+
+		it('ensureProtectedNotesFolder (via init) creates the folder when absent from DB', async () => {
+			vi.mocked(idbr.getAllFolders).mockResolvedValue([]);
+			vi.mocked(idbr.getAllSettings).mockResolvedValue({} as any);
+
+			await folderStore.init();
+
+			expect(folderStore.folders.has(PROTECTED_NOTES_FOLDER_ID)).toBe(true);
+			expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.isProtected).toBe(true);
+			expect(folderStore.items).toContain(PROTECTED_NOTES_FOLDER_ID);
+		});
+	});
+
 	describe('Persistence', () => {
 		it('should load state on init', async () => {
 			const savedFolders = [{ id: 'f1', title: 'F1', url: '#' }];
@@ -320,7 +387,6 @@ describe('FolderStore', () => {
 	describe('Complex Tree Operations (Edge Cases)', () => {
 		it('should propagate epoch across deeply nested structures', () => {
 			(folderStore as any).isInitialized = true;
-			// L1 -> L2 -> L3
 			const l3: FolderItem = { id: 'L3', title: 'L3', url: '#', parentId: 'L2' };
 			const l2: FolderItem = { id: 'L2', title: 'L2', url: '#', parentId: 'L1', items: ['L3'] };
 			const l1: FolderItem = { id: 'L1', title: 'L1', url: '#', parentId: null, items: ['L2'] };
@@ -335,8 +401,6 @@ describe('FolderStore', () => {
 
 			expect(folderStore.folders.get('L1')?.items).toContain('L2');
 			expect(folderStore.folders.get('L2')?.parentId).toBe('L1');
-
-			// Epochs cascade completely
 			expect(folderStore.folders.get('L2')?.deletedAt).toBe(epoch);
 			expect(folderStore.folders.get('L3')?.deletedAt).toBe(epoch);
 		});
@@ -370,24 +434,21 @@ describe('FolderStore', () => {
 
 			expect(folderStore.folders.get('L2')?.deletedAt).toBeNull();
 			expect(folderStore.folders.get('L1')?.deletedAt).toBeNull();
-
 			expect(folderStore.folders.get('sibling')?.deletedAt).toBe(epoch);
 		});
 
 		it('should correctly identify deletion roots in trashItems', () => {
 			(folderStore as any).isInitialized = true;
 			const epoch = 555;
-			// A (Active) -> B (Deleted) -> C (Deleted)
 			const c: FolderItem = { id: 'C', title: 'C', url: '#', parentId: 'B', deletedAt: epoch };
 			const b: FolderItem = { id: 'B', title: 'B', url: '#', parentId: 'A', items: ['C'], deletedAt: epoch };
 			const a: FolderItem = { id: 'A', title: 'A', url: '#', parentId: null, items: ['B'], deletedAt: null };
-			
+
 			folderStore.folders.set('A', a);
 			folderStore.folders.set('B', b);
 			folderStore.folders.set('C', c);
 			folderStore.items = ['A'];
 
-			// Only B should be a root, because its parent A is NOT deleted
 			expect(folderStore.trashItems).toContain('B');
 			expect(folderStore.trashItems).not.toContain('C');
 		});
@@ -395,11 +456,10 @@ describe('FolderStore', () => {
 		it('should find the top deleted ancestor correctly', () => {
 			(folderStore as any).isInitialized = true;
 			const epoch = 555;
-			// A (Active) -> B (Deleted) -> C (Deleted)
 			const c: FolderItem = { id: 'C', title: 'C', url: '#', parentId: 'B', deletedAt: epoch };
 			const b: FolderItem = { id: 'B', title: 'B', url: '#', parentId: 'A', items: ['C'], deletedAt: epoch };
 			const a: FolderItem = { id: 'A', title: 'A', url: '#', parentId: null, items: ['B'], deletedAt: null };
-			
+
 			folderStore.folders.set('A', a);
 			folderStore.folders.set('B', b);
 			folderStore.folders.set('C', c);
@@ -411,10 +471,9 @@ describe('FolderStore', () => {
 		it('should handle recursive recovery of parent path', () => {
 			(folderStore as any).isInitialized = true;
 			const epoch = 555;
-			// L1 (Deleted) -> L2 (Deleted)
 			const l2: FolderItem = { id: 'L2', title: 'L2', url: '#', parentId: 'L1', deletedAt: epoch };
 			const l1: FolderItem = { id: 'L1', title: 'L1', url: '#', parentId: null, items: ['L2'], deletedAt: epoch };
-			
+
 			folderStore.folders.set('L1', l1);
 			folderStore.folders.set('L2', l2);
 			folderStore.items = ['L1'];
