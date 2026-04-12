@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { folderStore, type FolderItem } from './folders.svelte';
 import * as idbr from './idbr';
 import { notesStore } from './notes.svelte';
+import { folderService, trashService } from './services';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock crypto.randomUUID
@@ -98,7 +99,7 @@ describe('FolderStore', () => {
 		folderStore.items = ['parent'];
 
 		const fixedEpoch = 123456789;
-		folderStore.deleteFolder('parent', fixedEpoch);
+		folderService.delete('parent', fixedEpoch);
 
 		// Structural map intact
 		expect(folderStore.items).toContain('parent');
@@ -141,7 +142,7 @@ describe('FolderStore', () => {
 		folderStore.folders.set('childA', childA);
 		folderStore.folders.set('childB', childB);
 
-		folderStore.recoverFolderAndChildren('parent');
+		trashService.recoverFolder('parent');
 
 		// Parent and Child A match batch and recover
 		expect(folderStore.folders.get('parent')?.deletedAt).toBeNull();
@@ -162,7 +163,7 @@ describe('FolderStore', () => {
 			return true;
 		});
 
-		folderStore.recoverFolderAndChildren('f1');
+		trashService.recoverFolder('f1');
 
 		expect(folderStore.folders.get('f1')?.parentId).toBeNull();
 		expect(folderStore.folders.get('f1')?.deletedAt).toBeNull();
@@ -174,9 +175,9 @@ describe('FolderStore', () => {
 		const folder: FolderItem = { id: 'f1', title: 'F1', url: '#', deletedAt: epoch };
 		folderStore.folders.set('f1', folder);
 		
-		const recoverNotesSpy = vi.spyOn(notesStore, 'recoverNotesInFolder');
+		const recoverNotesSpy = vi.spyOn(notesStore, 'restoreNotesInFolder');
 
-		folderStore.recoverFolderAndChildren('f1');
+		trashService.recoverFolder('f1');
 
 		expect(recoverNotesSpy).toHaveBeenCalledWith('f1', epoch);
 	});
@@ -197,7 +198,7 @@ describe('FolderStore', () => {
 		folderStore.items = ['item'];
 		folderStore.selectFolder('item');
 
-		folderStore.deleteFolder('item');
+		folderService.delete('item');
 
 		expect(folderStore.selectedFolderID).toBeNull();
 	});
@@ -211,7 +212,7 @@ describe('FolderStore', () => {
 
 		const deleteNotesSpy = vi.spyOn(notesStore, 'deleteNotesInFolder');
 
-		folderStore.deleteFolder('f1', epoch);
+		folderService.delete('f1', epoch);
 
 		expect(deleteNotesSpy).toHaveBeenCalledWith('f1', epoch);
 	});
@@ -223,7 +224,7 @@ describe('FolderStore', () => {
 		folderStore.items = ['f1'];
 		(folderStore as any).editingId = 'f1';
 
-		folderStore.deleteFolder('f1');
+		folderService.delete('f1');
 
 		expect(folderStore.editingId).toBeNull();
 	});
@@ -331,7 +332,7 @@ describe('FolderStore', () => {
 			folderStore.items = ['L1'];
 
 			const epoch = 555;
-			folderStore.deleteFolder('L2', epoch);
+			folderService.delete('L2', epoch);
 
 			expect(folderStore.folders.get('L1')?.items).toContain('L2');
 			expect(folderStore.folders.get('L2')?.parentId).toBe('L1');
@@ -366,7 +367,7 @@ describe('FolderStore', () => {
 			folderStore.folders.set('sibling', sibling);
 			folderStore.items = ['L1'];
 
-			folderStore.recoverParentPath('L2');
+			folderStore.restoreParentPath('L2');
 
 			expect(folderStore.folders.get('L2')?.deletedAt).toBeNull();
 			expect(folderStore.folders.get('L1')?.deletedAt).toBeNull();
@@ -419,7 +420,7 @@ describe('FolderStore', () => {
 			folderStore.folders.set('L2', l2);
 			folderStore.items = ['L1'];
 
-			folderStore.recoverParentPath('L2');
+			folderStore.restoreParentPath('L2');
 
 			expect(folderStore.folders.get('L2')?.deletedAt).toBeNull();
 			expect(folderStore.folders.get('L1')?.deletedAt).toBeNull();
@@ -441,7 +442,7 @@ describe('FolderStore', () => {
 			folderStore.selectFolder('leaf');
 			expect(folderStore.selectedFolderID).toBe('leaf');
 
-			folderStore.deleteFolder('parent');
+			folderService.delete('parent');
 
 			expect(folderStore.folders.get('parent')?.deletedAt).toBeDefined();
 			expect(folderStore.selectedFolderID).toBeNull();

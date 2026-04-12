@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { folderStore, type FolderItem } from './folders.svelte';
 import { notesStore, type NoteItem } from './notes.svelte';
 import * as idbr from './idbr';
+import { trashService } from './services';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock IDBR module
@@ -89,7 +90,7 @@ describe('Permanent Deletion with Archival', () => {
 
 			vi.mocked(idbr.permanentDeleteFolderTransactionally).mockResolvedValue(true as any);
 
-			await folderStore.permanentDeleteFolderAndChildren('parent');
+			await trashService.permanentlyDeleteFolder('parent');
 
 			// Verify IDBR called with correct snapshots
 			expect(idbr.permanentDeleteFolderTransactionally).toHaveBeenCalledWith(
@@ -122,7 +123,7 @@ describe('Permanent Deletion with Archival', () => {
 			vi.mocked(idbr.permanentDeleteFolderTransactionally).mockRejectedValue(dbError);
 
 			// We expect the error to be rethrown
-			await expect(folderStore.permanentDeleteFolderAndChildren('f1')).rejects.toThrow('Disk Full');
+			await expect(trashService.permanentlyDeleteFolder('f1')).rejects.toThrow('Disk Full');
 
 			// IMPORTANT: State must still exist in memory!
 			expect(folderStore.folders.has('f1')).toBe(true);
@@ -139,7 +140,7 @@ describe('Permanent Deletion with Archival', () => {
 
 			vi.mocked(idbr.permanentDeleteFolderTransactionally).mockResolvedValue(true as any);
 
-			await folderStore.emptyTrash();
+			await trashService.empty();
 
 			expect(idbr.permanentDeleteFolderTransactionally).toHaveBeenCalledWith(
 				expect.arrayContaining([
@@ -160,7 +161,7 @@ describe('Permanent Deletion with Archival', () => {
 
 			vi.mocked(idbr.permanentDeleteFolderTransactionally).mockResolvedValue(true as any);
 
-			await folderStore.emptyTrash();
+			await trashService.empty();
 
 			expect(idbr.permanentDeleteFolderTransactionally).toHaveBeenCalledWith(
 				expect.arrayContaining([expect.objectContaining({ path: 'Orphan:root-n' })]),
@@ -178,7 +179,7 @@ describe('Permanent Deletion with Archival', () => {
 
 			vi.mocked(idbr.permanentDeleteFolderTransactionally).mockRejectedValue(new Error('Crash'));
 
-			await expect(folderStore.emptyTrash()).rejects.toThrow('Crash');
+			await expect(trashService.empty()).rejects.toThrow('Crash');
 
 			expect(folderStore.folders.has('f1')).toBe(true);
 			expect(notesStore.notes.has('n1')).toBe(true);
@@ -192,7 +193,7 @@ describe('Permanent Deletion with Archival', () => {
 
 			vi.mocked(idbr.permanentDeleteNoteTransactionally).mockResolvedValue(true as any);
 
-			await notesStore.permanentDeleteNote('n1');
+			await trashService.permanentlyDeleteNote('n1');
 
 			expect(idbr.permanentDeleteNoteTransactionally).toHaveBeenCalledWith(
 				expect.objectContaining({ id: 'n1' }),
@@ -208,7 +209,7 @@ describe('Permanent Deletion with Archival', () => {
 
 			vi.mocked(idbr.permanentDeleteNoteTransactionally).mockResolvedValue(true as any);
 
-			await notesStore.permanentDeleteNote('root-note');
+			await trashService.permanentlyDeleteNote('root-note');
 
 			expect(idbr.permanentDeleteNoteTransactionally).toHaveBeenCalledWith(
 				expect.anything(),
@@ -223,7 +224,7 @@ describe('Permanent Deletion with Archival', () => {
 
 			vi.mocked(idbr.permanentDeleteNoteTransactionally).mockResolvedValue(true as any);
 
-			await notesStore.permanentDeleteNote('n1');
+			await trashService.permanentlyDeleteNote('n1');
 
 			expect(notesStore.selectedNoteID).toBeNull();
 			expect(idbr.putSetting).toHaveBeenCalledWith('selectedNoteID', null);
@@ -233,7 +234,7 @@ describe('Permanent Deletion with Archival', () => {
 			addNote({ id: 'n1', title: 'N1', deletedAt: 999 });
 			vi.mocked(idbr.permanentDeleteNoteTransactionally).mockRejectedValue(new Error('Abort'));
 
-			await expect(notesStore.permanentDeleteNote('n1')).rejects.toThrow('Abort');
+			await expect(trashService.permanentlyDeleteNote('n1')).rejects.toThrow('Abort');
 
 			// Still in memory
 			expect(notesStore.notes.has('n1')).toBe(true);

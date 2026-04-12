@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { notesStore, type NoteItem } from './notes.svelte';
 import * as idbr from './idbr';
 import { folderStore, type FolderItem } from './folders.svelte';
+import { trashService } from './services';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock IDBR module
@@ -150,7 +151,7 @@ describe('NotesStore', () => {
 
 		vi.spyOn(folderStore, 'findItemById').mockReturnValue({ id: 'f1', deletedAt: null } as any);
 
-		notesStore.recoverNote('1');
+		trashService.recoverNote('1');
 
 		expect(notesStore.notes.get('1')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('1')?.folderId).toBe('f1'); // Remains in f1 if f1 is active
@@ -224,10 +225,10 @@ describe('NotesStore', () => {
 		};
 		vi.spyOn(folderStore, 'findItemById').mockReturnValue(a);
 		vi.spyOn(folderStore, 'findTopDeletedAncestor').mockReturnValue(a);
-		const recoverSpy = vi.spyOn(folderStore, 'recoverFolderAndChildren');
+		const recoverSpy = vi.spyOn(trashService, 'recoverFolder');
 
 		// Recover with folder
-		notesStore.recoverNote('note-x', true);
+		trashService.recoverNote('note-x');
 
 		expect(recoverSpy).toHaveBeenCalledWith('A');
 		expect(notesStore.notes.get('note-x')?.deletedAt).toBeNull();
@@ -260,7 +261,7 @@ describe('NotesStore', () => {
 		vi.spyOn(folderStore, 'findItemById').mockReturnValue(a);
 
 		// Recover note ONLY
-		notesStore.recoverNote('note-x', false);
+		trashService.recoverNote('note-x');
 
 		expect(notesStore.notes.get('note-x')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('note-x')?.folderId).toBeNull(); // Ejected to root
@@ -274,7 +275,7 @@ describe('NotesStore', () => {
 		// Mock folderStore to return null for this ID (missing from system)
 		vi.spyOn(folderStore, 'findItemById').mockReturnValue(null);
 
-		notesStore.recoverNote('orphan');
+		trashService.recoverNote('orphan');
 
 		expect(notesStore.notes.get('orphan')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('orphan')?.folderId).toBeNull();
@@ -290,7 +291,7 @@ describe('NotesStore', () => {
 		// n2 was deleted earlier independently — should stay deleted
 		addNoteToStore({ id: 'n2', folderId: 'f1', deletedAt: olderEpoch } as any);
 
-		notesStore.recoverNotesInFolder('f1', epoch);
+		notesStore.restoreNotesInFolder('f1', epoch);
 
 		expect(notesStore.notes.get('n1')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('n2')?.deletedAt).toBe(olderEpoch);
@@ -344,7 +345,7 @@ describe('NotesStore', () => {
 
 			vi.spyOn(folderStore, 'findItemById').mockReturnValue({ id: 'special-folder', deletedAt: null } as any);
 
-			notesStore.recoverNote('orig');
+			trashService.recoverNote('orig');
 
 			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(0);
 			expect(notesStore.getNoteCountForFolder('special-folder')).toBe(1);

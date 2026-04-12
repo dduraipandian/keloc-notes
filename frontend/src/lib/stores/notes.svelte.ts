@@ -3,8 +3,7 @@ import {
 	getAllNotes,
 	getAllSettings,
 	putNote,
-	putSetting,
-	permanentDeleteNoteTransactionally
+	putSetting
 } from './idbr';
 import { folderStore, type FolderType, type FolderID } from './folders.svelte';
 
@@ -41,7 +40,6 @@ class NotesStore {
 			const allNotesData = await getAllNotes();
 			const settings = await getAllSettings();
 			let allNotes: NoteItem[] = [];
-			let deletedNotes: NoteItem[] = [];
 
 			allNotesData.forEach((note) => {
 				if (note && note.id) {
@@ -171,7 +169,6 @@ class NotesStore {
 	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {
 		const note = this.notes.get(id);
 		if (note) {
-			const oldFolderId = note.folderId;
 			Object.assign(note, {
 				...updates,
 				updatedAt: new Date().toISOString()
@@ -193,25 +190,10 @@ class NotesStore {
 		this.persist(id);
 	}
 
-	recoverNote(id: NoteID, recoverFolder: boolean = false) {
+	restoreNote(id: NoteID, folderId?: string | null) {
 		const note = this.notes.get(id);
 		if (note) {
-			if (note.folderId) {
-				const f = folderStore.findItemById(note.folderId);
-				if (f) {
-					if (f.deletedAt != null) {
-						if (recoverFolder) {
-							const topRoot = folderStore.findTopDeletedAncestor(note.folderId);
-							if (topRoot) folderStore.recoverFolderAndChildren(topRoot.id);
-						} else {
-							note.folderId = 'notes'; // Recover to root if not choosing to restore hierarchy
-						}
-					}
-				} else {
-					// Parent folder metadata is missing from system
-					note.folderId = 'notes';
-				}
-			}
+			if (folderId !== undefined) note.folderId = folderId;
 			note.deletedAt = null;
 			this.notes.set(id, note);
 			this.persist(id);
@@ -232,30 +214,7 @@ class NotesStore {
 		}
 	}
 
-	async permanentDeleteNote(id: NoteID) {
-		const note = this.notes.get(id);
-		if (!note) return;
-
-		const archivedAt = Date.now();
-		const folderPath = note.folderId ? folderStore.getFolderPath(note.folderId) : 'root';
-		const fullPath = note.folderId
-			? `${folderPath}/${note.title}:${note.id}`
-			: `${note.title}:${note.id}`;
-
-		try {
-			await permanentDeleteNoteTransactionally($state.snapshot(note), fullPath, archivedAt);
-			this.notes.delete(id);
-			if (this.selectedNoteID === id) {
-				this.selectedNoteID = null;
-				putSetting('selectedNoteID', null);
-			}
-		} catch (error) {
-			console.error('Failed to permanently delete note:', error);
-			throw error;
-		}
-	}
-
-	recoverNotesInFolder(folderId: string, targetBatch?: number) {
+	restoreNotesInFolder(folderId: string, targetBatch?: number) {
 		const allNotes = Array.from(this.notes.values());
 		for (const note of allNotes) {
 			if ((note.folderId ?? 'root') === folderId && note.deletedAt != null) {
@@ -273,10 +232,21 @@ class NotesStore {
 		);
 	}
 
+	getDeletedNotes(): NoteItem[] {
+		return Array.from(this.notes.values()).filter((n) => n.deletedAt != null);
+	}
+
 	removeNoteLocally(id: string) {
 		this.notes.delete(id);
+		this.clearSelectionIfSelected(id);
+	}
+
+	clearSelectionIfSelected(id: string) {
 		if (this.selectedNoteID === id) {
 			this.selectedNoteID = null;
+			if (this.isInitialized) {
+				putSetting('selectedNoteID', null);
+			}
 		}
 	}
 
