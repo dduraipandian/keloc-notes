@@ -5,6 +5,7 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
+	import { noteService, trashService } from '$lib/stores/services';
 	import { groupNotesByDate } from '$lib/utils';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
@@ -35,13 +36,13 @@
 	function handleNoteRestore(note: NoteItem) {
 		const isHierarchical = !!(note.folderId && folderStore.findTopDeletedAncestor(note.folderId));
 		uiStore.confirmNoteRestore(note.title, isHierarchical, () => {
-			notesStore.recoverNote(note.id, isHierarchical);
+			trashService.recoverNote(note.id);
 		});
 	}
 
 	function handleNotePermanentDelete(note: NoteItem) {
 		uiStore.confirmNotePermanentDelete(note.title, () => {
-			notesStore.permanentDeleteNote(note.id);
+			trashService.permanentlyDeleteNote(note.id);
 		});
 	}
 </script>
@@ -58,7 +59,7 @@
 			{#if folderStore.selectedFolderID !== 'deleted-notes'}
 				<button
 					class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
-					onclick={() => notesStore.createNote(folderStore.getSelectedFolder()?.id ?? null)}
+					onclick={() => noteService.create(folderStore.getSelectedFolder()?.id ?? null)}
 					title="New Note"
 				>
 					<SquarePen size={16} />

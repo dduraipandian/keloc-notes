@@ -9,6 +9,7 @@
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 	import { notesStore } from '$lib/stores/notes.svelte';
 	import { uiStore } from '$lib/stores/dialog.svelte';
+	import { folderService, trashService } from '$lib/stores/services';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
 	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none';
@@ -65,7 +66,7 @@
 							class="group flex items-center gap-2 text-[13px] font-medium text-foreground/80 hover:text-foreground"
 							onclick={(e) => {
 								e.preventDefault();
-								folderStore.createFolder();
+								folderService.create();
 							}}
 						>
 							<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
@@ -184,7 +185,7 @@
 		{#if item.deletedAt != null}
 			<ContextMenu.Item
 				class="text-[13px]"
-				onSelect={() => folderStore.recoverFolderAndChildren(item.id)}
+				onSelect={() => trashService.recoverFolder(item.id)}
 				>Recover Folder</ContextMenu.Item
 			>
 			<ContextMenu.Separator />
@@ -192,21 +193,21 @@
 				class="text-[13px] text-destructive focus:text-destructive"
 				onSelect={() =>
 					uiStore.confirmFolderPermanentDelete(item.title, () =>
-						folderStore.permanentDeleteFolderAndChildren(item.id)
+						trashService.permanentlyDeleteFolder(item.id)
 					)}>Delete Permanently</ContextMenu.Item
 			>
 		{:else if isTrashTree}
 			<ContextMenu.Item
 				class="text-[13px] text-destructive focus:text-destructive"
-				onSelect={() => uiStore.confirmEmptyTrash(() => folderStore.emptyTrash())}
+				onSelect={() => uiStore.confirmEmptyTrash(() => trashService.empty())}
 				>Empty Trash</ContextMenu.Item
 			>
 		{:else if item.type == 'system'}
-			<ContextMenu.Item class="text-[13px]" onSelect={() => folderStore.createFolder()}
+			<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.create()}
 				>New Folder</ContextMenu.Item
 			>
 		{:else}
-			<ContextMenu.Item class="text-[13px]" onSelect={() => folderStore.createFolder()}
+			<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.create()}
 				>New Folder</ContextMenu.Item
 			>
 			<ContextMenu.Item class="text-[13px]" onSelect={() => folderStore.startRename(item.id)}
@@ -216,7 +217,7 @@
 			<ContextMenu.Item
 				class="text-[13px] text-destructive focus:text-destructive"
 				onSelect={() =>
-					uiStore.confirmFolderDelete(item.title, () => folderStore.deleteFolder(item.id))}
+					uiStore.confirmFolderDelete(item.title, () => folderService.delete(item.id))}
 				>Delete</ContextMenu.Item
 			>
 		{/if}

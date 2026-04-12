@@ -83,6 +83,10 @@ class NotesStore {
 		return this.notes.get(this.selectedNoteID) || null;
 	}
 
+	getNote(id: NoteID): NoteItem | null {
+		return this.notes.get(id) || null;
+	}
+
 	getNotesForFolder(folderId: string | null, folderType?: FolderType): NoteItem[] {
 		let resultNotes: NoteItem[] = [];
 		const allNotes = Array.from(this.notes.values());

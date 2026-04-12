@@ -4,6 +4,7 @@
 	import Info from '@lucide/svelte/icons/info';
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import { uiStore } from '$lib/stores/dialog.svelte';
+	import { trashService } from '$lib/stores/services';
 	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);
@@ -21,7 +22,7 @@
 
 		const isHierarchical = !!topDeletedAncestor;
 		uiStore.confirmNoteRestore(selectedNote.title, isHierarchical, () => {
-			notesStore.recoverNote(selectedNote!.id, isHierarchical);
+			trashService.recoverNote(selectedNote!.id);
 		});
 	}
 

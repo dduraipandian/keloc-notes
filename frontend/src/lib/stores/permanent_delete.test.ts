@@ -163,9 +163,7 @@ describe('Permanent Deletion with Archival', () => {
 			await folderStore.emptyTrash();
 
 			expect(idbr.permanentDeleteFolderTransactionally).toHaveBeenCalledWith(
-				expect.arrayContaining([
-					expect.objectContaining({ path: 'Orphan:root-n' })
-				]),
+				expect.arrayContaining([expect.objectContaining({ path: 'Orphan:root-n' })]),
 				[],
 				expect.any(Number)
 			);
