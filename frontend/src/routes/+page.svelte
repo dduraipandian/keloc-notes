@@ -2,25 +2,19 @@
 	import { notesStore } from '$lib/stores/notes.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Info from '@lucide/svelte/icons/info';
-	import { folderStore } from '$lib/stores/folders.svelte';
 	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { folderService, noteService, trashService } from '$lib/stores/services';
+	import { noteService, trashService } from '$lib/stores/services';
+	import { noteListSelector } from '$lib/stores/selectors';
 	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);
 
-	let topDeletedAncestor = $derived.by(() => {
-		if (selectedNote?.folderId) {
-			const top = folderService.findTopDeletedAncestor(selectedNote.folderId);
-			return top;
-		}
-		return null;
-	});
+	let restoreContext = $derived(noteListSelector.getRestoreContext(selectedNote));
 
 	function handleRestoreInit() {
 		if (!selectedNote) return;
 
-		const isHierarchical = !!topDeletedAncestor;
+		const isHierarchical = restoreContext.isHierarchical;
 		uiStore.confirmNoteRestore(selectedNote.title, isHierarchical, () => {
 			trashService.recoverNote(selectedNote!.id);
 		});

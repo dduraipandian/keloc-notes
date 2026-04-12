@@ -3,7 +3,10 @@ import { notesStore, type NoteID, type NoteItem } from './notes.svelte';
 import { trashRepository } from './repositories';
 
 type FolderStoreLike = {
+	items: FolderID[];
+	selectedFolderID: FolderID | null;
 	findItemById(id: FolderID): FolderItem | null;
+	getSelectedFolder(): FolderItem | null;
 	getDefaultFolderId(): FolderID;
 	createFolder(): void;
 	selectFolder(id: FolderID | null): void;
@@ -35,8 +38,24 @@ type NotesStoreLike = {
 	clearSelectionIfSelected(id: NoteID): void;
 };
 
+function snapshotFolder(folder: FolderItem): FolderItem {
+	return {
+		...folder,
+		items: folder.items ? [...folder.items] : undefined
+	};
+}
+
+function snapshotNote(note: NoteItem): NoteItem {
+	return {
+		...note
+	};
+}
+
 class FolderTreeHelper {
-	constructor(private readonly folders: FolderStoreLike) {}
+	constructor(
+		private readonly folders: FolderStoreLike,
+		private readonly notes?: NotesStoreLike
+	) {}
 
 	findTopDeletedAncestor(folderId: FolderID): FolderItem | null {
 		const folder = this.folders.findItemById(folderId);
@@ -66,7 +85,7 @@ class FolderTreeHelper {
 		if (!folder) return [];
 
 		return [
-			structuredClone(folder),
+			snapshotFolder(folder),
 			...(folder.items ?? []).flatMap((childId) => this.collectFolderSubtree(childId))
 		];
 	}
@@ -88,6 +107,47 @@ class FolderTreeHelper {
 		return this.folders.trashItems;
 	}
 
+	getActiveFolderIds(): FolderID[] {
+		const result: FolderID[] = [];
+		for (const rootId of this.folders.items) {
+			this.collectActiveFolderIds(rootId, result);
+		}
+		return result;
+	}
+
+	getNotesForFolder(folderId: FolderID | null, folderType?: FolderType) {
+		if (!this.notes) return [];
+
+		let resultNotes: NoteItem[] = [];
+		const allNotes = this.notes.listNotes();
+
+		if (folderType === 'all') {
+			resultNotes = allNotes.filter((note) => note.deletedAt == null);
+		} else if (folderId === 'deleted-notes') {
+			resultNotes = allNotes.filter((note) => note.deletedAt != null);
+		} else {
+			const currentFolder = folderId ? this.folders.findItemById(folderId) : null;
+			if (currentFolder && currentFolder.deletedAt != null) {
+				const subtreeIds = this.getFolderSubtreeIds(folderId);
+				resultNotes = allNotes.filter(
+					(note) =>
+						note.folderId != null &&
+						subtreeIds.has(note.folderId) &&
+						note.deletedAt === currentFolder.deletedAt
+				);
+			} else {
+				const normalizedFolderId = folderId ?? 'root';
+				resultNotes = allNotes.filter(
+					(note) => (note.folderId ?? 'root') === normalizedFolderId && note.deletedAt == null
+				);
+			}
+		}
+
+		return resultNotes.sort(
+			(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+		);
+	}
+
 	restoreParentPath(parentId: FolderID | null | undefined) {
 		if (!parentId) return;
 
@@ -96,6 +156,17 @@ class FolderTreeHelper {
 
 		this.folders.restoreFolder(parentId, parent.deletedAt);
 		this.restoreParentPath(parent.parentId);
+	}
+
+	private collectActiveFolderIds(folderId: FolderID, output: FolderID[]) {
+		const folder = this.folders.findItemById(folderId);
+		if (!folder || folder.type === 'trash' || folder.deletedAt != null) return;
+
+		output.push(folder.id);
+
+		for (const childId of folder.items ?? []) {
+			this.collectActiveFolderIds(childId, output);
+		}
 	}
 }
 
@@ -106,7 +177,7 @@ export class FolderService {
 		private readonly folders: FolderStoreLike = folderStore,
 		private readonly notes: NotesStoreLike = notesStore
 	) {
-		this.tree = new FolderTreeHelper(folders);
+		this.tree = new FolderTreeHelper(folders, notes);
 	}
 
 	create() {
@@ -115,6 +186,7 @@ export class FolderService {
 
 	select(folderId: FolderID | null) {
 		this.folders.selectFolder(folderId);
+		this.syncNoteSelectionForFolder(folderId);
 	}
 
 	startRename(folderId: FolderID) {
@@ -151,7 +223,16 @@ export class FolderService {
 
 	delete(folderId: FolderID, batchTimestamp?: number) {
 		const batch = batchTimestamp ?? Date.now();
+		const selectedFolderId = this.folders.selectedFolderID;
+		const nextFolderId = this.getNextFolderSelectionAfterDelete(folderId);
+		const deletedIds = new Set(this.collectFolderSubtree(folderId).map((folder) => folder.id));
 		this.deleteFolderTree(folderId, batch);
+		if (nextFolderId) {
+			this.select(nextFolderId);
+		} else if (selectedFolderId && deletedIds.has(selectedFolderId)) {
+			this.folders.selectFolder(null);
+			this.notes.selectNote(null);
+		}
 	}
 
 	private deleteFolderTree(folderId: FolderID, batchTimestamp: number) {
@@ -166,6 +247,33 @@ export class FolderService {
 		}
 	}
 
+	private syncNoteSelectionForFolder(folderId: FolderID | null) {
+		if (folderId == null) {
+			this.notes.selectNote(null);
+			return;
+		}
+
+		const folderType = folderId ? this.folders.findItemById(folderId)?.type : undefined;
+		const firstNote = this.tree.getNotesForFolder(folderId, folderType)[0] ?? null;
+		this.notes.selectNote(firstNote?.id ?? null);
+	}
+
+	private getNextFolderSelectionAfterDelete(folderId: FolderID) {
+		const selectedFolderId = this.folders.selectedFolderID;
+		const deletedIds = new Set(this.collectFolderSubtree(folderId).map((folder) => folder.id));
+
+		if (!selectedFolderId || !deletedIds.has(selectedFolderId)) {
+			return null;
+		}
+
+		const activeFolderIds = this.tree.getActiveFolderIds();
+		const deletedFolderIndex = activeFolderIds.indexOf(folderId);
+
+		if (deletedFolderIndex === -1) return null;
+
+		return activeFolderIds.slice(deletedFolderIndex + 1).find((id) => !deletedIds.has(id)) ?? null;
+	}
+
 }
 
 export class NoteService {
@@ -175,7 +283,7 @@ export class NoteService {
 		private readonly folders: FolderStoreLike = folderStore,
 		private readonly notes: NotesStoreLike = notesStore
 	) {
-		this.tree = new FolderTreeHelper(folders);
+		this.tree = new FolderTreeHelper(folders, notes);
 	}
 
 	create(folderId: FolderID | null) {
@@ -186,6 +294,7 @@ export class NoteService {
 			actualFolderId = this.folders.getDefaultFolderId();
 		}
 
+		this.folders.selectFolder(actualFolderId);
 		this.notes.createNote(actualFolderId);
 	}
 
@@ -198,38 +307,21 @@ export class NoteService {
 	}
 
 	delete(noteId: NoteID, batchTimestamp?: number) {
+		const currentFolder = this.folders.getSelectedFolder();
+		const visibleNotes = this.tree.getNotesForFolder(
+			this.folders.selectedFolderID ?? null,
+			currentFolder?.type
+		);
+		const currentIndex = visibleNotes.findIndex((note) => note.id === noteId);
+		const nextNoteId =
+			currentIndex >= 0 ? (visibleNotes[currentIndex + 1]?.id ?? null) : null;
+
 		this.notes.deleteNote(noteId, batchTimestamp);
+		this.notes.selectNote(nextNoteId);
 	}
 
 	getNotesForFolder(folderId: FolderID | null, folderType?: FolderType) {
-		let resultNotes: NoteItem[] = [];
-		const allNotes = this.notes.listNotes();
-
-		if (folderType === 'all') {
-			resultNotes = allNotes.filter((note) => note.deletedAt == null);
-		} else if (folderId === 'deleted-notes') {
-			resultNotes = allNotes.filter((note) => note.deletedAt != null);
-		} else {
-			const currentFolder = folderId ? this.folders.findItemById(folderId) : null;
-			if (currentFolder && currentFolder.deletedAt != null) {
-				const subtreeIds = this.tree.getFolderSubtreeIds(folderId);
-				resultNotes = allNotes.filter(
-					(note) =>
-						note.folderId != null &&
-						subtreeIds.has(note.folderId) &&
-						note.deletedAt === currentFolder.deletedAt
-				);
-			} else {
-				const normalizedFolderId = folderId ?? 'root';
-				resultNotes = allNotes.filter(
-					(note) => (note.folderId ?? 'root') === normalizedFolderId && note.deletedAt == null
-				);
-			}
-		}
-
-		return resultNotes.sort(
-			(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-		);
+		return this.tree.getNotesForFolder(folderId, folderType);
 	}
 
 	getNoteCountForFolder(folderId: FolderID | null, folderType?: FolderType) {
@@ -286,6 +378,9 @@ export class TrashService {
 		}
 
 		this.notes.restoreNote(noteId, restoredFolderId);
+		const selectedFolderId = restoredFolderId !== undefined ? restoredFolderId : (note.folderId ?? null);
+		this.folders.selectFolder(selectedFolderId);
+		this.notes.selectNote(noteId);
 	}
 
 	async permanentlyDeleteFolder(folderId: FolderID, targetBatch?: number) {
@@ -315,7 +410,7 @@ export class TrashService {
 		const fullPath = note.folderId ? `${folderPath}/${note.title}:${note.id}` : `${note.title}:${note.id}`;
 
 		try {
-			await this.trash.permanentlyDeleteNote(structuredClone(note), fullPath, Date.now());
+			await this.trash.permanentlyDeleteNote(snapshotNote(note), fullPath, Date.now());
 			this.notes.removeNoteLocally(noteId);
 			this.notes.clearSelectionIfSelected(noteId);
 		} catch (error) {
@@ -370,7 +465,7 @@ export class TrashService {
 					: this.notes.getDeletedNotes().filter((note) => note.folderId === folder.id);
 
 			return notes.map((note) => ({
-				note: structuredClone(note),
+				note: snapshotNote(note),
 				path: `${folderPath}/${note.title}:${note.id}`
 			}));
 		});
@@ -380,7 +475,7 @@ export class TrashService {
 		return this.notes.getDeletedNotes().map((note) => {
 			const folderPath = note.folderId ? this.tree.getFolderPath(note.folderId) : null;
 			const path = folderPath ? `${folderPath}/${note.title}:${note.id}` : `${note.title}:${note.id}`;
-			return { note: structuredClone(note), path };
+			return { note: snapshotNote(note), path };
 		});
 	}
 }

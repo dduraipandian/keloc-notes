@@ -85,12 +85,6 @@ test('can soft delete and recover a note from trash', async ({ page }) => {
 	).toBeHidden();
 	await expect(page.getByPlaceholder('Note Title')).toHaveValue(noteTitle);
 
-	const folderEntry = page.locator('li[data-sidebar="menu-item"]').filter({
-		has: page.getByText('Notes', { exact: true })
-	});
-
-	await folderEntry.click();
-
 	await expect(page.locator('aside div[data-slot="item-title"]')).toContainText(noteTitle);
 });
 

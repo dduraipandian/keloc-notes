@@ -8,7 +8,8 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { folderService, noteService, trashService } from '$lib/stores/services';
+	import { folderSidebarSelector } from '$lib/stores/selectors';
+	import { folderService, trashService } from '$lib/stores/services';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
 	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none';
@@ -44,8 +45,8 @@
 			>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
-					{#each folderStore.items as itemId}
-						{@render MenuItemSnippet(folderStore.folders.get(itemId)!, 0)}
+					{#each folderSidebarSelector.getRootItems() as item}
+						{@render MenuItemSnippet(item, 0)}
 					{/each}
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
@@ -78,12 +79,7 @@
 {#snippet MenuItemSnippet(item: FolderItem, depth: number, isTrashTree: boolean = false)}
 	{#if item && (isTrashTree || (item.deletedAt == null && item.type !== 'trash'))}
 		{@const isTrashRoot = item.type === 'trash'}
-		{@const childrenIds_raw = isTrashRoot ? folderService.getTrashRootIds() : item.items || []}
-		{@const childrenIds = isTrashRoot
-			? childrenIds_raw
-			: isTrashTree
-				? []
-				: childrenIds_raw.filter((id) => folderStore.folders.get(id)?.deletedAt == null)}
+		{@const childrenIds = folderSidebarSelector.getVisibleChildIds(item, isTrashTree)}
 		{#if childrenIds && childrenIds.length > 0}
 			<Collapsible.Root
 				class="group/collapsible"
@@ -102,12 +98,12 @@
 									<Sidebar.MenuButton
 										class={[
 											menuButtonStyle,
-											item.id === folderStore.selectedFolderID
+											folderSidebarSelector.isSelectedFolder(item.id)
 												? 'bg-accent text-foreground shadow-sm'
 												: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
 										]}
 										{...props}
-										isActive={item.id === folderStore.selectedFolderID}
+										isActive={folderSidebarSelector.isSelectedFolder(item.id)}
 										onclick={(e) => {
 											(props as any).onclick?.(e);
 											folderService.select(item.id);
@@ -126,7 +122,7 @@
 										{:else}
 											<Folder size={16} style="color: {folderColor}" class="opacity-80" />
 										{/if}
-										{#if folderStore.editingId === item.id}
+										{#if folderSidebarSelector.isEditingFolder(item.id)}
 											<input
 												bind:value={item.title}
 												class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
@@ -145,7 +141,7 @@
 							</Collapsible.Trigger>
 							<Sidebar.MenuBadge
 								class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-								>{noteService.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
+								>{folderSidebarSelector.getNoteCount(item)}</Sidebar.MenuBadge
 							>
 							<Collapsible.Content>
 								<Sidebar.MenuSub class="m-0 border-l-0 p-0">
@@ -222,11 +218,11 @@
 	<Sidebar.MenuButton
 		class={[
 			menuButtonStyle,
-			item.id === folderStore.selectedFolderID
+			folderSidebarSelector.isSelectedFolder(item.id)
 				? 'bg-accent text-foreground shadow-sm'
 				: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
 		]}
-		isActive={item.id === folderStore.selectedFolderID}
+		isActive={folderSidebarSelector.isSelectedFolder(item.id)}
 		onclick={() => {
 			folderService.select(item.id);
 		}}
@@ -240,7 +236,7 @@
 				{:else}
 					<Folder size={16} style="color: {folderColor}" class="opacity-80" />
 				{/if}
-				{#if folderStore.editingId === item.id}
+				{#if folderSidebarSelector.isEditingFolder(item.id)}
 					<input
 						bind:value={item.title}
 						class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
@@ -256,6 +252,6 @@
 		{/snippet}
 	</Sidebar.MenuButton>
 	<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-		>{noteService.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
+		>{folderSidebarSelector.getNoteCount(item)}</Sidebar.MenuBadge
 	>
 {/snippet}

@@ -163,6 +163,8 @@ describe('NotesStore', () => {
 
 		expect(notesStore.notes.get('1')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('1')?.folderId).toBe('f1'); // Remains in f1 if f1 is active
+		expect(folderStore.selectedFolderID).toBe('f1');
+		expect(notesStore.selectedNoteID).toBe('1');
 		expect(notesRepository.save).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: null }));
 	});
 
@@ -241,6 +243,8 @@ describe('NotesStore', () => {
 		expect(recoverSpy).toHaveBeenCalledWith('A');
 		expect(notesStore.notes.get('note-x')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('note-x')?.folderId).toBe('A');
+		expect(folderStore.selectedFolderID).toBe('A');
+		expect(notesStore.selectedNoteID).toBe('note-x');
 	});
 
 	it('should support prompted recovery of note alone (rooting it)', () => {
@@ -274,6 +278,8 @@ describe('NotesStore', () => {
 
 		expect(notesStore.notes.get('note-x')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('note-x')?.folderId).toBeNull(); // Ejected to root
+		expect(folderStore.selectedFolderID).toBeNull();
+		expect(notesStore.selectedNoteID).toBe('note-x');
 	});
 
 	it('should root the note if parent folder metadata is missing during recovery', () => {
@@ -288,6 +294,8 @@ describe('NotesStore', () => {
 
 		expect(notesStore.notes.get('orphan')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('orphan')?.folderId).toBeNull();
+		expect(folderStore.selectedFolderID).toBeNull();
+		expect(notesStore.selectedNoteID).toBe('orphan');
 	});
 
 	it('should only recover notes in a folder that match the target batch epoch', () => {
@@ -359,6 +367,8 @@ describe('NotesStore', () => {
 			expect(noteService.getNoteCountForFolder('deleted-notes')).toBe(0);
 			expect(noteService.getNoteCountForFolder('special-folder')).toBe(1);
 			expect(notesStore.notes.get('orig')?.deletedAt).toBeNull();
+			expect(folderStore.selectedFolderID).toBe('special-folder');
+			expect(notesStore.selectedNoteID).toBe('orig');
 		});
 
 		it('should use "root" key for notes with null folderId', () => {

@@ -3,41 +3,29 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { folderStore } from '$lib/stores/folders.svelte';
-	import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
-	import { folderService, noteService, trashService } from '$lib/stores/services';
-	import { groupNotesByDate } from '$lib/utils';
+	import type { NoteItem } from '$lib/stores/notes.svelte';
+	import { noteService, trashService } from '$lib/stores/services';
+	import { noteListSelector } from '$lib/stores/selectors';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
 	import { uiStore } from '$lib/stores/dialog.svelte';
 
 	let searchQuery = $state('');
-
-	const filteredNotes = $derived(
-		noteService
-			.getNotesForFolder(
-				folderStore.selectedFolderID ?? null,
-				folderStore.getSelectedFolder()?.type
-			)
-			.filter(
-				(n) =>
-					n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-					n.content.toLowerCase().includes(searchQuery.toLowerCase())
-			)
-	);
+	const selectedFolderTitle = $derived(noteListSelector.getSelectedFolderTitle());
+	const filteredNotes = $derived(noteListSelector.getFilteredNotes(searchQuery));
+	const canCreateNote = $derived(noteListSelector.canCreateNote());
+	const canDeleteSelectedNote = $derived(noteListSelector.canDeleteSelectedNote());
+	const selectedNoteDeleteContext = $derived(noteListSelector.getSelectedNoteDeleteContext());
 
 	function getTime(dateStr: string) {
 		return new Date(dateStr).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 	}
 
-	// Grouping logic
-	const sections = $derived(() => {
-		return groupNotesByDate(filteredNotes);
-	});
+	const sections = $derived(noteListSelector.getSections(searchQuery));
 
 	function handleNoteRestore(note: NoteItem) {
-		const isHierarchical = !!(note.folderId && folderService.findTopDeletedAncestor(note.folderId));
+		const { isHierarchical } = noteListSelector.getRestoreContext(note);
 		uiStore.confirmNoteRestore(note.title, isHierarchical, () => {
 			trashService.recoverNote(note.id);
 		});
@@ -55,26 +43,26 @@
 	<header class="flex h-[52px] shrink-0 items-center justify-between gap-2 px-6">
 		<div class="flex min-w-0 items-center gap-2 overflow-hidden">
 			<h2 class="truncate text-xs font-bold tracking-wider text-muted-foreground/60 uppercase">
-				{folderStore.getSelectedFolder()?.title ?? 'Notes'}
+				{selectedFolderTitle}
 			</h2>
 		</div>
 		<div class="flex shrink-0 items-center gap-1">
-			{#if folderStore.selectedFolderID !== 'deleted-notes'}
+			{#if canCreateNote}
 				<button
 					class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
-					onclick={() => noteService.create(folderStore.getSelectedFolder()?.id ?? null)}
+					onclick={() => noteService.create(noteListSelector.getCreateNoteFolderId())}
 					title="New Note"
 				>
 					<SquarePen size={16} />
 				</button>
 			{/if}
-			{#if notesStore.selectedNote && notesStore.selectedNote.deletedAt == null}
+			{#if canDeleteSelectedNote}
 				<button
 					class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
 					title="Trash"
 					onclick={() =>
-						uiStore.confirmNoteDelete(notesStore.selectedNote!.title, () =>
-							noteService.delete(notesStore.selectedNoteID!)
+						uiStore.confirmNoteDelete(selectedNoteDeleteContext!.title, () =>
+							noteService.delete(selectedNoteDeleteContext!.id)
 						)}
 				>
 					<Trash2 size={16} />
@@ -97,7 +85,7 @@
 			</div>
 		</div>
 		<div class="custom-scrollbar flex-1 overflow-y-auto px-4 pb-8">
-			{#each sections() as [label, notes]}
+			{#each sections as [label, notes]}
 				<Item.Group>
 					<Item.Header class="mt-6 px-3">
 						<span
@@ -107,7 +95,7 @@
 						</span>
 					</Item.Header>
 					{#each notes as note, i (note.id)}
-						{@const isSelected = notesStore.selectedNoteID === note.id}
+						{@const isSelected = noteListSelector.isSelectedNote(note.id)}
 						<ContextMenu.Root>
 							<ContextMenu.Trigger>
 								<Item.Root
