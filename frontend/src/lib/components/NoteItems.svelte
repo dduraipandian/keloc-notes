@@ -15,8 +15,8 @@
 	let searchQuery = $state('');
 
 	const filteredNotes = $derived(
-		notesStore
-			.getNotesForFolder(folderStore.selectedFolderID ?? null)
+		noteService
+			.getNotesForFolder(folderStore.selectedFolderID ?? null, folderStore.getSelectedFolder()?.type)
 			.filter(
 				(n) =>
 					n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

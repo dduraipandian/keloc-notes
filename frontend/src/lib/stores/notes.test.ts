@@ -78,7 +78,7 @@ describe('NotesStore', () => {
 		addNoteToStore(n1);
 		addNoteToStore(n2);
 
-		const notes = notesStore.getNotesForFolder('f1');
+		const notes = noteService.getNotesForFolder('f1');
 		expect(notes.length).toBe(2);
 		expect(notes[0].id).toBe('2'); // Newest first
 		expect(notes[1].id).toBe('1');
@@ -91,8 +91,8 @@ describe('NotesStore', () => {
 			folderId: 'some-folder'
 		});
 
-		expect(notesStore.getNoteCountForFolder(null)).toBe(1);
-		expect(notesStore.getNotesForFolder(null).length).toBe(1);
+		expect(noteService.getNoteCountForFolder(null)).toBe(1);
+		expect(noteService.getNotesForFolder(null).length).toBe(1);
 	});
 
 	it('should update a note and refresh its updatedAt timestamp', () => {
@@ -129,8 +129,8 @@ describe('NotesStore', () => {
 		// Selection cleared
 		expect(notesStore.selectedNoteID).toBeNull();
 		// Index updated semantically
-		expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
-		expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(1);
+		expect(noteService.getNoteCountForFolder('f1')).toBe(0);
+		expect(noteService.getNoteCountForFolder('deleted-notes')).toBe(1);
 		// Persistence called with properties
 		expect(idbr.putNote).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: stamp }));
 		// Cleared selection must be persisted
@@ -196,7 +196,7 @@ describe('NotesStore', () => {
 		});
 
 		// Selecting parent A should find notes from child B
-		const notes = notesStore.getNotesForFolder('A');
+		const notes = noteService.getNotesForFolder('A');
 		expect(notes).toContainEqual(expect.objectContaining({ id: 'note-x' }));
 	});
 
@@ -303,22 +303,22 @@ describe('NotesStore', () => {
 			(notesStore as any).isInitialized = true;
 			addNoteToStore({ id: noteID, folderId: 'f1' });
 
-			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
-			expect(notesStore.getNoteCountForFolder('f2')).toBe(0);
+			expect(noteService.getNoteCountForFolder('f1')).toBe(1);
+			expect(noteService.getNoteCountForFolder('f2')).toBe(0);
 
 			notesStore.updateNote(noteID, { folderId: 'f2' });
 
-			expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
-			expect(notesStore.getNoteCountForFolder('f2')).toBe(1);
+			expect(noteService.getNoteCountForFolder('f1')).toBe(0);
+			expect(noteService.getNoteCountForFolder('f2')).toBe(1);
 		});
 
 		it('should hide soft deleted notes entirely without breaking structural index', () => {
 			addNoteToStore({ id: 'del-me', folderId: 'f1' });
-			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
+			expect(noteService.getNoteCountForFolder('f1')).toBe(1);
 
 			notesStore.deleteNote('del-me');
 
-			expect(notesStore.getNoteCountForFolder('f1')).toBe(0);
+			expect(noteService.getNoteCountForFolder('f1')).toBe(0);
 		});
 
 		it('should redirect createNote to default folder if trash is selected', () => {
@@ -334,8 +334,8 @@ describe('NotesStore', () => {
 
 			const note = notesStore.notes.get('test-uuid');
 			expect(note?.folderId).toBe('default-folder');
-			expect(notesStore.getNoteCountForFolder('default-folder')).toBe(1);
-			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(0);
+			expect(noteService.getNoteCountForFolder('default-folder')).toBe(1);
+			expect(noteService.getNoteCountForFolder('deleted-notes')).toBe(0);
 		});
 
 		it('should recover a note back to its original specific folder logically', () => {
@@ -347,15 +347,15 @@ describe('NotesStore', () => {
 
 			trashService.recoverNote('orig');
 
-			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(0);
-			expect(notesStore.getNoteCountForFolder('special-folder')).toBe(1);
+			expect(noteService.getNoteCountForFolder('deleted-notes')).toBe(0);
+			expect(noteService.getNoteCountForFolder('special-folder')).toBe(1);
 			expect(notesStore.notes.get('orig')?.deletedAt).toBeNull();
 		});
 
 		it('should use "root" key for notes with null folderId', () => {
 			addNoteToStore({ id: 'orphan', folderId: null });
 
-			expect(notesStore.getNoteCountForFolder(null)).toBe(1);
+			expect(noteService.getNoteCountForFolder(null)).toBe(1);
 		});
 	});
 
@@ -370,8 +370,8 @@ describe('NotesStore', () => {
 
 			await notesStore.init();
 
-			expect(notesStore.getNoteCountForFolder('f1')).toBe(1);
-			expect(notesStore.getNoteCountForFolder('deleted-notes')).toBe(1);
+			expect(noteService.getNoteCountForFolder('f1')).toBe(1);
+			expect(noteService.getNoteCountForFolder('deleted-notes')).toBe(1);
 		});
 
 		it('should save notes on createNote', async () => {

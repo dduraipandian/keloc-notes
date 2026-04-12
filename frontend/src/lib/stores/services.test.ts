@@ -16,6 +16,41 @@ describe('FolderService', () => {
 		expect(folders.createFolder).toHaveBeenCalled();
 	});
 
+	it('should delegate folder selection', () => {
+		const folders = { selectFolder: vi.fn() };
+
+		new FolderService(folders as any).select('folder-1');
+
+		expect(folders.selectFolder).toHaveBeenCalledWith('folder-1');
+	});
+
+	it('should delegate rename start and cancel', () => {
+		const folders = { startRename: vi.fn(), cancelRename: vi.fn() };
+		const service = new FolderService(folders as any);
+
+		service.startRename('folder-1');
+		service.cancelRename();
+
+		expect(folders.startRename).toHaveBeenCalledWith('folder-1');
+		expect(folders.cancelRename).toHaveBeenCalled();
+	});
+
+	it('should delegate folder rename', () => {
+		const folders = { renameFolder: vi.fn() };
+
+		new FolderService(folders as any).rename('folder-1', 'Renamed');
+
+		expect(folders.renameFolder).toHaveBeenCalledWith('folder-1', 'Renamed');
+	});
+
+	it('should delegate folder toggle', () => {
+		const folders = { openFolder: vi.fn() };
+
+		new FolderService(folders as any).toggle('folder-1');
+
+		expect(folders.openFolder).toHaveBeenCalledWith('folder-1');
+	});
+
 	it('should delegate folder deletion', () => {
 		const folders = {
 			findItemById: vi.fn().mockImplementation((id: string) =>
@@ -87,6 +122,71 @@ describe('NoteService', () => {
 
 		expect(notes.deleteNote).toHaveBeenCalledWith('note-1', 123);
 	});
+
+	it('should return notes for a folder sorted by updatedAt descending', () => {
+		const folders = { findItemById: vi.fn().mockReturnValue(null) };
+		const notes = {
+			listNotes: vi.fn().mockReturnValue([
+				{ id: '1', folderId: 'f1', updatedAt: '2020-01-01T00:00:00Z', deletedAt: null },
+				{ id: '2', folderId: 'f1', updatedAt: '2025-01-01T00:00:00Z', deletedAt: null }
+			])
+		};
+
+		const result = new NoteService(folders as any, notes as any).getNotesForFolder('f1');
+
+		expect(result.map((note: any) => note.id)).toEqual(['2', '1']);
+	});
+
+	it('should return deleted notes for trash folder', () => {
+		const folders = {};
+		const notes = {
+			listNotes: vi.fn().mockReturnValue([
+				{ id: '1', folderId: 'f1', deletedAt: 123, updatedAt: '2025-01-01T00:00:00Z' },
+				{ id: '2', folderId: 'f1', deletedAt: null, updatedAt: '2024-01-01T00:00:00Z' }
+			])
+		};
+
+		const result = new NoteService(folders as any, notes as any).getNotesForFolder('deleted-notes');
+
+		expect(result.map((note: any) => note.id)).toEqual(['1']);
+	});
+
+	it('should count notes using the folder-aware query rules', () => {
+		const folders = { findItemById: vi.fn().mockReturnValue(null) };
+		const notes = {
+			listNotes: vi.fn().mockReturnValue([
+				{ id: '1', folderId: 'f1', deletedAt: null, updatedAt: '2025-01-01T00:00:00Z' },
+				{ id: '2', folderId: 'f1', deletedAt: null, updatedAt: '2024-01-01T00:00:00Z' },
+				{ id: '3', folderId: 'f2', deletedAt: null, updatedAt: '2023-01-01T00:00:00Z' }
+			])
+		};
+
+		const count = new NoteService(folders as any, notes as any).getNoteCountForFolder('f1');
+
+		expect(count).toBe(2);
+	});
+
+	it('should include deleted subtree notes when viewing a deleted folder', () => {
+		const deletedFolder = { id: 'A', deletedAt: 123, items: ['B'] };
+		const childFolder = { id: 'B', deletedAt: 123, items: [] };
+		const folders = {
+			findItemById: vi.fn().mockImplementation((id: string) => {
+				if (id === 'A') return deletedFolder;
+				if (id === 'B') return childFolder;
+				return null;
+			})
+		};
+		const notes = {
+			listNotes: vi.fn().mockReturnValue([
+				{ id: 'note-x', folderId: 'B', deletedAt: 123, updatedAt: '2025-01-01T00:00:00Z' },
+				{ id: 'note-y', folderId: 'B', deletedAt: 999, updatedAt: '2024-01-01T00:00:00Z' }
+			])
+		};
+
+		const result = new NoteService(folders as any, notes as any).getNotesForFolder('A');
+
+		expect(result.map((note: any) => note.id)).toEqual(['note-x']);
+	});
 });
 
 describe('TrashService', () => {
@@ -127,6 +227,36 @@ describe('TrashService', () => {
 		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', undefined);
 	});
 
+	it('should root the note when its parent folder is deleted but hierarchy is not restored', () => {
+		const folders = {
+			findItemById: vi.fn().mockReturnValue({ id: 'folder-a', deletedAt: 123, items: [] }),
+			findTopDeletedAncestor: vi.fn().mockReturnValue(null)
+		};
+		const notes = {
+			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'folder-a' }),
+			restoreNote: vi.fn()
+		};
+
+		new TrashService(folders as any, notes as any).recoverNote('note-1');
+
+		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', null);
+	});
+
+	it('should root the note when its parent folder metadata is missing', () => {
+		const folders = {
+			findItemById: vi.fn().mockReturnValue(null),
+			findTopDeletedAncestor: vi.fn().mockReturnValue(null)
+		};
+		const notes = {
+			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'missing-folder' }),
+			restoreNote: vi.fn()
+		};
+
+		new TrashService(folders as any, notes as any).recoverNote('note-1');
+
+		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', null);
+	});
+
 	it('should delegate folder recovery', () => {
 		const folders = {
 			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', deletedAt: 123, items: [] }),
@@ -140,6 +270,22 @@ describe('TrashService', () => {
 
 		expect(folders.restoreFolder).toHaveBeenCalledWith('folder-1', 123);
 		expect(notes.restoreNotesInFolder).toHaveBeenCalledWith('folder-1', 123);
+	});
+
+	it('should repair the folder path when recovering a top-level deleted folder', () => {
+		const folder = { id: 'folder-1', deletedAt: 123, parentId: 'missing-parent', items: [] };
+		const folders = {
+			findItemById: vi.fn().mockImplementation((id: string) => (id === 'folder-1' ? folder : null)),
+			restoreFolder: vi.fn(),
+			rootFolderIfParentMissing: vi.fn(),
+			restoreParentPath: vi.fn()
+		};
+		const notes = { restoreNotesInFolder: vi.fn() };
+
+		new TrashService(folders as any, notes as any).recoverFolder('folder-1');
+
+		expect(folders.rootFolderIfParentMissing).toHaveBeenCalledWith('folder-1');
+		expect(folders.restoreParentPath).toHaveBeenCalledWith('missing-parent');
 	});
 
 	it('should delegate permanent folder deletion', async () => {

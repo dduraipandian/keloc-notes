@@ -5,7 +5,7 @@ import {
 	putNote,
 	putSetting
 } from './idbr';
-import { folderStore, type FolderType, type FolderID } from './folders.svelte';
+import type { FolderID } from './folders.svelte';
 
 export type NoteID = string;
 
@@ -83,65 +83,6 @@ class NotesStore {
 
 	getNote(id: NoteID): NoteItem | null {
 		return this.notes.get(id) || null;
-	}
-
-	getNotesForFolder(folderId: string | null, folderType?: FolderType): NoteItem[] {
-		let resultNotes: NoteItem[] = [];
-		const allNotes = Array.from(this.notes.values());
-
-		if (folderType === 'all') {
-			resultNotes = allNotes.filter((n) => n.deletedAt == null);
-		} else if (folderId === 'deleted-notes') {
-			resultNotes = allNotes.filter((n) => n.deletedAt != null);
-		} else {
-			const currentFolder = folderStore.findItemById(folderId || '');
-			if (currentFolder && currentFolder.deletedAt != null) {
-				// Aggregate all deleted notes from this folder and its subfolders
-				const subtreeIds = this.getFolderSubtreeIds(folderId!);
-				resultNotes = allNotes.filter(
-					(n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt === currentFolder.deletedAt
-				);
-			} else {
-				const fid = folderId ?? 'root';
-				resultNotes = allNotes.filter((n) => (n.folderId ?? 'root') === fid && n.deletedAt == null);
-			}
-		}
-
-		return resultNotes.sort(
-			(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-		);
-	}
-
-	private getFolderSubtreeIds(rootId: string): Set<string> {
-		const ids = new Set<string>([rootId]);
-		const folder = folderStore.findItemById(rootId);
-		if (folder && folder.items) {
-			folder.items.forEach((childId) => {
-				const childSubtree = this.getFolderSubtreeIds(childId);
-				childSubtree.forEach((id) => ids.add(id));
-			});
-		}
-		return ids;
-	}
-
-	getNoteCountForFolder(folderId: string | null, folderType?: FolderType): number {
-		const allNotes = Array.from(this.notes.values());
-
-		if (folderType === 'all') {
-			return allNotes.filter((n) => n.deletedAt == null).length;
-		} else if (folderId === 'deleted-notes') {
-			return allNotes.filter((n) => n.deletedAt != null).length;
-		}
-
-		const currentFolder = folderStore.findItemById(folderId || '');
-		if (currentFolder && currentFolder.deletedAt != null) {
-			const subtreeIds = this.getFolderSubtreeIds(folderId!);
-			return allNotes.filter((n) => n.folderId && subtreeIds.has(n.folderId) && n.deletedAt != null)
-				.length;
-		}
-
-		const fid = folderId ?? 'root';
-		return allNotes.filter((n) => (n.folderId ?? 'root') === fid && n.deletedAt == null).length;
 	}
 
 	createNote(folderId: FolderID | null) {
@@ -227,6 +168,10 @@ class NotesStore {
 
 	getDeletedNotes(): NoteItem[] {
 		return Array.from(this.notes.values()).filter((n) => n.deletedAt != null);
+	}
+
+	listNotes(): NoteItem[] {
+		return Array.from(this.notes.values());
 	}
 
 	removeNoteLocally(id: string) {

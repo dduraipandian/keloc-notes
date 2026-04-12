@@ -1,4 +1,4 @@
-import { folderStore, type FolderID, type FolderItem } from './folders.svelte';
+import { folderStore, type FolderID, type FolderItem, type FolderType } from './folders.svelte';
 import { notesStore, type NoteID, type NoteItem } from './notes.svelte';
 import {
 	permanentDeleteFolderTransactionally,
@@ -10,6 +10,11 @@ type FolderStoreLike = {
 	findTopDeletedAncestor(folderId: FolderID): FolderItem | null;
 	getDefaultFolderId(): FolderID;
 	createFolder(): void;
+	selectFolder(id: FolderID | null): void;
+	startRename(id: FolderID): void;
+	cancelRename(): void;
+	renameFolder(id: FolderID, newTitle: string): void;
+	openFolder(id: FolderID): void;
 	deleteFolder(id: FolderID, batchTimestamp?: number): void;
 	restoreFolder(id: FolderID, targetBatch?: number): void;
 	restoreParentPath(parentId: FolderID | null | undefined): void;
@@ -27,6 +32,7 @@ type NotesStoreLike = {
 	deleteNote(id: NoteID, batchTimestamp?: number): void;
 	selectNote(id: NoteID | null): void;
 	getNote(id: NoteID): NoteItem | null;
+	listNotes(): NoteItem[];
 	restoreNote(id: NoteID, folderId?: FolderID | null): void;
 	restoreNotesInFolder(folderId: FolderID, targetBatch?: number): void;
 	getNotesToArchive(folderId: FolderID, targetBatch: number): NoteItem[];
@@ -44,6 +50,26 @@ export class FolderService {
 
 	create() {
 		this.folders.createFolder();
+	}
+
+	select(folderId: FolderID | null) {
+		this.folders.selectFolder(folderId);
+	}
+
+	startRename(folderId: FolderID) {
+		this.folders.startRename(folderId);
+	}
+
+	cancelRename() {
+		this.folders.cancelRename();
+	}
+
+	rename(folderId: FolderID, newTitle: string) {
+		this.folders.renameFolder(folderId, newTitle);
+	}
+
+	toggle(folderId: FolderID) {
+		this.folders.openFolder(folderId);
 	}
 
 	delete(folderId: FolderID, batchTimestamp?: number) {
@@ -91,6 +117,54 @@ export class NoteService {
 
 	delete(noteId: NoteID, batchTimestamp?: number) {
 		this.notes.deleteNote(noteId, batchTimestamp);
+	}
+
+	getNotesForFolder(folderId: FolderID | null, folderType?: FolderType) {
+		let resultNotes: NoteItem[] = [];
+		const allNotes = this.notes.listNotes();
+
+		if (folderType === 'all') {
+			resultNotes = allNotes.filter((note) => note.deletedAt == null);
+		} else if (folderId === 'deleted-notes') {
+			resultNotes = allNotes.filter((note) => note.deletedAt != null);
+		} else {
+			const currentFolder = folderId ? this.folders.findItemById(folderId) : null;
+			if (currentFolder && currentFolder.deletedAt != null) {
+				const subtreeIds = this.getFolderSubtreeIds(folderId);
+				resultNotes = allNotes.filter(
+					(note) =>
+						note.folderId != null &&
+						subtreeIds.has(note.folderId) &&
+						note.deletedAt === currentFolder.deletedAt
+				);
+			} else {
+				const normalizedFolderId = folderId ?? 'root';
+				resultNotes = allNotes.filter(
+					(note) => (note.folderId ?? 'root') === normalizedFolderId && note.deletedAt == null
+				);
+			}
+		}
+
+		return resultNotes.sort(
+			(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+		);
+	}
+
+	getNoteCountForFolder(folderId: FolderID | null, folderType?: FolderType) {
+		return this.getNotesForFolder(folderId, folderType).length;
+	}
+
+	private getFolderSubtreeIds(rootId: FolderID) {
+		const ids = new Set<FolderID>([rootId]);
+		const folder = this.folders.findItemById(rootId);
+		if (!folder?.items) return ids;
+
+		for (const childId of folder.items) {
+			const childSubtree = this.getFolderSubtreeIds(childId);
+			childSubtree.forEach((id) => ids.add(id));
+		}
+
+		return ids;
 	}
 }
 

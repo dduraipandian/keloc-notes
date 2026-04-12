@@ -7,9 +7,8 @@
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
-	import { notesStore } from '$lib/stores/notes.svelte';
 	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { folderService, trashService } from '$lib/stores/services';
+	import { folderService, noteService, trashService } from '$lib/stores/services';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
 	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none';
@@ -17,9 +16,9 @@
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
 			console.log('Save: ', item);
-			folderStore.renameFolder(item.id, item.title);
+			folderService.rename(item.id, item.title);
 		} else if (e.key === 'Escape') {
-			folderStore.cancelRename();
+			folderService.cancelRename();
 		}
 	}
 
@@ -94,7 +93,7 @@
 				bind:open={
 					() => item.isOpen ?? false,
 					(v) => {
-						folderStore.openFolder(item.id);
+						folderService.toggle(item.id);
 					}
 				}
 			>
@@ -114,7 +113,7 @@
 										isActive={item.id === folderStore.selectedFolderID}
 										onclick={(e) => {
 											(props as any).onclick?.(e);
-											folderStore.selectFolder(item.id);
+											folderService.select(item.id);
 										}}
 									>
 										<div style="width: {depth * 0.75}rem" class="shrink-0"></div>
@@ -136,7 +135,7 @@
 												class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
 												use:focusAndSelect
 												onkeydown={(e) => handleRenameKeyDown(e, item)}
-												onblur={() => folderStore.renameFolder(item.id, item.title)}
+												onblur={() => folderService.rename(item.id, item.title)}
 												onclick={(e) => e.stopPropagation()}
 											/>
 										{:else}
@@ -149,7 +148,7 @@
 							</Collapsible.Trigger>
 							<Sidebar.MenuBadge
 								class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-								>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
+								>{noteService.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
 							>
 							<Collapsible.Content>
 								<Sidebar.MenuSub class="m-0 border-l-0 p-0">
@@ -210,7 +209,7 @@
 			<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.create()}
 				>New Folder</ContextMenu.Item
 			>
-			<ContextMenu.Item class="text-[13px]" onSelect={() => folderStore.startRename(item.id)}
+			<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.startRename(item.id)}
 				>Rename</ContextMenu.Item
 			>
 			<ContextMenu.Separator />
@@ -234,7 +233,7 @@
 		]}
 		isActive={item.id === folderStore.selectedFolderID}
 		onclick={() => {
-			folderStore.selectFolder(item.id);
+			folderService.select(item.id);
 		}}
 	>
 		{#snippet child({ props })}
@@ -252,7 +251,7 @@
 						class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
 						use:focusAndSelect
 						onkeydown={(e) => handleRenameKeyDown(e, item)}
-						onblur={() => folderStore.renameFolder(item.id, item.title)}
+						onblur={() => folderService.rename(item.id, item.title)}
 						onclick={(e) => e.stopPropagation()}
 					/>
 				{:else}
@@ -262,6 +261,6 @@
 		{/snippet}
 	</Sidebar.MenuButton>
 	<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-		>{notesStore.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
+		>{noteService.getNoteCountForFolder(item.id, item.type)}</Sidebar.MenuBadge
 	>
 {/snippet}
