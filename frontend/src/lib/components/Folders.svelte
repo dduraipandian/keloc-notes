@@ -81,7 +81,7 @@
 {#snippet MenuItemSnippet(item: FolderItem, depth: number, isTrashTree: boolean = false)}
 	{#if item && (isTrashTree || (item.deletedAt == null && item.type !== 'trash'))}
 		{@const isTrashRoot = item.type === 'trash'}
-		{@const childrenIds_raw = isTrashRoot ? folderStore.trashItems : item.items || []}
+		{@const childrenIds_raw = isTrashRoot ? folderService.getTrashRootIds() : item.items || []}
 		{@const childrenIds = isTrashRoot
 			? childrenIds_raw
 			: isTrashTree
@@ -182,9 +182,7 @@
 {#snippet ContextMenuContentSnippet(item: FolderItem, isTrashTree: boolean = false)}
 	<ContextMenu.Content class="w-36">
 		{#if item.deletedAt != null}
-			<ContextMenu.Item
-				class="text-[13px]"
-				onSelect={() => trashService.recoverFolder(item.id)}
+			<ContextMenu.Item class="text-[13px]" onSelect={() => trashService.recoverFolder(item.id)}
 				>Recover Folder</ContextMenu.Item
 			>
 			<ContextMenu.Separator />

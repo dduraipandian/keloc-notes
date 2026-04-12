@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { folderStore, type FolderItem } from './folders.svelte';
 import { notesStore, type NoteItem } from './notes.svelte';
-import { trashService } from './services';
+import { folderService, trashService } from './services';
 import { SvelteMap } from 'svelte/reactivity';
 import { settingsRepository, trashRepository } from './repositories';
 
@@ -75,13 +75,13 @@ describe('Permanent Deletion with Archival', () => {
 			addFolder({ id: 'f1', title: 'Work', parentId: null });
 			addFolder({ id: 'f2', title: 'Projects', parentId: 'f1' });
 
-			const path = folderStore.getFolderPath('f2');
+			const path = folderService.getFolderPath('f2');
 			expect(path).toBe('Work:f1/Projects:f2');
 		});
 
 		it('should return only the segment for root-level folders', () => {
 			addFolder({ id: 'f1', title: 'Work', parentId: null });
-			const path = folderStore.getFolderPath('f1');
+			const path = folderService.getFolderPath('f1');
 			expect(path).toBe('Work:f1');
 		});
 	});

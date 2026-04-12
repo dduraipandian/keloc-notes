@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { notesStore, type NoteItem } from './notes.svelte';
 import { folderStore, type FolderItem } from './folders.svelte';
-import { noteService, trashService } from './services';
+import { folderService, noteService, trashService } from './services';
 import { SvelteMap } from 'svelte/reactivity';
 import { notesRepository, settingsRepository } from './repositories';
 
@@ -232,7 +232,7 @@ describe('NotesStore', () => {
 			deletedAt: epoch
 		};
 		vi.spyOn(folderStore, 'findItemById').mockReturnValue(a);
-		vi.spyOn(folderStore, 'findTopDeletedAncestor').mockReturnValue(a);
+		vi.spyOn(folderService, 'findTopDeletedAncestor').mockReturnValue(a);
 		const recoverSpy = vi.spyOn(trashService, 'recoverFolder');
 
 		// Recover with folder
@@ -267,6 +267,7 @@ describe('NotesStore', () => {
 			deletedAt: epoch
 		};
 		vi.spyOn(folderStore, 'findItemById').mockReturnValue(a);
+		vi.spyOn(trashService as any, 'findTopDeletedAncestor').mockReturnValue(null);
 
 		// Recover note ONLY
 		trashService.recoverNote('note-x');

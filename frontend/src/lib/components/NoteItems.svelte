@@ -34,7 +34,7 @@
 	});
 
 	function handleNoteRestore(note: NoteItem) {
-		const isHierarchical = !!(note.folderId && folderStore.findTopDeletedAncestor(note.folderId));
+		const isHierarchical = !!(note.folderId && folderService.findTopDeletedAncestor(note.folderId));
 		uiStore.confirmNoteRestore(note.title, isHierarchical, () => {
 			trashService.recoverNote(note.id);
 		});

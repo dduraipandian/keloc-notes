@@ -4,14 +4,14 @@
 	import Info from '@lucide/svelte/icons/info';
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { noteService, trashService } from '$lib/stores/services';
+	import { folderService, noteService, trashService } from '$lib/stores/services';
 	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);
 
 	let topDeletedAncestor = $derived.by(() => {
 		if (selectedNote?.folderId) {
-			const top = folderStore.findTopDeletedAncestor(selectedNote.folderId);
+			const top = folderService.findTopDeletedAncestor(selectedNote.folderId);
 			return top;
 		}
 		return null;

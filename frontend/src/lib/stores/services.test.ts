@@ -194,11 +194,12 @@ describe('NoteService', () => {
 describe('TrashService', () => {
 	it('should recover a note with folder hierarchy when the parent chain is deleted', () => {
 		const folders = {
-			findItemById: vi.fn().mockReturnValue({ id: 'folder-a', deletedAt: 123, items: [] }),
-			findTopDeletedAncestor: vi.fn().mockReturnValue({ id: 'folder-a' }),
+			findItemById: vi.fn().mockImplementation((id: string) => {
+				if (id === 'folder-a') return { id: 'folder-a', deletedAt: 123, items: [] };
+				return null;
+			}),
 			restoreFolder: vi.fn(),
-			rootFolderIfParentMissing: vi.fn(),
-			restoreParentPath: vi.fn()
+			rootFolderIfParentMissing: vi.fn()
 		};
 		const notes = {
 			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'folder-a' }),
@@ -208,7 +209,7 @@ describe('TrashService', () => {
 
 		new TrashService(folders as any, notes as any).recoverNote('note-1');
 
-		expect(folders.findTopDeletedAncestor).toHaveBeenCalledWith('folder-a');
+		expect(folders.findItemById).toHaveBeenCalledWith('folder-a');
 		expect(folders.restoreFolder).toHaveBeenCalledWith('folder-a', 123);
 		expect(notes.restoreNotesInFolder).toHaveBeenCalledWith('folder-a', 123);
 		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', undefined);
@@ -216,8 +217,7 @@ describe('TrashService', () => {
 
 	it('should recover only the note when no deleted ancestor exists', () => {
 		const folders = {
-			findItemById: vi.fn().mockReturnValue({ id: 'folder-a', deletedAt: null }),
-			findTopDeletedAncestor: vi.fn().mockReturnValue(null)
+			findItemById: vi.fn().mockReturnValue({ id: 'folder-a', deletedAt: null })
 		};
 		const notes = {
 			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'folder-a' }),
@@ -231,23 +231,28 @@ describe('TrashService', () => {
 
 	it('should root the note when its parent folder is deleted but hierarchy is not restored', () => {
 		const folders = {
-			findItemById: vi.fn().mockReturnValue({ id: 'folder-a', deletedAt: 123, items: [] }),
-			findTopDeletedAncestor: vi.fn().mockReturnValue(null)
+			findItemById: vi.fn().mockImplementation((id: string) => {
+				if (id === 'folder-a') return { id: 'folder-a', deletedAt: 123, parentId: null, items: [] };
+				return null;
+			}),
+			restoreFolder: vi.fn()
 		};
 		const notes = {
 			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'folder-a' }),
 			restoreNote: vi.fn()
 		};
 
-		new TrashService(folders as any, notes as any).recoverNote('note-1');
+		const service = new TrashService(folders as any, notes as any);
+		vi.spyOn(service as any, 'findTopDeletedAncestor').mockReturnValue(null);
+
+		service.recoverNote('note-1');
 
 		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', null);
 	});
 
 	it('should root the note when its parent folder metadata is missing', () => {
 		const folders = {
-			findItemById: vi.fn().mockReturnValue(null),
-			findTopDeletedAncestor: vi.fn().mockReturnValue(null)
+			findItemById: vi.fn().mockReturnValue(null)
 		};
 		const notes = {
 			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'missing-folder' }),
@@ -263,8 +268,7 @@ describe('TrashService', () => {
 		const folders = {
 			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', deletedAt: 123, items: [] }),
 			restoreFolder: vi.fn(),
-			rootFolderIfParentMissing: vi.fn(),
-			restoreParentPath: vi.fn()
+			rootFolderIfParentMissing: vi.fn()
 		};
 		const notes = { restoreNotesInFolder: vi.fn() };
 
@@ -279,22 +283,21 @@ describe('TrashService', () => {
 		const folders = {
 			findItemById: vi.fn().mockImplementation((id: string) => (id === 'folder-1' ? folder : null)),
 			restoreFolder: vi.fn(),
-			rootFolderIfParentMissing: vi.fn(),
-			restoreParentPath: vi.fn()
+			rootFolderIfParentMissing: vi.fn()
 		};
 		const notes = { restoreNotesInFolder: vi.fn() };
 
 		new TrashService(folders as any, notes as any).recoverFolder('folder-1');
 
 		expect(folders.rootFolderIfParentMissing).toHaveBeenCalledWith('folder-1');
-		expect(folders.restoreParentPath).toHaveBeenCalledWith('missing-parent');
 	});
 
 	it('should delegate permanent folder deletion', async () => {
 		const folders = {
-			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', deletedAt: 123 }),
-			collectFolderSubtree: vi.fn().mockReturnValue([{ id: 'folder-1', deletedAt: 123 }]),
-			getFolderPath: vi.fn().mockReturnValue('Folder:folder-1'),
+			findItemById: vi.fn().mockImplementation((id: string) => {
+				if (id === 'folder-1') return { id: 'folder-1', title: 'Folder', deletedAt: 123, items: [] };
+				return null;
+			}),
 			applyPermanentDeleteState: vi.fn(),
 			clearSelectionIfSelected: vi.fn()
 		};
@@ -308,12 +311,19 @@ describe('TrashService', () => {
 		await new TrashService(folders as any, notes as any).permanentlyDeleteFolder('folder-1', 123);
 
 		expect(trashRepository.permanentlyDeleteFolderTree).toHaveBeenCalled();
-		expect(folders.applyPermanentDeleteState).toHaveBeenCalledWith([{ id: 'folder-1', deletedAt: 123 }]);
+		expect(folders.applyPermanentDeleteState).toHaveBeenCalledWith([
+			expect.objectContaining({ id: 'folder-1', deletedAt: 123 })
+		]);
 		expect(folders.clearSelectionIfSelected).toHaveBeenCalledWith('folder-1');
 	});
 
 	it('should delegate permanent note deletion', async () => {
-		const folders = { getFolderPath: vi.fn().mockReturnValue('Work:f1') };
+		const folders = {
+			findItemById: vi.fn().mockImplementation((id: string) => {
+				if (id === 'f1') return { id: 'f1', title: 'Work', parentId: null, items: [] };
+				return null;
+			})
+		};
 		const notes = {
 			getNote: vi.fn().mockReturnValue({ id: 'note-1', title: 'Note 1', folderId: 'f1' }),
 			removeNoteLocally: vi.fn(),
@@ -334,9 +344,11 @@ describe('TrashService', () => {
 
 	it('should delegate empty trash', async () => {
 		const folders = {
+			findItemById: vi.fn().mockImplementation((id: string) => {
+				if (id === 'folder-1') return { id: 'folder-1', title: 'Folder', deletedAt: 123, items: [] };
+				return null;
+			}),
 			trashItems: ['folder-1'],
-			collectFolderSubtree: vi.fn().mockReturnValue([{ id: 'folder-1', deletedAt: 123 }]),
-			getFolderPath: vi.fn().mockReturnValue('Folder:folder-1'),
 			applyPermanentDeleteState: vi.fn(),
 			clearSelectionIfSelected: vi.fn()
 		};
