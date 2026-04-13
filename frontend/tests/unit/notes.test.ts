@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { notesStore, type NoteItem } from './notes.svelte';
-import { folderStore, type FolderItem } from './folders.svelte';
-import { folderService, noteService, trashService } from './services';
-import { selectionStore } from './selection.svelte';
+import { notesStore, type NoteItem } from '../../src/lib/stores/notes.svelte';
+import { folderStore, type FolderItem } from '../../src/lib/stores/folders.svelte';
+import { folderService, noteService, trashService } from '../../src/lib/stores/services';
+import { selectionStore } from '../../src/lib/stores/selection.svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { notesRepository, settingsRepository } from './repositories';
+import { notesRepository, settingsRepository } from '../../src/lib/stores/repositories';
 
 // Mock IDBR module
-vi.mock('./repositories', () => ({
+vi.mock('../../src/lib/stores/repositories', () => ({
 	foldersRepository: {
 		list: vi.fn(),
 		save: vi.fn()
@@ -133,7 +133,9 @@ describe('NotesStore', () => {
 		notesStore.setFavorite('1', true);
 
 		expect(notesStore.notes.get('1')?.isFavorite).toBe(true);
-		expect(notesRepository.save).toHaveBeenCalledWith(expect.objectContaining({ isFavorite: true }));
+		expect(notesRepository.save).toHaveBeenCalledWith(
+			expect.objectContaining({ isFavorite: true })
+		);
 	});
 
 	it('should preserve a note favorite flag across delete and restore', () => {
@@ -163,7 +165,9 @@ describe('NotesStore', () => {
 		expect(noteService.getNoteCountForFolder('f1')).toBe(0);
 		expect(noteService.getNoteCountForFolder('deleted-notes')).toBe(1);
 		// Persistence called with properties
-		expect(notesRepository.save).toHaveBeenCalledWith(expect.objectContaining({ deletedAt: stamp }));
+		expect(notesRepository.save).toHaveBeenCalledWith(
+			expect.objectContaining({ deletedAt: stamp })
+		);
 		// Cleared selection must be persisted
 		expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', null);
 	});
@@ -383,7 +387,10 @@ describe('NotesStore', () => {
 			addNoteToStore(note as any);
 			(notesStore as any).isInitialized = true;
 
-			vi.spyOn(folderStore, 'findItemById').mockReturnValue({ id: 'special-folder', deletedAt: null } as any);
+			vi.spyOn(folderStore, 'findItemById').mockReturnValue({
+				id: 'special-folder',
+				deletedAt: null
+			} as any);
 
 			trashService.recoverNote('orig');
 

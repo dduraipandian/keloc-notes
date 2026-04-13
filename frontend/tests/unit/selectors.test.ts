@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FolderSidebarSelector, NoteListSelector } from './selectors';
+import { FolderSidebarSelector, NoteListSelector } from '../../src/lib/stores/selectors';
 
 describe('NoteListSelector', () => {
 	it('should expose the selected folder title with a fallback', () => {
@@ -106,7 +106,10 @@ describe('FolderSidebarSelector', () => {
 					['deleted-folder', { id: 'deleted-folder', title: 'Deleted', url: '#', deletedAt: 123 }]
 				])
 			} as any,
-			{ getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']), getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
+			{
+				getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']),
+				getFavoriteFolderIds: vi.fn().mockReturnValue([])
+			} as any,
 			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
 			{ selectedFolderID: 'deleted-notes', getSelectedFolder: vi.fn() } as any
 		);
@@ -140,9 +143,9 @@ describe('FolderSidebarSelector', () => {
 			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
 		);
 
-		expect(selector.getSections().find((section) => section.id === 'folders')?.sources[0]?.children).toEqual([
-			expect.objectContaining({ id: 'child-a' })
-		]);
+		expect(
+			selector.getSections().find((section) => section.id === 'folders')?.sources[0]?.children
+		).toEqual([expect.objectContaining({ id: 'child-a' })]);
 	});
 
 	it('should expose note counts for a folder source', () => {
@@ -156,7 +159,9 @@ describe('FolderSidebarSelector', () => {
 			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
 		);
 
-		expect(selector.getSections().find((section) => section.id === 'folders')?.sources[0]?.noteCount).toBe(3);
+		expect(
+			selector.getSections().find((section) => section.id === 'folders')?.sources[0]?.noteCount
+		).toBe(3);
 	});
 
 	it('should expose trash item capabilities through the shared source model', () => {
@@ -168,7 +173,10 @@ describe('FolderSidebarSelector', () => {
 					['deleted-folder', { id: 'deleted-folder', title: 'Deleted', url: '#', deletedAt: 123 }]
 				])
 			} as any,
-			{ getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']), getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
+			{
+				getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']),
+				getFavoriteFolderIds: vi.fn().mockReturnValue([])
+			} as any,
 			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
 			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
 		);
@@ -176,8 +184,7 @@ describe('FolderSidebarSelector', () => {
 		const deletedFolder = selector
 			.getSections()
 			.find((section) => section.id === 'views')
-			?.sources.find((source) => source.id === 'deleted-notes')
-			?.children[0];
+			?.sources.find((source) => source.id === 'deleted-notes')?.children[0];
 
 		expect(deletedFolder?.capabilities).toEqual(
 			expect.objectContaining({
@@ -201,7 +208,10 @@ describe('FolderSidebarSelector', () => {
 					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }]
 				])
 			} as any,
-			{ getTrashRootIds: vi.fn().mockReturnValue([]), getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
+			{
+				getTrashRootIds: vi.fn().mockReturnValue([]),
+				getFavoriteFolderIds: vi.fn().mockReturnValue([])
+			} as any,
 			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
 			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
 		);
@@ -220,12 +230,22 @@ describe('FolderSidebarSelector', () => {
 					['work', { id: 'work', title: 'Work', url: '#', isFavorite: true, deletedAt: null }]
 				])
 			} as any,
-			{ getTrashRootIds: vi.fn().mockReturnValue([]), getFavoriteFolderIds: vi.fn().mockReturnValue(['work']) } as any,
-			{ getNoteCountForFolder: vi.fn().mockImplementation((id: string) => (id === 'favorites' ? 2 : 1)) } as any,
+			{
+				getTrashRootIds: vi.fn().mockReturnValue([]),
+				getFavoriteFolderIds: vi.fn().mockReturnValue(['work'])
+			} as any,
+			{
+				getNoteCountForFolder: vi
+					.fn()
+					.mockImplementation((id: string) => (id === 'favorites' ? 2 : 1))
+			} as any,
 			{ selectedFolderID: 'favorites', getSelectedFolder: vi.fn() } as any
 		);
 
-		const favorites = selector.getSections().find((section) => section.id === 'views')?.sources.find((source) => source.id === 'favorites');
+		const favorites = selector
+			.getSections()
+			.find((section) => section.id === 'views')
+			?.sources.find((source) => source.id === 'favorites');
 
 		expect(favorites).toEqual(
 			expect.objectContaining({
@@ -245,12 +265,18 @@ describe('FolderSidebarSelector', () => {
 					['work', { id: 'work', title: 'Work', url: '#', isFavorite: true, deletedAt: 123 }]
 				])
 			} as any,
-			{ getTrashRootIds: vi.fn().mockReturnValue([]), getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
+			{
+				getTrashRootIds: vi.fn().mockReturnValue([]),
+				getFavoriteFolderIds: vi.fn().mockReturnValue([])
+			} as any,
 			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
 			{ selectedFolderID: 'favorites', getSelectedFolder: vi.fn() } as any
 		);
 
-		const favorites = selector.getSections().find((section) => section.id === 'views')?.sources.find((source) => source.id === 'favorites');
+		const favorites = selector
+			.getSections()
+			.find((section) => section.id === 'views')
+			?.sources.find((source) => source.id === 'favorites');
 
 		expect(favorites?.children).toEqual([]);
 	});

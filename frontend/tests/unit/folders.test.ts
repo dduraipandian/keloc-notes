@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { folderStore, type FolderItem } from './folders.svelte';
-import { notesStore } from './notes.svelte';
-import { folderService, trashService } from './services';
-import { selectionStore } from './selection.svelte';
+import { folderStore, type FolderItem } from '../../src/lib/stores/folders.svelte';
+import { notesStore } from '../../src/lib/stores/notes.svelte';
+import { folderService, trashService } from '../../src/lib/stores/services';
+import { selectionStore } from '../../src/lib/stores/selection.svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { foldersRepository } from './repositories';
+import { foldersRepository } from '../../src/lib/stores/repositories';
 
 // Mock crypto.randomUUID
 global.crypto.randomUUID = vi.fn(() => 'test-uuid' as any);
 
 // Mock IDBR module
-vi.mock('./repositories', () => ({
+vi.mock('../../src/lib/stores/repositories', () => ({
 	foldersRepository: {
 		list: vi.fn(),
 		save: vi.fn()
@@ -67,12 +67,20 @@ describe('FolderStore', () => {
 		folderStore.setFavorite('f1', true);
 
 		expect(folderStore.folders.get('f1')?.isFavorite).toBe(true);
-		expect(foldersRepository.save).toHaveBeenCalledWith(expect.objectContaining({ isFavorite: true }));
+		expect(foldersRepository.save).toHaveBeenCalledWith(
+			expect.objectContaining({ isFavorite: true })
+		);
 	});
 
 	it('should preserve a folder favorite flag across delete and restore', () => {
 		(folderStore as any).isInitialized = true;
-		const folder: FolderItem = { id: 'f1', title: 'Folder', url: '#', isFavorite: true, deletedAt: null };
+		const folder: FolderItem = {
+			id: 'f1',
+			title: 'Folder',
+			url: '#',
+			isFavorite: true,
+			deletedAt: null
+		};
 		folderStore.folders.set('f1', folder);
 
 		folderStore.deleteFolder('f1', 123);
@@ -187,9 +195,15 @@ describe('FolderStore', () => {
 
 	it('should root the folder if its parent metadata is missing during recovery', () => {
 		(folderStore as any).isInitialized = true;
-		const folder: FolderItem = { id: 'f1', title: 'F1', url: '#', parentId: 'missing-parent', deletedAt: 123 };
+		const folder: FolderItem = {
+			id: 'f1',
+			title: 'F1',
+			url: '#',
+			parentId: 'missing-parent',
+			deletedAt: 123
+		};
 		folderStore.folders.set('f1', folder);
-		
+
 		// Mock has to return false for missing-parent
 		const hasSpy = vi.spyOn((folderStore as any).folders, 'has').mockImplementation((id) => {
 			if (id === 'missing-parent') return false;
@@ -207,7 +221,7 @@ describe('FolderStore', () => {
 		const epoch = 123;
 		const folder: FolderItem = { id: 'f1', title: 'F1', url: '#', deletedAt: epoch };
 		folderStore.folders.set('f1', folder);
-		
+
 		const recoverNotesSpy = vi.spyOn(notesStore, 'restoreNotesInFolder');
 
 		trashService.recoverFolder('f1');
@@ -397,9 +411,23 @@ describe('FolderStore', () => {
 			const epoch = 555;
 			// A (Active) -> B (Deleted) -> C (Deleted)
 			const c: FolderItem = { id: 'C', title: 'C', url: '#', parentId: 'B', deletedAt: epoch };
-			const b: FolderItem = { id: 'B', title: 'B', url: '#', parentId: 'A', items: ['C'], deletedAt: epoch };
-			const a: FolderItem = { id: 'A', title: 'A', url: '#', parentId: null, items: ['B'], deletedAt: null };
-			
+			const b: FolderItem = {
+				id: 'B',
+				title: 'B',
+				url: '#',
+				parentId: 'A',
+				items: ['C'],
+				deletedAt: epoch
+			};
+			const a: FolderItem = {
+				id: 'A',
+				title: 'A',
+				url: '#',
+				parentId: null,
+				items: ['B'],
+				deletedAt: null
+			};
+
 			folderStore.folders.set('A', a);
 			folderStore.folders.set('B', b);
 			folderStore.folders.set('C', c);
@@ -415,9 +443,23 @@ describe('FolderStore', () => {
 			const epoch = 555;
 			// A (Active) -> B (Deleted) -> C (Deleted)
 			const c: FolderItem = { id: 'C', title: 'C', url: '#', parentId: 'B', deletedAt: epoch };
-			const b: FolderItem = { id: 'B', title: 'B', url: '#', parentId: 'A', items: ['C'], deletedAt: epoch };
-			const a: FolderItem = { id: 'A', title: 'A', url: '#', parentId: null, items: ['B'], deletedAt: null };
-			
+			const b: FolderItem = {
+				id: 'B',
+				title: 'B',
+				url: '#',
+				parentId: 'A',
+				items: ['C'],
+				deletedAt: epoch
+			};
+			const a: FolderItem = {
+				id: 'A',
+				title: 'A',
+				url: '#',
+				parentId: null,
+				items: ['B'],
+				deletedAt: null
+			};
+
 			folderStore.folders.set('A', a);
 			folderStore.folders.set('B', b);
 			folderStore.folders.set('C', c);
@@ -431,8 +473,15 @@ describe('FolderStore', () => {
 			const epoch = 555;
 			// L1 (Deleted) -> L2 (Deleted)
 			const l2: FolderItem = { id: 'L2', title: 'L2', url: '#', parentId: 'L1', deletedAt: epoch };
-			const l1: FolderItem = { id: 'L1', title: 'L1', url: '#', parentId: null, items: ['L2'], deletedAt: epoch };
-			
+			const l1: FolderItem = {
+				id: 'L1',
+				title: 'L1',
+				url: '#',
+				parentId: null,
+				items: ['L2'],
+				deletedAt: epoch
+			};
+
 			folderStore.folders.set('L1', l1);
 			folderStore.folders.set('L2', l2);
 			folderStore.items = ['L1'];

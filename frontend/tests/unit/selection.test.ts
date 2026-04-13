@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { selectionStore } from './selection.svelte';
-import { folderStore, type FolderItem } from './folders.svelte';
-import { settingsRepository } from './repositories';
+import { selectionStore } from '../../src/lib/stores/selection.svelte';
+import { folderStore, type FolderItem } from '../../src/lib/stores/folders.svelte';
+import { settingsRepository } from '../../src/lib/stores/repositories';
 import { SvelteMap } from 'svelte/reactivity';
 
-vi.mock('./repositories', () => ({
+vi.mock('../../src/lib/stores/repositories', () => ({
 	foldersRepository: {
 		list: vi.fn(),
 		save: vi.fn()
@@ -41,7 +41,9 @@ describe('SelectionStore', () => {
 	});
 
 	it('should clear a stale persisted selection', async () => {
-		vi.mocked(settingsRepository.getAll).mockResolvedValue({ selectedFolderID: 'missing-folder' } as any);
+		vi.mocked(settingsRepository.getAll).mockResolvedValue({
+			selectedFolderID: 'missing-folder'
+		} as any);
 
 		await selectionStore.init();
 
