@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { selectionStore } from './selection.svelte';
-import { folderStore, type FolderItem } from './folders.svelte';
-import { settingsRepository } from './repositories';
+import { selectionStore } from '$lib/stores/selection.svelte';
+import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
+import { settingsRepository } from '$lib/stores/repositories';
 import { SvelteMap } from 'svelte/reactivity';
+import { PROTECTED_NOTES_FOLDER_ID } from '$lib/stores/sources/constants';
 
-vi.mock('./repositories', () => ({
+vi.mock('$lib/stores/repositories', () => ({
 	foldersRepository: {
 		list: vi.fn(),
 		save: vi.fn()
@@ -40,13 +41,16 @@ describe('SelectionStore', () => {
 		expect(selectionStore.selectedFolderID).toBe('folder-1');
 	});
 
-	it('should clear a stale persisted selection', async () => {
+	it('should fall back to notes when a persisted selection is stale', async () => {
 		vi.mocked(settingsRepository.getAll).mockResolvedValue({ selectedFolderID: 'missing-folder' } as any);
 
 		await selectionStore.init();
 
-		expect(selectionStore.selectedFolderID).toBeNull();
-		expect(settingsRepository.save).toHaveBeenCalledWith('selectedFolderID', null);
+		expect(selectionStore.selectedFolderID).toBe(PROTECTED_NOTES_FOLDER_ID);
+		expect(settingsRepository.save).toHaveBeenCalledWith(
+			'selectedFolderID',
+			PROTECTED_NOTES_FOLDER_ID
+		);
 	});
 
 	it('should persist folder selection changes', async () => {
@@ -61,7 +65,7 @@ describe('SelectionStore', () => {
 		expect(settingsRepository.save).toHaveBeenCalledWith('selectedFolderID', 'folder-1');
 	});
 
-	it('should clear selection when the selected folder is removed', async () => {
+	it('should fall back to notes when the selected folder is removed', async () => {
 		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder', url: '#' });
 		vi.mocked(settingsRepository.getAll).mockResolvedValue({} as any);
 		await selectionStore.init();
@@ -70,7 +74,10 @@ describe('SelectionStore', () => {
 
 		selectionStore.clearFolderIfSelected('folder-1');
 
-		expect(selectionStore.selectedFolderID).toBeNull();
-		expect(settingsRepository.save).toHaveBeenCalledWith('selectedFolderID', null);
+		expect(selectionStore.selectedFolderID).toBe(PROTECTED_NOTES_FOLDER_ID);
+		expect(settingsRepository.save).toHaveBeenCalledWith(
+			'selectedFolderID',
+			PROTECTED_NOTES_FOLDER_ID
+		);
 	});
 });

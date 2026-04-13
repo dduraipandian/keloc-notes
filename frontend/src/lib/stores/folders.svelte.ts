@@ -17,6 +17,7 @@ export type FolderItem = {
 
 import { SvelteMap } from 'svelte/reactivity';
 import { foldersRepository } from './repositories';
+import { PROTECTED_NOTES_FOLDER_ID } from './sources/constants';
 
 class FolderStore {
 	items = $state<string[]>([]);
@@ -42,18 +43,20 @@ class FolderStore {
 		this.items = i;
 		this.folders.clear();
 		this.loadItems(initialItems);
+		this.ensureNotesFolder();
 	}
 
 	loadItems(initialItems: any[] = []) {
 		initialItems.forEach((item) => {
-			if (item.id) {
-				if (item.deletedAt === undefined) item.deletedAt = null;
-				if (item.isFavorite === undefined) item.isFavorite = false;
-				let i = $state(item);
-				this.folders.set(item.id, i);
-				if (!item.parentId) {
-					this.items.push(item.id);
-				}
+			if (!item?.id) return;
+
+			if (item.deletedAt === undefined) item.deletedAt = null;
+			if (item.isFavorite === undefined) item.isFavorite = false;
+
+			let i = $state(item);
+			this.folders.set(item.id, i);
+			if (!item.parentId && !this.items.includes(item.id)) {
+				this.items.push(item.id);
 			}
 		});
 		console.log('loaded items:', this.items);
@@ -67,11 +70,52 @@ class FolderStore {
 			if (allFolders && allFolders.length > 0) {
 				this.loadItems(allFolders);
 			}
+			this.ensureNotesFolder();
 			this.isInitialized = true;
 		} catch (error) {
 			console.error('Failed to load folders from storage:', error);
 			throw error;
 		}
+	}
+
+	private ensureNotesFolder() {
+		const existing = this.folders.get(PROTECTED_NOTES_FOLDER_ID);
+		if (existing) {
+			let didChange = false;
+			if (existing.type !== 'regular') {
+				existing.type = 'regular';
+				didChange = true;
+			}
+			if (existing.deletedAt != null) {
+				existing.deletedAt = null;
+				didChange = true;
+			}
+			this.folders.set(existing.id, existing);
+			if (!this.items.includes(existing.id)) {
+				this.items.unshift(existing.id);
+				didChange = true;
+			}
+			if (didChange) {
+				this.persist(existing.id);
+			}
+			return existing.id;
+		}
+
+		const folder: FolderItem = {
+			id: PROTECTED_NOTES_FOLDER_ID,
+			title: 'Notes',
+			url: '#',
+			type: 'regular',
+			isFavorite: false,
+			items: [],
+			parentId: null,
+			deletedAt: null
+		};
+		let f = $state(folder);
+		this.folders.set(PROTECTED_NOTES_FOLDER_ID, f);
+		this.items.unshift(PROTECTED_NOTES_FOLDER_ID);
+		this.persist(PROTECTED_NOTES_FOLDER_ID);
+		return PROTECTED_NOTES_FOLDER_ID;
 	}
 
 	persist(id: string) {
@@ -225,35 +269,7 @@ class FolderStore {
 	}
 
 	getDefaultFolderId(): string {
-		const findRegular = (ids: string[]): string | null => {
-			for (const id of ids) {
-				const folder = this.folders.get(id);
-				if (!folder) continue;
-				if (!folder.type || folder.type === 'regular') return folder.id;
-				if (folder.items) {
-					const found = findRegular(folder.items);
-					if (found) return found;
-				}
-			}
-			return null;
-		};
-
-		const regularFolderId = findRegular(this.items);
-		if (regularFolderId) return regularFolderId;
-
-		const newFolder: FolderItem = {
-			id: 'notes',
-			title: 'Notes',
-			url: '#',
-			items: [],
-			parentId: null,
-			deletedAt: null
-		};
-		let nf = $state(newFolder);
-		this.folders.set(newFolder.id, nf);
-		this.items.unshift(newFolder.id);
-		this.persist(newFolder.id);
-		return newFolder.id;
+		return this.ensureNotesFolder();
 	}
 }
 
@@ -266,6 +282,16 @@ const initialData: FolderItem[] = [
 		items: [],
 		parentId: null,
 		type: 'system',
+		isFavorite: false,
+		deletedAt: null
+	},
+	{
+		id: PROTECTED_NOTES_FOLDER_ID,
+		title: 'Notes',
+		url: '#',
+		items: [],
+		parentId: null,
+		type: 'regular',
 		isFavorite: false,
 		deletedAt: null
 	},

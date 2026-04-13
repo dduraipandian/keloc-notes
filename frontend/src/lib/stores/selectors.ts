@@ -3,6 +3,14 @@ import { folderStore, type FolderID, type FolderItem, type FolderType } from './
 import { notesStore, type NoteItem } from './notes.svelte';
 import { folderService, noteService } from './services';
 import { selectionStore } from './selection.svelte';
+import { getSource, listSidebarSectionSources } from './sources/registry.svelte';
+import {
+	SIDEBAR_SECTIONS,
+	type NoteSource,
+	type SidebarSectionDefinition,
+	type SidebarSectionPlacement,
+	type SourceIconKey
+} from './sources/types';
 
 type FolderStoreLike = {
 	items: FolderID[];
@@ -17,6 +25,7 @@ type NotesStoreLike = {
 
 type SelectionStoreLike = {
 	selectedFolderID: FolderID | null;
+	currentSource?: NoteSource | null;
 	getSelectedFolder(): FolderItem | null;
 };
 
@@ -34,11 +43,10 @@ type NoteServiceLike = {
 export type SidebarSourceItem = {
 	id: FolderID;
 	item: FolderItem;
-	kind: 'folder' | 'trash' | 'favorites';
+	kind: NoteSource['kind'];
+	iconKey: SourceIconKey;
 	title: string;
 	depth: number;
-	isTrashTree: boolean;
-	isTrashRoot: boolean;
 	isSelected: boolean;
 	isEditing: boolean;
 	isOpen: boolean;
@@ -48,6 +56,7 @@ export type SidebarSourceItem = {
 		create: boolean;
 		rename: boolean;
 		delete: boolean;
+		setFavorite: boolean;
 		recover: boolean;
 		permanentDelete: boolean;
 		emptyTrash: boolean;
@@ -55,15 +64,10 @@ export type SidebarSourceItem = {
 };
 
 export type SidebarSourceSection = {
-	id: 'views' | 'folders';
+	id: SidebarSectionDefinition['id'];
 	label: string | null;
+	placement: SidebarSectionPlacement;
 	sources: SidebarSourceItem[];
-};
-
-type SidebarSourceRegistryEntry = {
-	id: SidebarSourceSection['id'];
-	label: string | null;
-	getRoots(selector: FolderSidebarSelector): FolderItem[];
 };
 
 export class NoteListSelector {
@@ -80,8 +84,16 @@ export class NoteListSelector {
 	}
 
 	canCreateNote() {
+		if (this.selection.currentSource) {
+			return this.selection.currentSource.capabilities.canCreateNote;
+		}
+
 		const selectedFolder = this.selection.getSelectedFolder();
-		return selectedFolder?.type !== 'trash' && selectedFolder?.type !== 'system';
+		return (
+			selectedFolder?.type !== 'trash' &&
+			selectedFolder?.type !== 'system' &&
+			selectedFolder?.type !== 'all'
+		);
 	}
 
 	canDeleteSelectedNote() {
@@ -142,85 +154,56 @@ export class NoteListSelector {
 }
 
 export class FolderSidebarSelector {
-	private static readonly registry: SidebarSourceRegistryEntry[] = [
-		{
-			id: 'views',
-			label: null,
-			getRoots(selector) {
-				return ['favorites', 'deleted-notes']
-					.map((id) => selector.folders.folders.get(id))
-					.filter((item): item is FolderItem => !!item);
-			}
-		},
-		{
-			id: 'folders',
-			label: 'Folders',
-			getRoots(selector) {
-				return (selector.folders.items ?? [])
-					.map((itemId) => selector.folders.folders.get(itemId))
-					.filter(
-						(item): item is FolderItem =>
-							!!item && item.deletedAt == null && item.type !== 'trash' && item.type !== 'system'
-					);
-			}
-		}
-	];
-
 	constructor(
 		private readonly folders: FolderStoreLike = folderStore,
-		private readonly folderQueries: FolderServiceLike = folderService,
-		private readonly noteQueries: NoteServiceLike = noteService,
 		private readonly selection: SelectionStoreLike = selectionStore
 	) {}
 
 	getSections(): SidebarSourceSection[] {
-		return FolderSidebarSelector.registry
-			.map((entry) => ({
-				id: entry.id,
-				label: entry.label,
-				sources: entry
-					.getRoots(this)
-					.map((item) => this.buildSource(item, 0, entry.id === 'views'))
+		return SIDEBAR_SECTIONS
+			.map((section) => ({
+				id: section.id,
+				label: section.label,
+				placement: section.placement,
+				sources: listSidebarSectionSources(section.id).map((source) => this.buildSource(source, 0))
 			}))
 			.filter((section) => section.sources.length > 0);
 	}
 
-	private buildSource(item: FolderItem, depth: number, isTrashTree = false): SidebarSourceItem {
-		const isTrashRoot = item.type === 'trash';
-		const isFavoritesRoot = item.id === 'favorites';
-		const childIds = isTrashRoot
-			? this.folderQueries.getTrashRootIds()
-			: isFavoritesRoot
-				? this.folderQueries.getFavoriteFolderIds()
-				: item.items || [];
-		const visibleChildIds =
-			isTrashRoot || isFavoritesRoot || !isTrashTree
-				? childIds.filter((id) => isTrashRoot || this.folders.folders.get(id)?.deletedAt == null)
-				: [];
+	private buildSource(source: NoteSource, depth: number): SidebarSourceItem {
+		const item =
+			this.folders.folders.get(source.id) ??
+			({
+				id: source.id,
+				title: source.title,
+				url: '#'
+			} satisfies FolderItem);
+		const children = source
+			.getChildren()
+			.map((id) => getSource(id))
+			.filter((child): child is NoteSource => !!child)
+			.map((child) => this.buildSource(child, depth + 1));
 
 		return {
-			id: item.id,
+			id: source.id,
 			item,
-			kind: isTrashRoot ? 'trash' : isFavoritesRoot ? 'favorites' : 'folder',
-			title: item.title,
+			kind: source.kind,
+			iconKey: source.iconKey,
+			title: source.title,
 			depth,
-			isTrashTree,
-			isTrashRoot,
-			isSelected: this.selection.selectedFolderID === item.id,
-			isEditing: this.folders.editingId === item.id,
+			isSelected: this.selection.selectedFolderID === source.id,
+			isEditing: this.folders.editingId === source.id,
 			isOpen: item.isOpen ?? false,
-			noteCount: this.noteQueries.getNoteCountForFolder(item.id, item.type),
-			children: visibleChildIds
-				.map((id) => this.folders.folders.get(id))
-				.filter((child): child is FolderItem => !!child)
-				.map((child) => this.buildSource(child, depth + 1, isTrashTree || isTrashRoot)),
+			noteCount: source.getCount(),
+			children,
 			capabilities: {
-				create: item.deletedAt == null && item.type !== 'system',
-				rename: item.deletedAt == null && !isTrashTree && item.type !== 'system' && item.type !== 'trash',
-				delete: item.deletedAt == null && !isTrashTree && item.type !== 'system' && item.type !== 'trash',
+				create: source.capabilities.canCreateSubfolder,
+				rename: source.capabilities.canRename,
+				delete: source.capabilities.canDelete,
+				setFavorite: source.capabilities.canSetFavorite,
 				recover: item.deletedAt != null,
 				permanentDelete: item.deletedAt != null,
-				emptyTrash: isTrashTree && item.deletedAt == null
+				emptyTrash: source.capabilities.canEmpty && item.deletedAt == null
 			}
 		};
 	}

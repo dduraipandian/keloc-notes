@@ -9,11 +9,21 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import type { FolderItem } from '$lib/stores/folders.svelte';
 	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { folderSidebarSelector, type SidebarSourceItem } from '$lib/stores/selectors';
+	import {
+		folderSidebarSelector,
+		type SidebarSourceItem,
+		type SidebarSourceSection
+	} from '$lib/stores/selectors';
 	import { folderService, trashService } from '$lib/stores/services';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
 	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none';
+	const sourceIcons = {
+		folder: { component: Folder, className: 'opacity-80', style: `color: ${folderColor}` },
+		'notes-home': { component: Folder, className: 'opacity-100', style: `color: ${folderColor}` },
+		star: { component: Star, className: 'fill-[#e0b64b] text-[#e0b64b]', style: undefined },
+		trash: { component: Trash2, className: 'text-destructive/70', style: undefined }
+	} as const;
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
@@ -28,38 +38,24 @@
 		node.focus();
 		node.select();
 	}
+
+	function getIconConfig(source: SidebarSourceItem) {
+		return sourceIcons[source.iconKey];
+	}
 </script>
 
 <Sidebar.Root collapsible="none" class="h-full w-64 border-r-0 bg-sidebar/40">
 	{@const sections = folderSidebarSelector.getSections()}
+	{@const headerSections = sections.filter((section) => section.placement === 'header')}
+	{@const contentSections = sections.filter((section) => section.placement === 'content')}
 	<Sidebar.Header>
-		{#if sections.find((section) => section.id === 'views')?.sources.length}
-			<Sidebar.Menu class="pt-6">
-				{#each sections.find((section) => section.id === 'views')!.sources as source}
-					<Sidebar.MenuItem>
-						{@render MenuItemSnippet(source)}
-					</Sidebar.MenuItem>
-				{/each}
-			</Sidebar.Menu>
-		{/if}
+		{#each headerSections as section}
+			{@render SectionSnippet(section)}
+		{/each}
 	</Sidebar.Header>
 	<Sidebar.Content class="pt-0">
-		{#each sections.filter((section) => section.id !== 'views') as section}
-			<Sidebar.Group>
-				{#if section.label}
-					<Sidebar.GroupLabel
-						class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-muted-foreground/40 uppercase"
-						>{section.label}</Sidebar.GroupLabel
-					>
-				{/if}
-				<Sidebar.GroupContent>
-					<Sidebar.Menu>
-						{#each section.sources as source}
-							{@render MenuItemSnippet(source)}
-						{/each}
-					</Sidebar.Menu>
-				</Sidebar.GroupContent>
-			</Sidebar.Group>
+		{#each contentSections as section}
+			{@render SectionSnippet(section)}
 		{/each}
 	</Sidebar.Content>
 
@@ -80,8 +76,36 @@
 	</Sidebar.Footer>
 </Sidebar.Root>
 
+{#snippet SectionSnippet(section: SidebarSourceSection)}
+	{#if section.placement === 'header'}
+		<Sidebar.Menu class="pt-6">
+			{#each section.sources as source}
+				{@render MenuItemSnippet(source)}
+			{/each}
+		</Sidebar.Menu>
+	{:else}
+		<Sidebar.Group>
+			{#if section.label}
+				<Sidebar.GroupLabel
+					class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-muted-foreground/40 uppercase"
+					>{section.label}</Sidebar.GroupLabel
+				>
+			{/if}
+			<Sidebar.GroupContent>
+				<Sidebar.Menu>
+					{#each section.sources as source}
+						{@render MenuItemSnippet(source)}
+					{/each}
+				</Sidebar.Menu>
+			</Sidebar.GroupContent>
+		</Sidebar.Group>
+	{/if}
+{/snippet}
+
 {#snippet MenuItemSnippet(source: SidebarSourceItem)}
 	{@const item = source.item}
+	{@const icon = getIconConfig(source)}
+	{@const Icon = icon.component}
 	{#if source.children.length > 0}
 			<Collapsible.Root
 				class="group/collapsible"
@@ -119,13 +143,7 @@
 												source.isOpen ? 'rotate-90' : ''
 											]}
 										/>
-										{#if source.isTrashRoot}
-											<Trash2 size={16} class="text-destructive/70" />
-										{:else if source.kind === 'favorites'}
-											<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
-										{:else}
-											<Folder size={16} style="color: {folderColor}" class="opacity-80" />
-										{/if}
+										<Icon size={16} class={icon.className} style={icon.style} />
 										{#if source.isEditing}
 											<input
 												bind:value={item.title}
@@ -195,11 +213,11 @@
 			>
 		{:else}
 			{#if source.capabilities.create}
-				<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.create()}
+				<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.create(item.id)}
 					>New Folder</ContextMenu.Item
 				>
 			{/if}
-			{#if item.type !== 'system' && item.type !== 'trash'}
+			{#if source.capabilities.setFavorite}
 				<ContextMenu.Item
 					class="text-[13px]"
 					onSelect={() => folderService.setFavorite(item.id, item.isFavorite !== true)}
@@ -227,6 +245,8 @@
 
 {#snippet MenuItemNoChildSnippet(source: SidebarSourceItem)}
 	{@const item = source.item}
+	{@const icon = getIconConfig(source)}
+	{@const Icon = icon.component}
 	<Sidebar.MenuButton
 		class={[
 			menuButtonStyle,
@@ -243,13 +263,7 @@
 			<div class="flex w-full items-center" {...props}>
 				<div style="width: {source.depth * 0.75}rem" class="shrink-0"></div>
 				<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-				{#if source.isTrashRoot}
-					<Trash2 size={16} class="text-destructive/70" />
-				{:else if source.kind === 'favorites'}
-					<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
-				{:else}
-					<Folder size={16} style="color: {folderColor}" class="opacity-80" />
-				{/if}
+				<Icon size={16} class={icon.className} style={icon.style} />
 				{#if source.isEditing}
 					<input
 						bind:value={item.title}

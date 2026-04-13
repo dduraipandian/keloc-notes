@@ -1,16 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { folderStore, type FolderItem } from './folders.svelte';
-import { notesStore } from './notes.svelte';
-import { folderService, trashService } from './services';
-import { selectionStore } from './selection.svelte';
+import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
+import { notesStore } from '$lib/stores/notes.svelte';
+import { folderService, trashService } from '$lib/stores/services';
+import { selectionStore } from '$lib/stores/selection.svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { foldersRepository } from './repositories';
+import { foldersRepository } from '$lib/stores/repositories';
+import { PROTECTED_NOTES_FOLDER_ID } from '$lib/stores/sources/constants';
 
 // Mock crypto.randomUUID
 global.crypto.randomUUID = vi.fn(() => 'test-uuid' as any);
 
 // Mock IDBR module
-vi.mock('./repositories', () => ({
+vi.mock('$lib/stores/repositories', () => ({
 	foldersRepository: {
 		list: vi.fn(),
 		save: vi.fn()
@@ -85,19 +86,22 @@ describe('FolderStore', () => {
 	it('should provide a default folder id and create if none exists', () => {
 		(folderStore as any).isInitialized = true;
 		const id = folderStore.getDefaultFolderId();
-		expect(id).toBe('notes');
-		expect(folderStore.folders.has('notes')).toBe(true);
-		expect(folderStore.items).toContain('notes');
+		expect(id).toBe(PROTECTED_NOTES_FOLDER_ID);
+		expect(folderStore.folders.has(PROTECTED_NOTES_FOLDER_ID)).toBe(true);
+		expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.type).toBe('regular');
+		expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.deletedAt).toBeNull();
+		expect(folderStore.items).toContain(PROTECTED_NOTES_FOLDER_ID);
 	});
 
-	it('should return existing regular folder as default', () => {
+	it('should always return notes as the default folder', () => {
 		const folder: FolderItem = { id: 'existing', title: 'Existing', url: '#' };
 		folderStore.folders.set('existing', folder);
 		folderStore.items = ['existing'];
 
 		const id = folderStore.getDefaultFolderId();
-		expect(id).toBe('existing');
-		expect(folderStore.items.length).toBe(1);
+		expect(id).toBe(PROTECTED_NOTES_FOLDER_ID);
+		expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.type).toBe('regular');
+		expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.deletedAt).toBeNull();
 	});
 
 	it('should create a folder inside a selected folder', () => {
@@ -233,7 +237,7 @@ describe('FolderStore', () => {
 
 		folderService.delete('item');
 
-		expect(selectionStore.selectedFolderID).toBeNull();
+		expect(selectionStore.selectedFolderID).toBe(PROTECTED_NOTES_FOLDER_ID);
 	});
 
 	it('should cascade delete notes when a folder is deleted', () => {
@@ -270,6 +274,51 @@ describe('FolderStore', () => {
 		folderStore.renameFolder('f1', '');
 
 		expect(folderStore.folders.get('f1')?.title).toBe('Original');
+		expect(foldersRepository.save).not.toHaveBeenCalled();
+	});
+
+	it('should not start renaming the notes view when source capabilities disallow it', () => {
+		(folderStore as any).isInitialized = true;
+		folderStore.getDefaultFolderId();
+		vi.useFakeTimers();
+
+		folderService.startRename(PROTECTED_NOTES_FOLDER_ID);
+		vi.runAllTimers();
+
+		expect(folderStore.editingId).toBeNull();
+		vi.useRealTimers();
+	});
+
+	it('should not rename the notes view when source capabilities disallow it', () => {
+		(folderStore as any).isInitialized = true;
+		folderStore.getDefaultFolderId();
+		vi.clearAllMocks();
+
+		folderService.rename(PROTECTED_NOTES_FOLDER_ID, 'Changed');
+
+		expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.title).toBe('Notes');
+		expect(foldersRepository.save).not.toHaveBeenCalled();
+	});
+
+	it('should not delete the notes view when source capabilities disallow it', () => {
+		(folderStore as any).isInitialized = true;
+		folderStore.getDefaultFolderId();
+		vi.clearAllMocks();
+
+		folderService.delete(PROTECTED_NOTES_FOLDER_ID);
+
+		expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.deletedAt).toBeNull();
+		expect(foldersRepository.save).not.toHaveBeenCalled();
+	});
+
+	it('should not favorite the notes view when source capabilities disallow it', () => {
+		(folderStore as any).isInitialized = true;
+		folderStore.getDefaultFolderId();
+		vi.clearAllMocks();
+
+		folderService.setFavorite(PROTECTED_NOTES_FOLDER_ID, true);
+
+		expect(folderStore.folders.get(PROTECTED_NOTES_FOLDER_ID)?.isFavorite).toBe(false);
 		expect(foldersRepository.save).not.toHaveBeenCalled();
 	});
 
@@ -462,7 +511,7 @@ describe('FolderStore', () => {
 			folderService.delete('parent');
 
 			expect(folderStore.folders.get('parent')?.deletedAt).toBeDefined();
-			expect(selectionStore.selectedFolderID).toBeNull();
+			expect(selectionStore.selectedFolderID).toBe(PROTECTED_NOTES_FOLDER_ID);
 		});
 	});
 });

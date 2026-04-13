@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { notesStore, type NoteItem } from './notes.svelte';
-import { folderStore, type FolderItem } from './folders.svelte';
-import { folderService, noteService, trashService } from './services';
-import { selectionStore } from './selection.svelte';
+import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
+import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
+import { folderService, noteService, trashService } from '$lib/stores/services';
+import { selectionStore } from '$lib/stores/selection.svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { notesRepository, settingsRepository } from './repositories';
+import { notesRepository, settingsRepository } from '$lib/stores/repositories';
+import { PROTECTED_NOTES_FOLDER_ID } from '$lib/stores/sources/constants';
 
 // Mock IDBR module
-vi.mock('./repositories', () => ({
+vi.mock('$lib/stores/repositories', () => ({
 	foldersRepository: {
 		list: vi.fn(),
 		save: vi.fn()
@@ -60,6 +61,7 @@ describe('NotesStore', () => {
 
 	it('should create a note for a folder', () => {
 		(notesStore as any).isInitialized = true;
+		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder', url: '#' });
 		notesStore.createNote('folder-1');
 
 		expect(notesStore.notes.size).toBe(1);
@@ -67,6 +69,14 @@ describe('NotesStore', () => {
 		expect(note?.folderId).toBe('folder-1');
 		expect(notesStore.selectedNoteID).toBe('test-uuid');
 		expect(notesRepository.save).toHaveBeenCalled();
+	});
+
+	it('should move new notes into notes when the target folder is missing', () => {
+		(notesStore as any).isInitialized = true;
+
+		notesStore.createNote('missing-folder');
+
+		expect(notesStore.notes.get('test-uuid')?.folderId).toBe(PROTECTED_NOTES_FOLDER_ID);
 	});
 
 	it('should get notes for a specific folder sorted by date', () => {
@@ -179,6 +189,7 @@ describe('NotesStore', () => {
 		};
 		addNoteToStore(note as any);
 		(notesStore as any).isInitialized = true;
+		folderStore.folders.set('f1', { id: 'f1', title: 'Folder', url: '#' });
 
 		vi.spyOn(folderStore, 'findItemById').mockReturnValue({ id: 'f1', deletedAt: null } as any);
 
@@ -256,6 +267,7 @@ describe('NotesStore', () => {
 			items: [],
 			deletedAt: epoch
 		};
+		folderStore.folders.set('A', a);
 		vi.spyOn(folderStore, 'findItemById').mockReturnValue(a);
 		vi.spyOn(folderService, 'findTopDeletedAncestor').mockReturnValue(a);
 		const recoverSpy = vi.spyOn(trashService, 'recoverFolder');
@@ -270,7 +282,7 @@ describe('NotesStore', () => {
 		expect(notesStore.selectedNoteID).toBe('note-x');
 	});
 
-	it('should support prompted recovery of note alone (rooting it)', () => {
+	it('should support prompted recovery of note alone by moving it to notes', () => {
 		(notesStore as any).isInitialized = true;
 		const epoch = 123;
 
@@ -300,24 +312,27 @@ describe('NotesStore', () => {
 		trashService.recoverNote('note-x');
 
 		expect(notesStore.notes.get('note-x')?.deletedAt).toBeNull();
-		expect(notesStore.notes.get('note-x')?.folderId).toBeNull(); // Ejected to root
-		expect(selectionStore.selectedFolderID).toBeNull();
+		expect(notesStore.notes.get('note-x')?.folderId).toBe(PROTECTED_NOTES_FOLDER_ID);
+		expect(selectionStore.selectedFolderID).toBe(PROTECTED_NOTES_FOLDER_ID);
 		expect(notesStore.selectedNoteID).toBe('note-x');
 	});
 
-	it('should root the note if parent folder metadata is missing during recovery', () => {
+	it('should move the note to notes if parent folder metadata is missing during recovery', () => {
 		const note = { id: 'orphan', folderId: 'non-existent', deletedAt: 123 };
 		addNoteToStore(note as any);
 		(notesStore as any).isInitialized = true;
+		folderStore.getDefaultFolderId();
 
 		// Mock folderStore to return null for this ID (missing from system)
-		vi.spyOn(folderStore, 'findItemById').mockReturnValue(null);
+		vi.spyOn(folderStore, 'findItemById').mockImplementation((id: string) =>
+			id === 'non-existent' ? null : folderStore.folders.get(id) ?? null
+		);
 
 		trashService.recoverNote('orphan');
 
 		expect(notesStore.notes.get('orphan')?.deletedAt).toBeNull();
-		expect(notesStore.notes.get('orphan')?.folderId).toBeNull();
-		expect(selectionStore.selectedFolderID).toBeNull();
+		expect(notesStore.notes.get('orphan')?.folderId).toBe(PROTECTED_NOTES_FOLDER_ID);
+		expect(selectionStore.selectedFolderID).toBe(PROTECTED_NOTES_FOLDER_ID);
 		expect(notesStore.selectedNoteID).toBe('orphan');
 	});
 
@@ -379,11 +394,17 @@ describe('NotesStore', () => {
 		});
 
 		it('should recover a note back to its original specific folder logically', () => {
-			const note = { id: 'orig', folderId: 'special-folder', deletedAt: 999, updatedAt: '' };
-			addNoteToStore(note as any);
-			(notesStore as any).isInitialized = true;
+		const note = { id: 'orig', folderId: 'special-folder', deletedAt: 999, updatedAt: '' };
+		addNoteToStore(note as any);
+		(notesStore as any).isInitialized = true;
+		folderStore.folders.set('special-folder', {
+			id: 'special-folder',
+			title: 'Special',
+			url: '#',
+			deletedAt: null
+		});
 
-			vi.spyOn(folderStore, 'findItemById').mockReturnValue({ id: 'special-folder', deletedAt: null } as any);
+		vi.spyOn(folderStore, 'findItemById').mockReturnValue({ id: 'special-folder', deletedAt: null } as any);
 
 			trashService.recoverNote('orig');
 
@@ -403,6 +424,7 @@ describe('NotesStore', () => {
 
 	describe('Persistence', () => {
 		it('should rebuild index on init and globally unified index notes regardless of deleted status', async () => {
+			folderStore.folders.set('f1', { id: 'f1', title: 'Folder', url: '#' });
 			const savedNotes = [
 				{ id: '1', folderId: 'f1', title: 'Active' },
 				{ id: '2', folderId: 'f1', title: 'Deleted', deletedAt: 444 }
@@ -416,8 +438,21 @@ describe('NotesStore', () => {
 			expect(noteService.getNoteCountForFolder('deleted-notes')).toBe(1);
 		});
 
+		it('should migrate active orphan notes into notes on init', async () => {
+			vi.mocked(notesRepository.list).mockResolvedValue([{ id: '1', folderId: null, title: 'Orphan' }] as any);
+			vi.mocked(settingsRepository.getAll).mockResolvedValue({} as any);
+
+			await notesStore.init();
+
+			expect(notesStore.notes.get('1')?.folderId).toBe(PROTECTED_NOTES_FOLDER_ID);
+			expect(notesRepository.save).toHaveBeenCalledWith(
+				expect.objectContaining({ id: '1', folderId: PROTECTED_NOTES_FOLDER_ID })
+			);
+		});
+
 		it('should save notes on createNote', async () => {
 			(notesStore as any).isInitialized = true;
+			folderStore.folders.set('f1', { id: 'f1', title: 'Folder', url: '#' });
 			notesStore.createNote('f1');
 			expect(notesRepository.save).toHaveBeenCalled();
 		});

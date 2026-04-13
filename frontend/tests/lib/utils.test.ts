@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { formatDate, groupNotesByDate } from './utils';
+import { formatDate, groupNotesByDate } from '$lib/utils';
 
 describe('Date Utilities', () => {
 	const mockNow = new Date('2024-05-20T10:00:00Z'); // A Monday

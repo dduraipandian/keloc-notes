@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { folderStore, type FolderItem } from './folders.svelte';
-import { notesStore, type NoteItem } from './notes.svelte';
-import { folderService, trashService } from './services';
+import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
+import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
+import { folderService, trashService } from '$lib/stores/services';
 import { SvelteMap } from 'svelte/reactivity';
-import { settingsRepository, trashRepository } from './repositories';
+import { settingsRepository, trashRepository } from '$lib/stores/repositories';
 
 // Mock IDBR module
-vi.mock('./repositories', () => ({
+vi.mock('$lib/stores/repositories', () => ({
 	foldersRepository: {
 		list: vi.fn(),
 		save: vi.fn()

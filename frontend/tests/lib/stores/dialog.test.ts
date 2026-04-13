@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { uiStore } from './dialog.svelte';
+import { uiStore } from '$lib/stores/dialog.svelte';
 
 describe('UIStore', () => {
 	beforeEach(() => {

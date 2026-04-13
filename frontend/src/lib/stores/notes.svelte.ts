@@ -1,6 +1,6 @@
 import { SvelteMap } from 'svelte/reactivity';
 import { notesRepository, settingsRepository } from './repositories';
-import type { FolderID } from './folders.svelte';
+import { folderStore, type FolderID } from './folders.svelte';
 
 export type NoteID = string;
 
@@ -41,6 +41,13 @@ class NotesStore {
 				if (note && note.id) {
 					if (note.deletedAt === undefined) note.deletedAt = null;
 					if (note.isFavorite === undefined) note.isFavorite = false;
+					if (note.deletedAt == null) {
+						const folder = note.folderId ? folderStore.findItemById(note.folderId) : null;
+						if (!folder) {
+							note.folderId = folderStore.getDefaultFolderId();
+							notesRepository.save(note);
+						}
+					}
 					let n = $state(note);
 					allNotes.push(n);
 				}
@@ -83,9 +90,13 @@ class NotesStore {
 	}
 
 	createNote(folderId: FolderID | null) {
+		const folder = folderId ? folderStore.findItemById(folderId) : null;
+		const actualFolderId =
+			folder && folder.deletedAt == null ? folderId : folderStore.getDefaultFolderId();
+
 		const newNote: NoteItem = {
 			id: crypto.randomUUID(),
-			folderId,
+			folderId: actualFolderId,
 			title: 'Untitled Note',
 			content: '',
 			updatedAt: new Date().toISOString(),

@@ -2,6 +2,7 @@ import { folderStore, type FolderID, type FolderItem, type FolderType } from './
 import { notesStore, type NoteID, type NoteItem } from './notes.svelte';
 import { trashRepository } from './repositories';
 import { selectionStore } from './selection.svelte';
+import { getSource } from './sources/registry.svelte';
 
 type FolderStoreLike = {
 	items: FolderID[];
@@ -206,13 +207,21 @@ export class FolderService {
 		this.selection = selection;
 	}
 
-	create() {
+	create(parentFolderId?: FolderID | null) {
 		const selectedFolder = this.selection.getSelectedFolder();
-		const parentFolderId =
-			selectedFolder && (selectedFolder.type === undefined || selectedFolder.type === 'regular')
-				? this.selection.selectedFolderID
-				: null;
-		const newFolderId = this.folders.createFolder(parentFolderId);
+		let resolvedParentFolderId =
+			parentFolderId !== undefined
+				? parentFolderId
+				: selectedFolder && (selectedFolder.type === undefined || selectedFolder.type === 'regular')
+					? this.selection.selectedFolderID
+					: null;
+		if (
+			resolvedParentFolderId != null &&
+			getSource(resolvedParentFolderId)?.capabilities.canCreateSubfolder === false
+		) {
+			resolvedParentFolderId = null;
+		}
+		const newFolderId = this.folders.createFolder(resolvedParentFolderId);
 		this.selection.selectFolder(newFolderId ?? null);
 	}
 
@@ -222,6 +231,7 @@ export class FolderService {
 	}
 
 	startRename(folderId: FolderID) {
+		if (getSource(folderId)?.capabilities.canRename === false) return;
 		this.folders.startRename(folderId);
 	}
 
@@ -230,6 +240,7 @@ export class FolderService {
 	}
 
 	rename(folderId: FolderID, newTitle: string) {
+		if (getSource(folderId)?.capabilities.canRename === false) return;
 		this.folders.renameFolder(folderId, newTitle);
 	}
 
@@ -258,10 +269,12 @@ export class FolderService {
 	}
 
 	setFavorite(folderId: FolderID, isFavorite: boolean) {
+		if (getSource(folderId)?.capabilities.canSetFavorite === false) return;
 		this.folders.setFavorite(folderId, isFavorite);
 	}
 
 	delete(folderId: FolderID, batchTimestamp?: number) {
+		if (getSource(folderId)?.capabilities.canDelete === false) return;
 		const batch = batchTimestamp ?? Date.now();
 		const selectedFolderId = this.selection.selectedFolderID;
 		const nextFolderId = this.getNextFolderSelectionAfterDelete(folderId);
@@ -332,8 +345,17 @@ export class NoteService {
 	create(folderId: FolderID | null) {
 		let actualFolderId = folderId;
 		const folder = folderId ? this.folders.findItemById(folderId) : null;
+		const source = folderId ? getSource(folderId) : null;
 
-		if (!folderId || folder?.type === 'all' || folder?.type === 'trash' || folder?.type === 'system') {
+		if (
+			!folderId ||
+			!folder ||
+			source?.capabilities.canCreateNote === false ||
+			folder.deletedAt != null ||
+			folder?.type === 'all' ||
+			folder?.type === 'trash' ||
+			folder?.type === 'system'
+		) {
 			actualFolderId = this.folders.getDefaultFolderId();
 		}
 
@@ -428,7 +450,9 @@ export class TrashService {
 		const isHierarchical = !!(note.folderId && this.tree.findTopDeletedAncestor(note.folderId));
 		let restoredFolderId: FolderID | null | undefined = undefined;
 
-		if (note.folderId) {
+		if (!note.folderId) {
+			restoredFolderId = this.folders.getDefaultFolderId();
+		} else {
 			const parentFolder = this.folders.findItemById(note.folderId);
 			if (parentFolder) {
 				if (parentFolder.deletedAt != null) {
@@ -436,16 +460,19 @@ export class TrashService {
 						const topRoot = this.tree.findTopDeletedAncestor(note.folderId);
 						if (topRoot) this.recoverFolder(topRoot.id);
 					} else {
-						restoredFolderId = null;
+						restoredFolderId = this.folders.getDefaultFolderId();
 					}
 				}
 			} else {
-				restoredFolderId = null;
+				restoredFolderId = this.folders.getDefaultFolderId();
 			}
 		}
 
 		this.notes.restoreNote(noteId, restoredFolderId);
-		const selectedFolderId = restoredFolderId !== undefined ? restoredFolderId : (note.folderId ?? null);
+		const selectedFolderId =
+			restoredFolderId !== undefined
+				? restoredFolderId
+				: (note.folderId ?? this.folders.getDefaultFolderId());
 		this.selection.selectFolder(selectedFolderId);
 		this.notes.selectNote(noteId);
 	}
