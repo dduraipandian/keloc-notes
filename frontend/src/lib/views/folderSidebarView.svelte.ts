@@ -1,7 +1,7 @@
-import { folderStore, type FolderID, type FolderItem, type FolderType } from '$lib/stores/folders.svelte.ts';
+import { folderStore, type FolderID, type FolderItem, type FolderType } from '$lib/stores/folders.svelte';
 import { folderService, noteService, trashService } from '$lib/stores/services';
-import { selectionStore } from '$lib/stores/selection.svelte.ts';
-import { uiStore } from '$lib/stores/dialog.svelte.ts';
+import { selectionStore } from '$lib/stores/selection.svelte';
+import { uiStore } from '$lib/stores/dialog.svelte';
 
 export type FolderIcon = 'folder' | 'star' | 'trash';
 export type ContextMenuItemVariant = 'default' | 'destructive';

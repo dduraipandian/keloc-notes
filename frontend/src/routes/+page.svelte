@@ -4,7 +4,7 @@
 	import Info from '@lucide/svelte/icons/info';
 	import { uiStore } from '$lib/stores/dialog.svelte';
 	import { noteService, trashService } from '$lib/stores/services';
-	import { noteListView } from '$lib/views/noteListView.svelte.ts';
+	import { noteListView } from '$lib/views/noteListView.svelte';
 	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);

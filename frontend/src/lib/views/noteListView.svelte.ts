@@ -1,8 +1,8 @@
 import { groupNotesByDate } from '$lib/utils';
-import { folderStore, type FolderID, type FolderItem, type FolderType } from '$lib/stores/folders.svelte.ts';
-import { notesStore, type NoteItem } from '$lib/stores/notes.svelte.ts';
+import { folderStore, type FolderID, type FolderItem, type FolderType } from '$lib/stores/folders.svelte';
+import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
 import { folderService, noteService } from '$lib/stores/services';
-import { selectionStore } from '$lib/stores/selection.svelte.ts';
+import { selectionStore } from '$lib/stores/selection.svelte';
 
 export class NoteListView {
 	constructor(

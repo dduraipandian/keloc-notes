@@ -8,7 +8,10 @@
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import type { FolderItem } from '$lib/stores/folders.svelte';
-	import { folderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte.ts';
+	import {
+		folderSidebarView,
+		type SidebarSourceItem
+	} from '$lib/views/folderSidebarView.svelte';
 	import { folderService } from '$lib/stores/services';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
@@ -93,7 +96,9 @@
 								{@render FolderButtonSnippet(source, props)}
 							{/snippet}
 						</Collapsible.Trigger>
-						<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums">
+						<Sidebar.MenuBadge
+							class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
+						>
 							{source.noteCount}
 						</Sidebar.MenuBadge>
 						<Collapsible.Content>
@@ -189,4 +194,3 @@
 		{/each}
 	</ContextMenu.Content>
 {/snippet}
-
