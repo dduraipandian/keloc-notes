@@ -1,7 +1,13 @@
+import type { Component } from 'svelte';
+import Folder from '@lucide/svelte/icons/folder';
+import Star from '@lucide/svelte/icons/star';
+import Trash2 from '@lucide/svelte/icons/trash-2';
 import { folderStore, type FolderID, type FolderItem, type FolderType } from '$lib/stores/folders.svelte';
 import { folderService, noteService, trashService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStore } from '$lib/stores/dialog.svelte';
+
+const FOLDER_COLOR = '#dcb15a'; // Apple-style gold/folder color
 
 export type FolderIcon = 'folder' | 'star' | 'trash';
 export type ContextMenuItemVariant = 'default' | 'destructive';
@@ -18,7 +24,9 @@ export type SidebarSourceItem = {
 	item: FolderItem;
 	kind: string;
 	type: string;
-	icon: FolderIcon;
+	iconName: FolderIcon;
+	icon: Component<any>;
+	iconProps: Record<string, any>;
 	title: string;
 	depth: number;
 	isSelected: boolean;
@@ -103,8 +111,25 @@ export class FolderSidebarView {
 	private buildSource(item: FolderItem, depth: number, isViewTree = false): SidebarSourceItem {
 		const kind = item.type === 'trash' ? 'trash' : item.id === 'favorites' ? 'favorites' : 'regular';
 		const type = kind === 'trash' || kind === 'favorites' ? 'view' : 'regular';
-		const icon: FolderIcon =
+		const iconName: FolderIcon =
 			kind === 'trash' ? 'trash' : kind === 'favorites' ? 'star' : 'folder';
+
+		const iconConfigs: Record<FolderIcon, { component: Component<any>; props: any }> = {
+			folder: {
+				component: Folder,
+				props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' }
+			},
+			star: {
+				component: Star,
+				props: { class: 'fill-[#e0b64b] text-[#e0b64b]' }
+			},
+			trash: {
+				component: Trash2,
+				props: { class: 'text-destructive/70' }
+			}
+		};
+
+		const iconConfig = iconConfigs[iconName];
 
 		const childIds =
 			kind === 'trash'
@@ -134,7 +159,9 @@ export class FolderSidebarView {
 			item,
 			kind,
 			type,
-			icon,
+			iconName,
+			icon: iconConfig.component,
+			iconProps: iconConfig.props,
 			title: item.title,
 			depth,
 			isSelected: this.selection.selectedFolderID === item.id,
