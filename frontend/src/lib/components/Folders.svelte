@@ -1,6 +1,9 @@
 <script lang="ts">
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FolderPlus from '@lucide/svelte/icons/folder-plus';
+	import Folder from '@lucide/svelte/icons/folder';
+	import Star from '@lucide/svelte/icons/star';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
@@ -8,6 +11,7 @@
 	import { folderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte';
 	import { folderService } from '$lib/stores/services';
 
+	const FOLDER_COLOR = '#dcb15a';
 	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none';
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
@@ -144,7 +148,13 @@
 			<div class="size-3.5 shrink-0"><!-- Spacer --></div>
 		{/if}
 
-		<source.icon size={16} {...source.iconProps} />
+		{#if source.icon === 'trash'}
+			<Trash2 size={16} class="text-destructive/70" />
+		{:else if source.icon === 'star'}
+			<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
+		{:else}
+			<Folder size={16} style="color: {FOLDER_COLOR}" class="opacity-80" />
+		{/if}
 
 		{#if source.isEditing}
 			<input
