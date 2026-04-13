@@ -174,13 +174,11 @@ export class FolderSidebarSelector {
 	) {}
 
 	getSections(): SidebarSourceSection[] {
-		return FolderSidebarSelector.registry
-			.map((entry) => ({
-				id: entry.id,
-				label: entry.label,
-				sources: entry.getRoots(this).map((item) => this.buildSource(item, 0, entry.id === 'views'))
-			}))
-			.filter((section) => section.id === 'folders' || section.sources.length > 0);
+		return FolderSidebarSelector.registry.map((entry) => ({
+			id: entry.id,
+			label: entry.label,
+			sources: entry.getRoots(this).map((item) => this.buildSource(item, 0, entry.id === 'views'))
+		}));
 	}
 
 	private buildSource(item: FolderItem, depth: number, isTrashTree = false): SidebarSourceItem {
