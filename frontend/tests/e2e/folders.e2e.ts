@@ -329,7 +329,9 @@ test('can favorite a note and see it in the Favorites virtual view', async ({ pa
 	await expect(page.getByText(noteTitle, { exact: true })).toBeVisible();
 });
 
-test('can favorite a folder and see it nested under the Favorites virtual view', async ({ page }) => {
+test('can favorite a folder and see it nested under the Favorites virtual view', async ({
+	page
+}) => {
 	await page.goto('/');
 
 	const folderTitle = uniqueName('Favorite Folder');
@@ -340,10 +342,14 @@ test('can favorite a folder and see it nested under the Favorites virtual view',
 	await page.getByText('Favorites', { exact: true }).click();
 
 	await expect(getTrashFolder(page).getByText('Favorites', { exact: true })).toBeVisible();
-	await expect(page.locator('div[data-sidebar="header"]').getByText(folderTitle, { exact: true })).toBeVisible();
+	await expect(
+		page.locator('div[data-sidebar="header"]').getByText(folderTitle, { exact: true })
+	).toBeVisible();
 });
 
-test('deleted favorite notes disappear from Favorites and reappear there after restore', async ({ page }) => {
+test('deleted favorite notes disappear from Favorites and reappear there after restore', async ({
+	page
+}) => {
 	await page.goto('/');
 
 	const folderTitle = uniqueName('Favorite Delete Folder');
@@ -371,7 +377,9 @@ test('deleted favorite notes disappear from Favorites and reappear there after r
 	await expect(page.getByText(noteTitle, { exact: true })).toBeVisible();
 });
 
-test('deleted favorite folders disappear from Favorites and reappear there after restore', async ({ page }) => {
+test('deleted favorite folders disappear from Favorites and reappear there after restore', async ({
+	page
+}) => {
 	await page.goto('/');
 
 	const folderTitle = uniqueName('Favorite Delete Folder');
