@@ -5,13 +5,11 @@ function uniqueName(prefix: string) {
 }
 
 function getSideBarContent(page: import('@playwright/test').Page) {
-	return page.locator('div[data-sidebar="content"] ul li[data-sidebar="menu-item"]');
+	return page.locator('div[data-sidebar="header"], div[data-sidebar="content"]');
 }
 
 function getSideBarFolderByLabel(page: import('@playwright/test').Page, label: string) {
-	return getSideBarContent(page)
-		.locator('span.notes-folder-label')
-		.filter({ has: page.getByText(label, { exact: true }) });
+	return getSideBarContent(page).getByText(label, { exact: true }).first();
 }
 
 function getNotePaneTitle(page: import('@playwright/test').Page, title: string) {
@@ -30,11 +28,14 @@ function getTrashFolder(page: import('@playwright/test').Page) {
 	return page.locator('div[data-sidebar="header"] ul li[data-sidebar="menu-item"]');
 }
 
-function getHeaderSidebarItem(page: import('@playwright/test').Page, label: string) {
-	return page
-		.locator('div[data-sidebar="header"] .notes-folder-label')
-		.filter({ hasText: label })
+function getHeaderSidebarSection(page: import('@playwright/test').Page, label: string) {
+	return getTrashFolder(page)
+		.filter({ has: page.getByText(label, { exact: true }) })
 		.first();
+}
+
+function getHeaderSidebarItem(page: import('@playwright/test').Page, label: string) {
+	return page.locator('div[data-sidebar="header"]').getByText(label, { exact: true }).first();
 }
 
 function getAlertDialog(page: import('@playwright/test').Page) {
@@ -71,7 +72,7 @@ async function createNote(page: import('@playwright/test').Page, title: string, 
 }
 
 async function openFolder(page: import('@playwright/test').Page, title: string) {
-	await getSideBarContent(page).getByText(title, { exact: true }).click();
+	await getSideBarFolderByLabel(page, title).click();
 	await expect(getNotePaneTitle(page, title)).toBeVisible();
 }
 
@@ -102,7 +103,7 @@ async function addSelectedNoteToFavorites(page: import('@playwright/test').Page,
 }
 
 async function openFavorites(page: import('@playwright/test').Page) {
-	await getTrashFolder(page).getByText('Favorites', { exact: true }).click();
+	await getHeaderSidebarSection(page, 'Favorites').getByText('Favorites', { exact: true }).click();
 	await expect(getNotePaneTitle(page, 'Favorites')).toBeVisible();
 }
 
@@ -269,7 +270,7 @@ test('can soft delete and recover a folder from trash', async ({ page }) => {
 	});
 	await page.getByText('Recover Folder', { exact: true }).click();
 
-	await expect(getSideBarContent(page).getByText(folderTitle, { exact: true })).toBeVisible();
+	await expect(getSideBarFolderByLabel(page, folderTitle)).toBeVisible();
 });
 
 test('complex soft delete and recover a folder from trash', async ({ page }) => {
@@ -310,7 +311,7 @@ test('complex soft delete and recover a folder from trash', async ({ page }) => 
 	});
 	await page.getByText('Recover Folder', { exact: true }).click();
 
-	await expect(getSideBarContent(page).getByText(subFolderTitle, { exact: true })).toBeVisible();
+	await expect(getSideBarFolderByLabel(page, subFolderTitle)).toBeVisible();
 });
 
 test('can favorite a note and see it in the Favorites virtual view', async ({ page }) => {
@@ -329,7 +330,9 @@ test('can favorite a note and see it in the Favorites virtual view', async ({ pa
 	await expect(page.getByText(noteTitle, { exact: true })).toBeVisible();
 });
 
-test('can favorite a folder and see it nested under the Favorites virtual view', async ({ page }) => {
+test('can favorite a folder and see it nested under the Favorites virtual view', async ({
+	page
+}) => {
 	await page.goto('/');
 
 	const folderTitle = uniqueName('Favorite Folder');
@@ -340,10 +343,14 @@ test('can favorite a folder and see it nested under the Favorites virtual view',
 	await page.getByText('Favorites', { exact: true }).click();
 
 	await expect(getTrashFolder(page).getByText('Favorites', { exact: true })).toBeVisible();
-	await expect(page.locator('div[data-sidebar="header"]').getByText(folderTitle, { exact: true })).toBeVisible();
+	await expect(
+		getHeaderSidebarSection(page, 'Favorites').getByText(folderTitle, { exact: true })
+	).toBeVisible();
 });
 
-test('deleted favorite notes disappear from Favorites and reappear there after restore', async ({ page }) => {
+test('deleted favorite notes disappear from Favorites and reappear there after restore', async ({
+	page
+}) => {
 	await page.goto('/');
 
 	const folderTitle = uniqueName('Favorite Delete Folder');
@@ -371,7 +378,9 @@ test('deleted favorite notes disappear from Favorites and reappear there after r
 	await expect(page.getByText(noteTitle, { exact: true })).toBeVisible();
 });
 
-test('deleted favorite folders disappear from Favorites and reappear there after restore', async ({ page }) => {
+test('deleted favorite folders disappear from Favorites and reappear there after restore', async ({
+	page
+}) => {
 	await page.goto('/');
 
 	const folderTitle = uniqueName('Favorite Delete Folder');

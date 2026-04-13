@@ -10,10 +10,10 @@
 	import type { FolderItem } from '$lib/stores/folders.svelte';
 	import { uiStore } from '$lib/stores/dialog.svelte';
 	import {
-		folderSidebarSelector,
+		folderSidebarPresenter,
 		type SidebarSourceItem,
 		type SidebarSourceSection
-	} from '$lib/stores/selectors';
+	} from '$lib/stores/sources/sidebar';
 	import { folderService, trashService } from '$lib/stores/services';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
@@ -45,7 +45,7 @@
 </script>
 
 <Sidebar.Root collapsible="none" class="h-full w-64 border-r-0 bg-sidebar/40">
-	{@const sections = folderSidebarSelector.getSections()}
+	{@const sections = folderSidebarPresenter.getSections()}
 	{@const headerSections = sections.filter((section) => section.placement === 'header')}
 	{@const contentSections = sections.filter((section) => section.placement === 'content')}
 	<Sidebar.Header>

@@ -6,27 +6,27 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import type { NoteItem } from '$lib/stores/notes.svelte';
 	import { noteService, trashService } from '$lib/stores/services';
-	import { noteListSelector } from '$lib/stores/selectors';
+	import { noteListPresenter } from '$lib/presenters/noteListPresenter';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
 	import { uiStore } from '$lib/stores/dialog.svelte';
 
 	let searchQuery = $state('');
-	const selectedFolderTitle = $derived(noteListSelector.getSelectedFolderTitle());
-	const filteredNotes = $derived(noteListSelector.getFilteredNotes(searchQuery));
-	const canCreateNote = $derived(noteListSelector.canCreateNote());
-	const canDeleteSelectedNote = $derived(noteListSelector.canDeleteSelectedNote());
-	const selectedNoteDeleteContext = $derived(noteListSelector.getSelectedNoteDeleteContext());
+	const selectedFolderTitle = $derived(noteListPresenter.getSelectedFolderTitle());
+	const filteredNotes = $derived(noteListPresenter.getFilteredNotes(searchQuery));
+	const canCreateNote = $derived(noteListPresenter.canCreateNote());
+	const canDeleteSelectedNote = $derived(noteListPresenter.canDeleteSelectedNote());
+	const selectedNoteDeleteContext = $derived(noteListPresenter.getSelectedNoteDeleteContext());
 
 	function getTime(dateStr: string) {
 		return new Date(dateStr).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 	}
 
-	const sections = $derived(noteListSelector.getSections(searchQuery));
+	const sections = $derived(noteListPresenter.getSections(searchQuery));
 
 	function handleNoteRestore(note: NoteItem) {
-		const { isHierarchical } = noteListSelector.getRestoreContext(note);
+		const { isHierarchical } = noteListPresenter.getRestoreContext(note);
 		uiStore.confirmNoteRestore(note.title, isHierarchical, () => {
 			trashService.recoverNote(note.id);
 		});
@@ -51,7 +51,7 @@
 			{#if canCreateNote}
 				<button
 					class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
-					onclick={() => noteService.create(noteListSelector.getCreateNoteFolderId())}
+					onclick={() => noteService.create(noteListPresenter.getCreateNoteFolderId())}
 					title="New Note"
 				>
 					<SquarePen size={16} />
@@ -96,7 +96,7 @@
 						</span>
 					</Item.Header>
 					{#each notes as note, i (note.id)}
-						{@const isSelected = noteListSelector.isSelectedNote(note.id)}
+						{@const isSelected = noteListPresenter.isSelectedNote(note.id)}
 						<ContextMenu.Root>
 							<ContextMenu.Trigger>
 								<Item.Root

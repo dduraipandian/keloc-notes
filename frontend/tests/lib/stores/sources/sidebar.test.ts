@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
-import { FolderSidebarSelector, NoteListSelector } from '$lib/stores/selectors';
 import { selectionStore } from '$lib/stores/selection.svelte';
+import { FolderSidebarPresenter } from '$lib/stores/sources/sidebar';
 
 vi.mock('$lib/stores/repositories', () => ({
 	foldersRepository: {
@@ -23,80 +23,8 @@ vi.mock('$lib/stores/repositories', () => ({
 	}
 }));
 
-describe('NoteListSelector', () => {
-	it('should expose the selected folder title with a fallback', () => {
-		const selector = new NoteListSelector(
-			{ folders: new Map() } as any,
-			{} as any,
-			{} as any,
-			{} as any,
-			{
-				selectedFolderID: 'notes',
-				getSelectedFolder: () => ({ id: 'notes', title: 'Notes', url: '#' })
-			} as any
-		);
-
-		expect(selector.getSelectedFolderTitle()).toBe('Notes');
-	});
-
-	it('should filter notes by the current query', () => {
-		const selector = new NoteListSelector(
-			{ folders: new Map() } as any,
-			{} as any,
-			{} as any,
-			{
-				getNotesForFolder: vi.fn().mockReturnValue([
-					{ id: '1', title: 'Alpha', content: 'First', updatedAt: '2025-01-01T00:00:00Z' },
-					{ id: '2', title: 'Beta', content: 'Second', updatedAt: '2025-01-02T00:00:00Z' }
-				])
-			} as any,
-			{
-				selectedFolderID: 'notes',
-				getSelectedFolder: () => ({ id: 'notes', title: 'Notes', url: '#', type: 'regular' })
-			} as any
-		);
-
-		expect(selector.getFilteredNotes('alp')).toEqual([
-			expect.objectContaining({ id: '1', title: 'Alpha' })
-		]);
-	});
-
-	it('should compute note restore context from folder hierarchy', () => {
-		const selector = new NoteListSelector(
-			{} as any,
-			{} as any,
-			{
-				findTopDeletedAncestor: vi.fn().mockReturnValue({ id: 'folder-a' })
-			} as any,
-			{} as any
-		);
-
-		expect(selector.getRestoreContext({ id: 'n1', folderId: 'folder-a' } as any)).toEqual({
-			isHierarchical: true,
-			topDeletedAncestor: { id: 'folder-a' }
-		});
-	});
-
-	it('should expose selected note delete context', () => {
-		const selector = new NoteListSelector(
-			{} as any,
-			{
-				selectedNoteID: 'n1',
-				selectedNote: { id: 'n1', title: 'Selected', deletedAt: null }
-			} as any,
-			{} as any,
-			{} as any
-		);
-
-		expect(selector.getSelectedNoteDeleteContext()).toEqual({
-			id: 'n1',
-			title: 'Selected'
-		});
-	});
-});
-
-describe('FolderSidebarSelector', () => {
-	const selector = new FolderSidebarSelector();
+describe('FolderSidebarPresenter', () => {
+	const presenter = new FolderSidebarPresenter();
 
 	const addFolder = (folder: Partial<FolderItem> & { id: string }) => {
 		const value: FolderItem = {
@@ -136,7 +64,7 @@ describe('FolderSidebarSelector', () => {
 		addNote({ id: 'n1', folderId: 'notes' });
 		(selectionStore as any).selectedFolderID = 'notes';
 
-		expect(selector.getSections().find((section) => section.id === 'views')?.sources).toEqual(
+		expect(presenter.getSections().find((section) => section.id === 'views')?.sources).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({
 					id: 'notes',
@@ -161,7 +89,7 @@ describe('FolderSidebarSelector', () => {
 		addFolder({ id: 'deleted-folder', title: 'Deleted', deletedAt: 123 });
 		(selectionStore as any).selectedFolderID = 'deleted-notes';
 
-		expect(selector.getSections().find((section) => section.id === 'views')?.sources).toEqual(
+		expect(presenter.getSections().find((section) => section.id === 'views')?.sources).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({
 					id: 'deleted-notes',
@@ -182,7 +110,7 @@ describe('FolderSidebarSelector', () => {
 		addFolder({ id: 'child-b', title: 'B', parentId: 'parent', deletedAt: 123 });
 		folderStore.items = ['notes', 'parent'];
 
-		expect(selector.getSections().find((section) => section.id === 'folders')?.sources[0]?.children).toEqual([
+		expect(presenter.getSections().find((section) => section.id === 'folders')?.sources[0]?.children).toEqual([
 			expect.objectContaining({ id: 'child-a' })
 		]);
 	});
@@ -193,7 +121,7 @@ describe('FolderSidebarSelector', () => {
 		addNote({ id: 'n2', folderId: 'notes' });
 
 		expect(
-			selector
+			presenter
 				.getSections()
 				.find((section) => section.id === 'views')
 				?.sources.find((source) => source.id === 'notes')?.noteCount
@@ -205,7 +133,7 @@ describe('FolderSidebarSelector', () => {
 		addFolder({ id: 'deleted-notes', title: 'Trash', type: 'trash' });
 		addFolder({ id: 'deleted-folder', title: 'Deleted', deletedAt: 123 });
 
-		const deletedFolder = selector
+		const deletedFolder = presenter
 			.getSections()
 			.find((section) => section.id === 'views')
 			?.sources.find((source) => source.id === 'deleted-notes')
@@ -230,7 +158,7 @@ describe('FolderSidebarSelector', () => {
 		addFolder({ id: 'work', title: 'Work', type: 'regular' });
 		folderStore.items = ['notes', 'work'];
 
-		expect(selector.getSections()).toEqual([
+		expect(presenter.getSections()).toEqual([
 			expect.objectContaining({ id: 'views', label: null, placement: 'header' }),
 			expect.objectContaining({ id: 'folders', label: 'Folders', placement: 'content' })
 		]);
@@ -241,7 +169,7 @@ describe('FolderSidebarSelector', () => {
 		addFolder({ id: 'notes', title: 'Notes', type: 'regular' });
 		folderStore.items = ['work', 'notes'];
 
-		const sections = selector.getSections();
+		const sections = presenter.getSections();
 
 		expect(sections.find((section) => section.id === 'views')?.sources.map((source) => source.id)).toEqual([
 			'notes',
@@ -259,7 +187,7 @@ describe('FolderSidebarSelector', () => {
 		addNote({ id: 'n1', isFavorite: true });
 		(selectionStore as any).selectedFolderID = 'favorites';
 
-		const favorites = selector
+		const favorites = presenter
 			.getSections()
 			.find((section) => section.id === 'views')
 			?.sources.find((source) => source.id === 'favorites');
@@ -279,7 +207,7 @@ describe('FolderSidebarSelector', () => {
 		addFolder({ id: 'favorites', title: 'Favorites', type: 'system' });
 		addFolder({ id: 'work', title: 'Work', isFavorite: true, deletedAt: 123 });
 
-		const favorites = selector
+		const favorites = presenter
 			.getSections()
 			.find((section) => section.id === 'views')
 			?.sources.find((source) => source.id === 'favorites');

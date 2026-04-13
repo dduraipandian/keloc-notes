@@ -4,12 +4,12 @@
 	import Info from '@lucide/svelte/icons/info';
 	import { uiStore } from '$lib/stores/dialog.svelte';
 	import { noteService, trashService } from '$lib/stores/services';
-	import { noteListSelector } from '$lib/stores/selectors';
+	import { noteListPresenter } from '$lib/presenters/noteListPresenter';
 	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);
 
-	let restoreContext = $derived(noteListSelector.getRestoreContext(selectedNote));
+	let restoreContext = $derived(noteListPresenter.getRestoreContext(selectedNote));
 
 	function handleRestoreInit() {
 		if (!selectedNote) return;
