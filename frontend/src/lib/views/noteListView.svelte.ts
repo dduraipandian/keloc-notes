@@ -68,13 +68,15 @@ export class NoteListView {
 
 	getRestoreContext(note: NoteItem | null) {
 		if (!note?.folderId) {
-			return { isHierarchical: false, topDeletedAncestor: null };
+			return { isHierarchical: false, targetName: 'Home' };
 		}
 
-		const topDeletedAncestor = this.folderQueries.findTopDeletedAncestor(note.folderId);
+		const parentFolder = this.folders.findItemById(note.folderId);
+		const isHomeTarget = !parentFolder || parentFolder.deletedAt != null;
+
 		return {
-			isHierarchical: !!topDeletedAncestor,
-			topDeletedAncestor
+			isHierarchical: false,
+			targetName: isHomeTarget ? 'Home' : parentFolder.title
 		};
 	}
 }

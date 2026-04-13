@@ -85,16 +85,27 @@ describe('NoteListView', () => {
 		expect(notes).toHaveLength(2);
 	});
 
-	it('should expose restore context for a note', () => {
-		const mockFolderQueries = { findTopDeletedAncestor: vi.fn() };
-		const selector = new NoteListView({} as any, {} as any, mockFolderQueries as any, {} as any, {} as any);
+	it('should expose restore context for a note with target information', () => {
+		const mockFolders = { findItemById: vi.fn() };
+		const selector = new NoteListView(mockFolders as any, {} as any, {} as any, {} as any, {} as any);
 
 		const note = { id: 'n1', folderId: 'f1' } as any;
-		mockFolderQueries.findTopDeletedAncestor.mockReturnValue({ id: 'f2', title: 'Parent' });
+		mockFolders.findItemById.mockReturnValue({ id: 'f1', title: 'ParentFolder', deletedAt: null });
 
 		const context = selector.getRestoreContext(note);
-		expect(context.isHierarchical).toBe(true);
-		expect(context.topDeletedAncestor?.id).toBe('f2');
+		expect(context.isHierarchical).toBe(false);
+		expect(context.targetName).toBe('ParentFolder');
+	});
+
+	it('should target Home when the original folder is deleted', () => {
+		const mockFolders = { findItemById: vi.fn() };
+		const selector = new NoteListView(mockFolders as any, {} as any, {} as any, {} as any, {} as any);
+
+		const note = { id: 'n1', folderId: 'f1' } as any;
+		mockFolders.findItemById.mockReturnValue({ id: 'f1', title: 'DeletedFolder', deletedAt: 12345 });
+
+		const context = selector.getRestoreContext(note);
+		expect(context.targetName).toBe('Home');
 	});
 
 	it('should determine if a note can be created in the current folder', () => {

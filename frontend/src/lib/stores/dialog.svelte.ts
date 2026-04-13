@@ -67,15 +67,13 @@ class UIStore {
 		};
 	}
 
-	confirmNoteRestore(noteTitle: string, isHierarchical: boolean, onConfirm: () => void) {
+	confirmNoteRestore(noteTitle: string, onConfirm: () => void) {
 		this.noteDialog = {
 			open: true,
 			canCancel: true,
 			type: 'restore',
-			title: isHierarchical ? 'Restore Folder?' : 'Restore Note',
-			description: isHierarchical
-				? `The original folder for '${noteTitle}' is deleted. Restoring this note will also restore its parent folder.`
-				: `Are you sure you want to restore '${noteTitle}'?`,
+			title: 'Restore Note',
+			description: `Are you sure you want to restore '${noteTitle}'?`,
 			confirmLabel: 'Restore',
 			onConfirm
 		};

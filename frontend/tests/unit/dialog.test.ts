@@ -20,12 +20,12 @@ describe('UIStore', () => {
 		expect(onConfirm).toHaveBeenCalled();
 	});
 
-	it('should configure note restore dialog for hierarchical context', () => {
-		uiStore.confirmNoteRestore('Nested Note', true, () => {});
+	it('should configure note restore dialog correctly', () => {
+		uiStore.confirmNoteRestore('Test Note', () => {});
 
 		expect(uiStore.noteDialog.type).toBe('restore');
-		expect(uiStore.noteDialog.title).toBe('Restore Folder?');
-		expect(uiStore.noteDialog.description).toContain('restore its parent folder.');
+		expect(uiStore.noteDialog.title).toBe('Restore Note');
+		expect(uiStore.noteDialog.description).toContain("restore 'Test Note'");
 	});
 
 	it('should configure folder delete dialog correctly', () => {

@@ -14,8 +14,7 @@
 	function handleRestoreInit() {
 		if (!selectedNote) return;
 
-		const isHierarchical = restoreContext.isHierarchical;
-		uiStore.confirmNoteRestore(selectedNote.title, isHierarchical, () => {
+		uiStore.confirmNoteRestore(selectedNote.title, () => {
 			trashService.recoverNote(selectedNote!.id);
 		});
 	}

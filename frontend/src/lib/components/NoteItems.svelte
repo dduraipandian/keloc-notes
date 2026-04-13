@@ -26,8 +26,7 @@
 	const sections = $derived(noteListView.getSections(searchQuery));
 
 	function handleNoteRestore(note: NoteItem) {
-		const { isHierarchical } = noteListView.getRestoreContext(note);
-		uiStore.confirmNoteRestore(note.title, isHierarchical, () => {
+		uiStore.confirmNoteRestore(note.title, () => {
 			trashService.recoverNote(note.id);
 		});
 	}
