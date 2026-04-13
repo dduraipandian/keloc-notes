@@ -260,6 +260,16 @@ class FolderStore {
 // Initial mock data
 const systemFolders: FolderItem[] = [
 	{
+		id: 'home',
+		title: 'Home',
+		url: '#',
+		items: [],
+		parentId: null,
+		type: 'system',
+		isFavorite: false,
+		deletedAt: null
+	},
+	{
 		id: 'deleted-notes',
 		title: 'Recently Deleted',
 		url: '#',

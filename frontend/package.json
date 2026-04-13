@@ -13,6 +13,7 @@
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
 		"test": "vitest run",
+		"unit-test": "vitest",
 		"test:e2e": "playwright test"
 	},
 	"devDependencies": {

@@ -18,7 +18,7 @@ describe('FolderSidebarView', () => {
 				id: 'notes',
 				kind: 'regular',
 				type: 'regular',
-				icon: 'folder',
+				iconName: 'folder',
 				title: 'Notes',
 				isSelected: true,
 				noteCount: 3,
@@ -50,19 +50,57 @@ describe('FolderSidebarView', () => {
 					id: 'deleted-notes',
 					kind: 'trash',
 					type: 'view',
-					icon: 'trash',
+					iconName: 'trash',
 					isSelected: true,
 					children: [
 						expect.objectContaining({
 							id: 'deleted-folder',
-							kind: 'regular',
+							kind: 'deleted',
 							type: 'regular',
-							icon: 'folder'
+							iconName: 'folder'
 						})
 					],
 					capabilities: expect.objectContaining({ emptyTrash: true })
 				})
 			])
+		);
+	});
+
+	it('should expose header source for home', () => {
+		const selector = new FolderSidebarView(
+			{
+				items: ['folder-1'],
+				folders: new Map([
+					['home', { id: 'home', title: 'Home', url: '#', type: 'system' }],
+					['folder-1', { id: 'folder-1', title: 'Folder 1', url: '#', deletedAt: null }]
+				])
+			} as any,
+			{
+				getTrashRootIds: vi.fn().mockReturnValue([]),
+				getFavoriteFolderIds: vi.fn().mockReturnValue([])
+			} as any,
+			{ getNoteCountForFolder: vi.fn().mockReturnValue(5) } as any,
+			{ selectedFolderID: 'home', getSelectedFolder: vi.fn() } as any
+		);
+
+		const home = selector.getSections().find((s) => s.id === 'views')?.sources.find((s) => s.id === 'home');
+		
+		expect(home).toEqual(
+			expect.objectContaining({
+				id: 'home',
+				kind: 'home',
+				type: 'view',
+				iconName: 'folder',
+				isSelected: true,
+				noteCount: 5,
+				children: [
+					expect.objectContaining({
+						id: 'folder-1',
+						kind: 'regular'
+					})
+				],
+				capabilities: expect.objectContaining({ create: true, rename: false })
+			})
 		);
 	});
 
@@ -141,6 +179,7 @@ describe('FolderSidebarView', () => {
 			{
 				items: ['notes'],
 				folders: new Map([
+					['home', {id: 'home', title: 'Home', type: 'system'}],
 					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
 					['notes', { id: 'notes', title: 'Notes', url: '#', type: 'regular' }],
 					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }]
@@ -189,10 +228,10 @@ describe('FolderSidebarView', () => {
 			expect.objectContaining({
 				kind: 'favorites',
 				type: 'view',
-				icon: 'star',
+				iconName: 'star',
 				isSelected: true,
 				noteCount: 2,
-				children: [expect.objectContaining({ id: 'work', kind: 'regular', icon: 'folder' })]
+				children: [expect.objectContaining({ id: 'work', kind: 'regular', iconName: 'folder' })]
 			})
 		);
 	});

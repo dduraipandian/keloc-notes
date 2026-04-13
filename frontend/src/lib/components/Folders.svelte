@@ -148,9 +148,9 @@
 			<div class="size-3.5 shrink-0"><!-- Spacer --></div>
 		{/if}
 
-		{#if source.icon === 'trash'}
+		{#if source.iconName === 'trash'}
 			<Trash2 size={16} class="text-destructive/70" />
-		{:else if source.icon === 'star'}
+		{:else if source.iconName === 'star'}
 			<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
 		{:else}
 			<Folder size={16} style="color: {FOLDER_COLOR}" class="opacity-80" />
