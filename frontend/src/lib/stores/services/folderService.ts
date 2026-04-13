@@ -20,7 +20,7 @@ export class FolderService {
 	create() {
 		const selectedFolder = this.selection.getSelectedFolder();
 		const parentFolderId =
-			selectedFolder && (selectedFolder.type === undefined || selectedFolder.type === 'regular')
+			selectedFolder && (!selectedFolder.kind || selectedFolder.kind === 'regular')
 				? this.selection.selectedFolderID
 				: null;
 		const newFolderId = this.folders.createFolder(parentFolderId);
@@ -104,8 +104,8 @@ export class FolderService {
 			return;
 		}
 
-		const folderType = folderId ? this.folders.findItemById(folderId)?.type : undefined;
-		const firstNote = this.tree.getNotesForFolder(folderId, folderType)[0] ?? null;
+		const folder = this.folders.findItemById(folderId);
+		const firstNote = this.tree.getNotesForFolder(folderId, folder?.kind)[0] ?? null;
 		this.notes.selectNote(firstNote?.id ?? null);
 	}
 

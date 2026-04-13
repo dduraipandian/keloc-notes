@@ -1,4 +1,4 @@
-export type FolderType = 'all' | 'trash' | 'regular' | 'system';
+export type SidebarKind = 'trash' | 'favorites' | 'home' | 'regular' | 'deleted';
 
 export type FolderID = string;
 
@@ -6,7 +6,7 @@ export type FolderItem = {
 	id: FolderID;
 	title: string;
 	url: string;
-	type?: FolderType;
+	kind?: SidebarKind;
 	isFavorite?: boolean;
 	badge?: number;
 	items?: FolderID[];
@@ -27,7 +27,7 @@ class FolderStore {
 	trashItems = $derived.by(() => {
 		const deletedIds: string[] = [];
 		for (const [id, folder] of this.folders.entries()) {
-			if (folder.type !== 'trash' && folder.deletedAt != null) {
+			if (folder.kind !== 'trash' && folder.deletedAt != null) {
 				const parent = folder.parentId ? this.folders.get(folder.parentId) : null;
 				if (!parent || parent.deletedAt == null) {
 					deletedIds.push(id);
@@ -229,7 +229,7 @@ class FolderStore {
 			for (const id of ids) {
 				const folder = this.folders.get(id);
 				if (!folder) continue;
-				if (!folder.type || folder.type === 'regular') return folder.id;
+				if (!folder.kind || folder.kind === 'regular') return folder.id;
 				if (folder.items) {
 					const found = findRegular(folder.items);
 					if (found) return found;
@@ -265,7 +265,7 @@ const systemFolders: FolderItem[] = [
 		url: '#',
 		items: [],
 		parentId: null,
-		type: 'system',
+		kind: 'home',
 		isFavorite: false,
 		deletedAt: null
 	},
@@ -275,7 +275,7 @@ const systemFolders: FolderItem[] = [
 		url: '#',
 		items: [],
 		parentId: null,
-		type: 'trash',
+		kind: 'trash',
 		isFavorite: false,
 		deletedAt: null
 	},
@@ -285,7 +285,7 @@ const systemFolders: FolderItem[] = [
 		url: '#',
 		items: [],
 		parentId: null,
-		type: 'system',
+		kind: 'favorites',
 		isFavorite: false,
 		deletedAt: null
 	}

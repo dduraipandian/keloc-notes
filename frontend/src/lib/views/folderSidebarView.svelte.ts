@@ -1,4 +1,4 @@
-import { folderStore, type FolderID, type FolderItem } from '$lib/stores/folders.svelte';
+import { folderStore, type FolderID, type FolderItem, type SidebarKind } from '$lib/stores/folders.svelte';
 import { folderService, noteService, trashService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStore } from '$lib/stores/dialog.svelte';
@@ -9,7 +9,6 @@ import Trash2 from '@lucide/svelte/icons/trash-2';
 
 const FOLDER_COLOR = '#dcb15a'; // Apple-style gold/folder color
 
-export type SidebarKind = 'trash' | 'favorites' | 'home' | 'regular' | 'deleted';
 export type FolderIcon = 'folder' | 'star' | 'trash';
 export type ContextMenuItemVariant = 'default' | 'destructive';
 
@@ -169,7 +168,9 @@ export class FolderSidebarView {
 					.map((id) => this.folders.folders.get(id))
 					.filter(
 						(item): item is FolderItem =>
-							!!item && item.deletedAt == null && item.type !== 'trash' && item.type !== 'system'
+							!!item &&
+							item.deletedAt == null &&
+							(!item.kind || item.kind === 'regular')
 					)
 					.map((item) => this.buildSource(item, 0, false))
 			}
@@ -178,10 +179,7 @@ export class FolderSidebarView {
 
 	private resolveKind(item: FolderItem): SidebarKind {
 		if (item.deletedAt != null) return 'deleted';
-		if (item.type === 'trash') return 'trash';
-		if (item.id === 'favorites') return 'favorites';
-		if (item.id === 'home') return 'home';
-		return 'regular';
+		return item.kind ?? 'regular';
 	}
 
 	private resolveChildIds(kind: SidebarKind, item: FolderItem): FolderID[] {
@@ -190,6 +188,8 @@ export class FolderSidebarView {
 				return this.folderQueries.getTrashRootIds();
 			case 'favorites':
 				return this.folderQueries.getFavoriteFolderIds();
+			case 'home':
+				return this.folderQueries.getHomeFolderChildIds();
 			case 'deleted':
 				return [];
 			default:
@@ -218,7 +218,7 @@ export class FolderSidebarView {
 			isSelected: this.selection.selectedFolderID === item.id,
 			isEditing: this.folders.editingId === item.id,
 			isOpen: item.isOpen ?? false,
-			noteCount: this.noteQueries.getNoteCountForFolder(item.id, item.type),
+			noteCount: this.noteQueries.getNoteCountForFolder(item.id, item.kind),
 			children: visibleChildIds
 				.map((id) => this.folders.folders.get(id))
 				.filter((child): child is FolderItem => !!child)

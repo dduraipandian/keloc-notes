@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { FolderTreeHelper } from '../../src/lib/stores/domain/folderTree';
-import type { FolderID, FolderItem } from '../../src/lib/stores/folders.svelte';
+import type { FolderID, FolderItem, SidebarKind } from '../../src/lib/stores/folders.svelte';
 import type { NoteItem } from '../../src/lib/stores/notes.svelte';
 
 describe('FolderTreeHelper', () => {
@@ -63,7 +63,7 @@ describe('FolderTreeHelper', () => {
 
 		it('should return regular notes for active folder', () => {
 			const folders = new Map<FolderID, FolderItem>([
-				{ id: 'f1', title: 'Work', deletedAt: null } as any
+				{ id: 'f1', title: 'Work', deletedAt: null, kind: 'regular' } as any
 			].map(f => [f.id, f]));
 
 			const helper = new FolderTreeHelper(mockFolders(folders) as any, mockNotes(notes) as any);
@@ -85,11 +85,20 @@ describe('FolderTreeHelper', () => {
 			expect(result.map(n => n.id)).toContain('n3');
 		});
 
-		it('should support "all" virtual view', () => {
+		it('should support "home" virtual view', () => {
 			const helper = new FolderTreeHelper(mockFolders(new Map()) as any, mockNotes(notes) as any);
-			const result = helper.getNotesForFolder(null, 'all');
+			const result = helper.getNotesForFolder(null, 'home');
+			expect(result).toHaveLength(0); // My notes have folderId: f1, f2.
+		});
+
+		it('should return notes with null folderId for "home" view', () => {
+			const rootNotes = [
+				{ id: 'rn1', title: 'Root Note', folderId: null, deletedAt: null, updatedAt: '2025-01-01T12:00:00Z' } as any
+			];
+			const helper = new FolderTreeHelper(mockFolders(new Map()) as any, mockNotes(rootNotes) as any);
+			const result = helper.getNotesForFolder(null, 'home');
 			expect(result).toHaveLength(1);
-			expect(result[0].id).toBe('n1');
+			expect(result[0].id).toBe('rn1');
 		});
 	});
 

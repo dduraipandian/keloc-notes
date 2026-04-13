@@ -1,5 +1,5 @@
 import { groupNotesByDate } from '$lib/utils';
-import { folderStore, type FolderID, type FolderItem, type FolderType } from '$lib/stores/folders.svelte';
+import { folderStore, type FolderID, type FolderItem, type SidebarKind } from '$lib/stores/folders.svelte';
 import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
 import { folderService, noteService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
@@ -19,7 +19,7 @@ export class NoteListView {
 
 	canCreateNote() {
 		const selectedFolder = this.selection.getSelectedFolder();
-		return selectedFolder?.type !== 'trash' && selectedFolder?.type !== 'system';
+		return selectedFolder?.kind !== 'trash' && selectedFolder?.kind !== 'favorites';
 	}
 
 	canDeleteSelectedNote() {
@@ -50,7 +50,7 @@ export class NoteListView {
 		const selectedFolder = this.selection.getSelectedFolder();
 		const visibleNotes = this.noteQueries.getNotesForFolder(
 			this.selection.selectedFolderID ?? null,
-			selectedFolder?.type
+			selectedFolder?.kind
 		);
 
 		if (!normalizedQuery) return visibleNotes;

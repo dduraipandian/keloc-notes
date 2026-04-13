@@ -1,4 +1,4 @@
-import type { FolderID, FolderItem, FolderType } from '../folders.svelte';
+import type { FolderID, FolderItem, SidebarKind } from '../folders.svelte';
 import type { NoteItem } from '../notes.svelte';
 import type { FolderStoreLike, NotesStoreLike } from '../services/types';
 import { snapshotFolder } from '../services/helpers';
@@ -59,6 +59,13 @@ export class FolderTreeHelper {
 		return this.folders.trashItems;
 	}
 
+	getHomeFolderChildIds(): FolderID[] {
+		return this.folders.items.filter((id) => {
+			const folder = this.folders.findItemById(id);
+			return folder && (!folder.kind || folder.kind === 'regular') && folder.deletedAt == null;
+		});
+	}
+
 	getFavoriteFolderIds(): FolderID[] {
 		const result: FolderID[] = [];
 		for (const [id, folder] of this.folders.folders.entries()) {
@@ -66,8 +73,7 @@ export class FolderTreeHelper {
 				folder &&
 				folder.isFavorite === true &&
 				folder.deletedAt == null &&
-				folder.type !== 'trash' &&
-				folder.type !== 'system'
+				(!folder.kind || folder.kind === 'regular')
 			) {
 				result.push(id);
 			}
@@ -83,16 +89,16 @@ export class FolderTreeHelper {
 		return result;
 	}
 
-	getNotesForFolder(folderId: FolderID | null, folderType?: FolderType) {
+	getNotesForFolder(folderId: FolderID | null, folderKind?: SidebarKind) {
 		if (!this.notes) return [];
 
 		let resultNotes: NoteItem[] = [];
 		const allNotes = this.notes.listNotes();
 
-		if (folderType === 'all') {
-			resultNotes = allNotes.filter((note) => note.deletedAt == null);
-		} else if (folderId === 'deleted-notes') {
+		if (folderKind === 'trash') {
 			resultNotes = allNotes.filter((note) => note.deletedAt != null);
+		} else if (folderKind === 'home') {
+			resultNotes = allNotes.filter((note) => note.folderId == null && note.deletedAt == null);
 		} else {
 			const currentFolder = folderId ? this.folders.findItemById(folderId) : null;
 			if (folderId != null && currentFolder && currentFolder.deletedAt != null) {
@@ -128,7 +134,12 @@ export class FolderTreeHelper {
 
 	private collectActiveFolderIds(folderId: FolderID, output: FolderID[]) {
 		const folder = this.folders.findItemById(folderId);
-		if (!folder || folder.type === 'trash' || folder.type === 'system' || folder.deletedAt != null) return;
+		if (
+			!folder ||
+			(folder.kind && folder.kind !== 'regular') ||
+			folder.deletedAt != null
+		)
+			return;
 
 		output.push(folder.id);
 

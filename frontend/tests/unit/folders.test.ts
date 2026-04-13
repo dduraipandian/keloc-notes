@@ -52,11 +52,11 @@ describe('FolderStore', () => {
 		expect(foldersRepository.save).toHaveBeenCalled();
 	});
 
-	it('should support folders with a type', () => {
-		const folder: FolderItem = { id: 'all', title: 'All', url: '#', type: 'all' };
-		folderStore.folders.set('all', folder);
-		folderStore.items = ['all'];
-		expect(folderStore.folders.get('all')?.type).toBe('all');
+	it('should support folders with a kind', () => {
+		const folder: FolderItem = { id: 'home', title: 'Home', url: '#', kind: 'home' };
+		folderStore.folders.set('home', folder);
+		folderStore.items = ['home'];
+		expect(folderStore.folders.get('home')?.kind).toBe('home');
 	});
 
 	it('should toggle a folder favorite flag', () => {
@@ -99,7 +99,7 @@ describe('FolderStore', () => {
 	});
 
 	it('should return existing regular folder as default', () => {
-		const folder: FolderItem = { id: 'existing', title: 'Existing', url: '#' };
+		const folder: FolderItem = { id: 'existing', title: 'Existing', url: '#', kind: 'regular' };
 		folderStore.folders.set('existing', folder);
 		folderStore.items = ['existing'];
 

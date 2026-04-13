@@ -1,0 +1,35 @@
+# Fix Sidebar System Folder Layout
+
+The goal is to ensure that system folders (Trash, Favorites, Home) are only displayed in the sidebar header ("Views" section) and do not appear in the "Folders" content section.
+
+## User Review Required
+
+> [!IMPORTANT]
+> This change will ensure that even if legacy data exists in the database for these folders, they will be correctly identified as system items and kept out of the regular folder list.
+
+## Proposed Changes
+
+### Domain Layer
+
+#### [MODIFY] [profiles.ts](file:///Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/domain/profiles.ts)
+- Update `resolveProfile` to include an ID-based fallback for system-reserved IDs (`deleted-notes`, `favorites`, `home`).
+- This ensures that items loaded from the database without a `profile` field still get the correct "Views" section assignment.
+
+### Folder Store
+
+#### [MODIFY] [folders.svelte.ts](file:///Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts)
+- **`loadItems`**: Add a check to prevent pushing system folders or duplicates into `this.items`. Root-level system folders should only exist in the `folders` map, not the `items` list used for the Folders section.
+- **`persist`**: Add a check to skip persistence for folders that have a `section === 'views'` profile, as these are managed locally.
+- **`createFolder`**: Minor cleanup to ensure default profiles are set correctly.
+
+## Verification Plan
+
+### Automated Tests
+- Run `npm run test tests/unit/folderSidebarView.test.ts` to ensure the sidebar still renders correctly.
+- Add a new unit test to verify that `loadItems` with system IDs does not duplicate them or put them in `items`.
+
+### Manual Verification
+1. Open the app.
+2. Verify that "Recently Deleted" and "Favorites" only appear in the header/top-level views.
+3. Verify they do not appear under the "FOLDERS" header.
+4. Create a new folder and verify it appears in the "FOLDERS" section as expected.

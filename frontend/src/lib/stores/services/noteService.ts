@@ -1,4 +1,4 @@
-import { folderStore, type FolderID, type FolderType } from '../folders.svelte';
+import { folderStore, type FolderID, type SidebarKind } from '../folders.svelte';
 import { notesStore, type NoteID, type NoteItem } from '../notes.svelte';
 import { selectionStore } from '../selection.svelte';
 import type { FolderStoreLike, NotesStoreLike, SelectionStoreLike } from './types';
@@ -21,7 +21,7 @@ export class NoteService {
 		let actualFolderId = folderId;
 		const folder = folderId ? this.folders.findItemById(folderId) : null;
 
-		if (!folderId || folder?.type === 'all' || folder?.type === 'trash' || folder?.type === 'system') {
+		if (!folderId || folder?.kind === 'trash' || folder?.kind === 'favorites') {
 			actualFolderId = this.folders.getDefaultFolderId();
 		}
 
@@ -41,7 +41,7 @@ export class NoteService {
 		const currentFolder = this.selection.getSelectedFolder();
 		const visibleNotes = this.tree.getNotesForFolder(
 			this.selection.selectedFolderID ?? null,
-			currentFolder?.type
+			currentFolder?.kind
 		);
 		const currentIndex = visibleNotes.findIndex((note) => note.id === noteId);
 		const nextNoteId =
@@ -55,17 +55,17 @@ export class NoteService {
 		this.notes.setFavorite(noteId, isFavorite);
 	}
 
-	getNotesForFolder(folderId: FolderID | null, folderType?: FolderType) {
+	getNotesForFolder(folderId: FolderID | null, folderKind?: SidebarKind) {
 		if (folderId === 'favorites') {
 			return this.notes
 				.listNotes()
 				.filter((note) => note.deletedAt == null && note.isFavorite === true)
 				.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 		}
-		return this.tree.getNotesForFolder(folderId, folderType);
+		return this.tree.getNotesForFolder(folderId, folderKind);
 	}
 
-	getNoteCountForFolder(folderId: FolderID | null, folderType?: FolderType) {
-		return this.getNotesForFolder(folderId, folderType).length;
+	getNoteCountForFolder(folderId: FolderID | null, folderKind?: SidebarKind) {
+		return this.getNotesForFolder(folderId, folderKind).length;
 	}
 }
