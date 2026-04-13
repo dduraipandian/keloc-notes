@@ -1,336 +1,433 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FolderSidebarView } from '../../src/lib/views/folderSidebarView.svelte';
 
-describe('FolderSidebarView', () => {
-	it('should expose root folder sources', () => {
-		const selector = new FolderSidebarView(
-			{
-				items: ['notes'],
-				folders: new Map([['notes', { id: 'notes', title: 'Notes', url: '#' }]])
-			} as any,
-			{ getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
-			{ getNoteCountForFolder: vi.fn().mockReturnValue(3) } as any,
-			{ selectedFolderID: 'notes', getSelectedFolder: vi.fn() } as any
-		);
+// Re-usable mock factory
+function createView(opts: {
+	items?: string[];
+	folders: Record<string, any>;
+	trashRootIds?: string[];
+	favoriteFolderIds?: string[];
+	noteCountFn?: (id: string) => number;
+	selectedFolderID?: string | null;
+	actions?: any;
+}) {
+	const foldersMap = new Map(Object.entries(opts.folders));
+	return new FolderSidebarView(
+		{ items: opts.items ?? [], folders: foldersMap, editingId: null } as any,
+		{
+			getTrashRootIds: vi.fn().mockReturnValue(opts.trashRootIds ?? []),
+			getFavoriteFolderIds: vi.fn().mockReturnValue(opts.favoriteFolderIds ?? [])
+		} as any,
+		{
+			getNoteCountForFolder: vi
+				.fn()
+				.mockImplementation(opts.noteCountFn ?? (() => 0))
+		} as any,
+		{
+			selectedFolderID: opts.selectedFolderID ?? null,
+			getSelectedFolder: vi.fn()
+		} as any,
+		opts.actions
+	);
+}
 
-		expect(selector.getSections().find((section) => section.id === 'folders')?.sources).toEqual([
-			expect.objectContaining({
-				id: 'notes',
-				kind: 'regular',
-				type: 'regular',
-				iconName: 'folder',
-				title: 'Notes',
-				isSelected: true,
-				noteCount: 3,
-				capabilities: expect.objectContaining({ create: true, rename: true, delete: true })
-			})
-		]);
-	});
+function findViewSource(view: FolderSidebarView, id: string) {
+	return view.getSections().find((s) => s.id === 'views')?.sources.find((s) => s.id === id);
+}
 
-	it('should expose header sources for trash', () => {
-		const selector = new FolderSidebarView(
-			{
-				folders: new Map([
-					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
-					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }],
-					['deleted-folder', { id: 'deleted-folder', title: 'Deleted', url: '#', deletedAt: 123 }]
-				])
-			} as any,
-			{
-				getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']),
-				getFavoriteFolderIds: vi.fn().mockReturnValue([])
-			} as any,
-			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
-			{ selectedFolderID: 'deleted-notes', getSelectedFolder: vi.fn() } as any
-		);
+function findFolderSource(view: FolderSidebarView, id: string) {
+	return view.getSections().find((s) => s.id === 'folders')?.sources.find((s) => s.id === id);
+}
 
-		expect(selector.getSections().find((section) => section.id === 'views')?.sources).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({
-					id: 'deleted-notes',
-					kind: 'trash',
-					type: 'view',
-					iconName: 'trash',
-					isSelected: true,
-					children: [
-						expect.objectContaining({
-							id: 'deleted-folder',
-							kind: 'deleted',
-							type: 'regular',
-							iconName: 'folder'
-						})
-					],
-					capabilities: expect.objectContaining({ emptyTrash: true })
-				})
-			])
-		);
-	});
+function defaultMockActions() {
+	return {
+		folderCreate: vi.fn(),
+		folderStartRename: vi.fn(),
+		folderDelete: vi.fn(),
+		folderSetFavorite: vi.fn(),
+		trashRecover: vi.fn(),
+		trashPermanentDelete: vi.fn(),
+		trashEmpty: vi.fn()
+	};
+}
 
-	it('should expose header source for home', () => {
-		const selector = new FolderSidebarView(
-			{
-				items: ['folder-1'],
-				folders: new Map([
-					['home', { id: 'home', title: 'Home', url: '#', type: 'system' }],
-					['folder-1', { id: 'folder-1', title: 'Folder 1', url: '#', deletedAt: null }]
-				])
-			} as any,
-			{
-				getTrashRootIds: vi.fn().mockReturnValue([]),
-				getFavoriteFolderIds: vi.fn().mockReturnValue([])
-			} as any,
-			{ getNoteCountForFolder: vi.fn().mockReturnValue(5) } as any,
-			{ selectedFolderID: 'home', getSelectedFolder: vi.fn() } as any
-		);
-
-		const home = selector.getSections().find((s) => s.id === 'views')?.sources.find((s) => s.id === 'home');
-		
-		expect(home).toEqual(
-			expect.objectContaining({
-				id: 'home',
-				kind: 'home',
-				type: 'view',
-				iconName: 'folder',
-				isSelected: true,
-				noteCount: 5,
-				children: [
-					expect.objectContaining({
-						id: 'folder-1',
-						kind: 'regular'
-					})
-				],
-				capabilities: expect.objectContaining({ create: true, rename: false })
-			})
-		);
-	});
-
-	it('should hide deleted children in the regular tree', () => {
-		const selector = new FolderSidebarView(
-			{
-				items: ['parent'],
-				folders: new Map([
-					['parent', { id: 'parent', title: 'Parent', url: '#', items: ['child-a', 'child-b'] }],
-					['child-a', { id: 'child-a', title: 'A', url: '#', deletedAt: null }],
-					['child-b', { id: 'child-b', title: 'B', url: '#', deletedAt: 123 }]
-				])
-			} as any,
-			{ getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
-			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
-			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
-		);
-
-		expect(
-			selector.getSections().find((section) => section.id === 'folders')?.sources[0]?.children
-		).toEqual([expect.objectContaining({ id: 'child-a' })]);
-	});
-
-	it('should expose note counts for a folder source', () => {
-		const selector = new FolderSidebarView(
-			{
-				items: ['notes'],
-				folders: new Map([['notes', { id: 'notes', title: 'Notes', url: '#', type: 'regular' }]])
-			} as any,
-			{ getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
-			{ getNoteCountForFolder: vi.fn().mockReturnValue(3) } as any,
-			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
-		);
-
-		expect(
-			selector.getSections().find((section) => section.id === 'folders')?.sources[0]?.noteCount
-		).toBe(3);
-	});
-
-	it('should expose trash item capabilities through the shared source model', () => {
-		const selector = new FolderSidebarView(
-			{
-				folders: new Map([
-					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
-					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }],
-					['deleted-folder', { id: 'deleted-folder', title: 'Deleted', url: '#', deletedAt: 123 }]
-				])
-			} as any,
-			{
-				getTrashRootIds: vi.fn().mockReturnValue(['deleted-folder']),
-				getFavoriteFolderIds: vi.fn().mockReturnValue([])
-			} as any,
-			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
-			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
-		);
-
-		const deletedFolder = selector
-			.getSections()
-			.find((section) => section.id === 'views')
-			?.sources.find((source) => source.id === 'deleted-notes')?.children[0];
-
-		expect(deletedFolder?.capabilities).toEqual(
-			expect.objectContaining({
-				recover: true,
-				permanentDelete: true,
-				create: false,
-				rename: false,
-				delete: false,
-				emptyTrash: false
-			})
-		);
-	});
-
-	it('should expose sidebar sections through the registry', () => {
-		const selector = new FolderSidebarView(
-			{
-				items: ['notes'],
-				folders: new Map([
-					['home', {id: 'home', title: 'Home', type: 'system'}],
-					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
-					['notes', { id: 'notes', title: 'Notes', url: '#', type: 'regular' }],
-					['deleted-notes', { id: 'deleted-notes', title: 'Trash', url: '#', type: 'trash' }]
-				])
-			} as any,
-			{
-				getTrashRootIds: vi.fn().mockReturnValue([]),
-				getFavoriteFolderIds: vi.fn().mockReturnValue([])
-			} as any,
-			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
-			{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any
-		);
-
-		expect(selector.getSections()).toEqual([
-			expect.objectContaining({ id: 'views', label: null }),
-			expect.objectContaining({ id: 'folders', label: 'Folders' })
-		]);
-	});
-
-	it('should expose favorites as a virtual view with favorite folders as children', () => {
-		const selector = new FolderSidebarView(
-			{
-				folders: new Map([
-					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
-					['work', { id: 'work', title: 'Work', url: '#', isFavorite: true, deletedAt: null }]
-				])
-			} as any,
-			{
-				getTrashRootIds: vi.fn().mockReturnValue([]),
-				getFavoriteFolderIds: vi.fn().mockReturnValue(['work'])
-			} as any,
-			{
-				getNoteCountForFolder: vi
-					.fn()
-					.mockImplementation((id: string) => (id === 'favorites' ? 2 : 1))
-			} as any,
-			{ selectedFolderID: 'favorites', getSelectedFolder: vi.fn() } as any
-		);
-
-		const favorites = selector
-			.getSections()
-			.find((section) => section.id === 'views')
-			?.sources.find((source) => source.id === 'favorites');
-
-		expect(favorites).toEqual(
-			expect.objectContaining({
-				kind: 'favorites',
-				type: 'view',
-				iconName: 'star',
-				isSelected: true,
-				noteCount: 2,
-				children: [expect.objectContaining({ id: 'work', kind: 'regular', iconName: 'folder' })]
-			})
-		);
-	});
-
-	it('should hide deleted favorite folders from the favorites virtual view immediately', () => {
-		const selector = new FolderSidebarView(
-			{
-				folders: new Map([
-					['favorites', { id: 'favorites', title: 'Favorites', url: '#', type: 'system' }],
-					['work', { id: 'work', title: 'Work', url: '#', isFavorite: true, deletedAt: 123 }]
-				])
-			} as any,
-			{
-				getTrashRootIds: vi.fn().mockReturnValue([]),
-				getFavoriteFolderIds: vi.fn().mockReturnValue([])
-			} as any,
-			{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
-			{ selectedFolderID: 'favorites', getSelectedFolder: vi.fn() } as any
-		);
-
-		const favorites = selector
-			.getSections()
-			.find((section) => section.id === 'views')
-			?.sources.find((source) => source.id === 'favorites');
-
-		expect(favorites?.children).toEqual([]);
-	});
-
-	describe('contextMenuItems', () => {
-		const mockActions = {
-			folderCreate: vi.fn(),
-			folderStartRename: vi.fn(),
-			folderDelete: vi.fn(),
-			folderSetFavorite: vi.fn(),
-			trashRecover: vi.fn(),
-			trashPermanentDelete: vi.fn(),
-			trashEmpty: vi.fn()
-		};
-
-		it('should generate correct items for a regular folder', () => {
-			const selector = new FolderSidebarView(
-				{
-					items: ['work'],
-					folders: new Map([
-						['work', { id: 'work', title: 'Work', url: '#', type: 'regular', isFavorite: false }]
-					])
-				} as any,
-				{ getFavoriteFolderIds: vi.fn().mockReturnValue([]) } as any,
-				{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
-				{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any,
-				mockActions as any
-			);
-
-			const source = selector.getSections().find((s) => s.id === 'folders')?.sources[0];
-			const labels = source?.contextMenuItems.map((m) => m.label);
-
-			expect(labels).toContain('New Folder');
-			expect(labels).toContain('Add To Favorites');
-			expect(labels).toContain('Rename');
-			expect(labels).toContain('Delete');
-
-			const deleteItem = source?.contextMenuItems.find((m) => m.label === 'Delete');
-			expect(deleteItem?.variant).toBe('destructive');
-
-			const renameItem = source?.contextMenuItems.find((m) => m.label === 'Rename');
-			expect(renameItem?.separatorAfter).toBe(true);
-
-			deleteItem?.action();
-			expect(mockActions.folderDelete).toHaveBeenCalledWith('work');
+describe('sections', () => {
+	it('has views section with null label and folders section with "Folders" label', () => {
+		const view = createView({
+			items: ['work'],
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' },
+				work: { id: 'work', title: 'Work', type: 'regular' }
+			}
 		});
+		const sections = view.getSections();
+		expect(sections[0]).toMatchObject({ id: 'views', label: null });
+		expect(sections[1]).toMatchObject({ id: 'folders', label: 'Folders' });
+	});
 
-		it('should generate correct items for trash root', () => {
-			const selector = new FolderSidebarView(
-				{
-					folders: new Map([
-						['deleted-notes', { id: 'deleted-notes', title: 'Trash', type: 'trash' }]
-					])
-				} as any,
-				{
-					getTrashRootIds: vi.fn().mockReturnValue([]),
-					getFavoriteFolderIds: vi.fn().mockReturnValue([])
-				} as any,
-				{ getNoteCountForFolder: vi.fn().mockReturnValue(0) } as any,
-				{ selectedFolderID: null, getSelectedFolder: vi.fn() } as any,
-				mockActions as any
-			);
-
-			const source = selector
-				.getSections()
-				.find((s) => s.id === 'views')
-				?.sources.find((s) => s.id === 'deleted-notes');
-			const labels = source?.contextMenuItems.map((m) => m.label);
-
-			expect(labels).toEqual(['Empty Trash']);
-			const emptyItem = source?.contextMenuItems[0];
-			expect(emptyItem?.variant).toBe('destructive');
-
-			emptyItem?.action();
-			expect(mockActions.trashEmpty).toHaveBeenCalled();
+	it('excludes system and trash folders from the folders section', () => {
+		const view = createView({
+			items: ['work', 'deleted-notes', 'favorites', 'home'],
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' },
+				work: { id: 'work', title: 'Work', type: 'regular' }
+			}
 		});
+		const folderSources = view.getSections().find((s) => s.id === 'folders')?.sources ?? [];
+		expect(folderSources.map((s) => s.id)).toEqual(['work']);
+	});
+});
+
+describe('trash profile', () => {
+	it('resolves trash kind and has emptyTrash capability', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' }
+			}
+		});
+		const trash = findViewSource(view, 'deleted-notes');
+		expect(trash?.kind).toBe('trash');
+		expect(trash?.capabilities.emptyTrash).toBe(true);
+		expect(trash?.capabilities.create).toBe(false);
+	});
+
+	it('shows deleted folders as children from getTrashRootIds', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' },
+				'del-1': { id: 'del-1', title: 'Deleted Folder', deletedAt: 100 }
+			},
+			trashRootIds: ['del-1']
+		});
+		const trash = findViewSource(view, 'deleted-notes');
+		expect(trash?.children).toHaveLength(1);
+		expect(trash?.children[0].id).toBe('del-1');
+		expect(trash?.children[0].kind).toBe('deleted');
+	});
+
+	it('does not show sub-children of deleted folders (trash is flat)', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' },
+				'del-1': { id: 'del-1', title: 'Deleted', deletedAt: 100, items: ['sub-1'] },
+				'sub-1': { id: 'sub-1', title: 'Sub', deletedAt: 100, parentId: 'del-1' }
+			},
+			trashRootIds: ['del-1']
+		});
+		const deletedChild = findViewSource(view, 'deleted-notes')?.children[0];
+		expect(deletedChild?.children).toEqual([]);
+	});
+
+	it('context menu has only "Empty Trash"', () => {
+		const actions = defaultMockActions();
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' }
+			},
+			actions
+		});
+		const trash = findViewSource(view, 'deleted-notes');
+		expect(trash?.contextMenuItems.map((m) => m.label)).toEqual(['Empty Trash']);
+		trash?.contextMenuItems[0].action();
+		expect(actions.trashEmpty).toHaveBeenCalled();
+	});
+});
+
+describe('favorites profile', () => {
+	it('resolves favorites kind with star icon', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' }
+			}
+		});
+		const fav = findViewSource(view, 'favorites');
+		expect(fav?.kind).toBe('favorites');
+		expect(fav?.icon).toEqual(expect.any(Function)); // Star component
+	});
+
+	it('shows favorite folders as children', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' },
+				work: { id: 'work', title: 'Work', isFavorite: true, deletedAt: null }
+			},
+			favoriteFolderIds: ['work']
+		});
+		const fav = findViewSource(view, 'favorites');
+		expect(fav?.children).toHaveLength(1);
+		expect(fav?.children[0].id).toBe('work');
+	});
+
+	it('hides deleted favorites', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' },
+				work: { id: 'work', title: 'Work', isFavorite: true, deletedAt: 123 }
+			},
+			favoriteFolderIds: ['work']
+		});
+		const fav = findViewSource(view, 'favorites');
+		expect(fav?.children).toEqual([]);
+	});
+
+	it('does not show sub-children of favorite folders', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' },
+				work: { id: 'work', title: 'Work', isFavorite: true, deletedAt: null, items: ['sub'] },
+				sub: { id: 'sub', title: 'Sub', parentId: 'work', deletedAt: null }
+			},
+			favoriteFolderIds: ['work']
+		});
+		const favChild = findViewSource(view, 'favorites')?.children[0];
+		expect(favChild?.children).toEqual([]);
+	});
+
+	it('has no capabilities and empty context menu', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' }
+			}
+		});
+		const fav = findViewSource(view, 'favorites');
+		expect(fav?.capabilities.create).toBe(false);
+		expect(fav?.capabilities.favorite).toBe(false);
+		expect(fav?.contextMenuItems).toEqual([]);
+	});
+});
+
+describe('home profile', () => {
+	it('resolves home kind for the home system folder', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' }
+			}
+		});
+		const home = findViewSource(view, 'home');
+		expect(home?.kind).toBe('home');
+	});
+
+	it('allows creating sub-folders but not rename/delete/favorite', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' }
+			}
+		});
+		const home = findViewSource(view, 'home');
+		expect(home?.capabilities.create).toBe(true);
+		expect(home?.capabilities.rename).toBe(false);
+		expect(home?.capabilities.delete).toBe(false);
+		expect(home?.capabilities.favorite).toBe(false);
+	});
+
+	it('shows sub-folders and they can expand (childrenExpandable=true)', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system', items: ['sub'] },
+				sub: { id: 'sub', title: 'Sub', parentId: 'home', deletedAt: null, items: ['sub-sub'] },
+				'sub-sub': { id: 'sub-sub', title: 'SubSub', parentId: 'sub', deletedAt: null }
+			}
+		});
+		const home = findViewSource(view, 'home');
+		expect(home?.children).toHaveLength(1);
+		expect(home?.children[0].children).toHaveLength(1); // Sub-children expand
+	});
+
+	it('context menu has only "New Folder"', () => {
+		const actions = defaultMockActions();
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' }
+			},
+			actions
+		});
+		const home = findViewSource(view, 'home');
+		expect(home?.contextMenuItems.map((m) => m.label)).toEqual(['New Folder']);
+	});
+});
+
+describe('regular profile', () => {
+	it('resolves regular kind with folder icon', () => {
+		const view = createView({
+			items: ['work'],
+			folders: { work: { id: 'work', title: 'Work', type: 'regular' } }
+		});
+		const work = findFolderSource(view, 'work');
+		expect(work?.kind).toBe('regular');
+	});
+
+	it('has full capabilities: create, rename, delete, favorite', () => {
+		const view = createView({
+			items: ['work'],
+			folders: { work: { id: 'work', title: 'Work', type: 'regular' } }
+		});
+		const work = findFolderSource(view, 'work');
+		expect(work?.capabilities).toMatchObject({
+			create: true, rename: true, delete: true, favorite: true,
+			recover: false, permanentDelete: false, emptyTrash: false
+		});
+	});
+
+	it('shows children from item.items and hides deleted ones', () => {
+		const view = createView({
+			items: ['parent'],
+			folders: {
+				parent: { id: 'parent', title: 'Parent', items: ['alive', 'dead'] },
+				alive: { id: 'alive', title: 'Alive', deletedAt: null },
+				dead: { id: 'dead', title: 'Dead', deletedAt: 123 }
+			}
+		});
+		const parent = findFolderSource(view, 'parent');
+		expect(parent?.children.map((c) => c.id)).toEqual(['alive']);
+	});
+
+	it('children can expand to show their sub-children', () => {
+		const view = createView({
+			items: ['parent'],
+			folders: {
+				parent: { id: 'parent', title: 'Parent', items: ['child'] },
+				child: { id: 'child', title: 'Child', parentId: 'parent', items: ['grandchild'] },
+				grandchild: { id: 'grandchild', title: 'Grandchild', parentId: 'child' }
+			}
+		});
+		const child = findFolderSource(view, 'parent')?.children[0];
+		expect(child?.children).toHaveLength(1);
+		expect(child?.children[0].id).toBe('grandchild');
+	});
+
+	it('context menu has New Folder, Add To Favorites, Rename, Delete', () => {
+		const actions = defaultMockActions();
+		const view = createView({
+			items: ['work'],
+			folders: { work: { id: 'work', title: 'Work', type: 'regular', isFavorite: false } },
+			actions
+		});
+		const work = findFolderSource(view, 'work');
+		const labels = work?.contextMenuItems.map((m) => m.label);
+		expect(labels).toEqual(['New Folder', 'Add To Favorites', 'Rename', 'Delete']);
+	});
+
+	it('context menu shows "Remove From Favorites" when folder is favorited', () => {
+		const view = createView({
+			items: ['work'],
+			folders: { work: { id: 'work', title: 'Work', type: 'regular', isFavorite: true } },
+			actions: defaultMockActions()
+		});
+		const work = findFolderSource(view, 'work');
+		expect(work?.contextMenuItems.map((m) => m.label)).toContain('Remove From Favorites');
+	});
+
+	it('Delete action calls folderDelete with the folder id', () => {
+		const actions = defaultMockActions();
+		const view = createView({
+			items: ['work'],
+			folders: { work: { id: 'work', title: 'Work', type: 'regular', isFavorite: false } },
+			actions
+		});
+		const work = findFolderSource(view, 'work');
+		work?.contextMenuItems.find((m) => m.label === 'Delete')?.action();
+		expect(actions.folderDelete).toHaveBeenCalledWith('work');
+	});
+});
+
+describe('deleted profile', () => {
+	it('resolves deleted kind for items with deletedAt', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' },
+				'del-1': { id: 'del-1', title: 'Deleted', deletedAt: 100 }
+			},
+			trashRootIds: ['del-1']
+		});
+		const child = findViewSource(view, 'deleted-notes')?.children[0];
+		expect(child?.kind).toBe('deleted');
+	});
+
+	it('has recover and permanentDelete capabilities only', () => {
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' },
+				'del-1': { id: 'del-1', title: 'Deleted', deletedAt: 100 }
+			},
+			trashRootIds: ['del-1']
+		});
+		const child = findViewSource(view, 'deleted-notes')?.children[0];
+		expect(child?.capabilities).toMatchObject({
+			recover: true, permanentDelete: true,
+			create: false, rename: false, delete: false, favorite: false
+		});
+	});
+
+	it('context menu has Recover Folder and Delete Permanently', () => {
+		const actions = defaultMockActions();
+		const view = createView({
+			folders: {
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', type: 'trash' },
+				favorites: { id: 'favorites', title: 'Favorites', type: 'system' },
+				home: { id: 'home', title: 'Home', type: 'system' },
+				'del-1': { id: 'del-1', title: 'Deleted', deletedAt: 100 }
+			},
+			trashRootIds: ['del-1'],
+			actions
+		});
+		const child = findViewSource(view, 'deleted-notes')?.children[0];
+		const labels = child?.contextMenuItems.map((m) => m.label);
+		expect(labels).toEqual(['Recover Folder', 'Delete Permanently']);
+	});
+});
+
+describe('selection and note counts', () => {
+	it('marks the selected folder as selected', () => {
+		const view = createView({
+			items: ['work'],
+			folders: { work: { id: 'work', title: 'Work' } },
+			selectedFolderID: 'work'
+		});
+		const work = findFolderSource(view, 'work');
+		expect(work?.isSelected).toBe(true);
+	});
+
+	it('exposes note count from noteQueries', () => {
+		const view = createView({
+			items: ['work'],
+			folders: { work: { id: 'work', title: 'Work' } },
+			noteCountFn: (id) => (id === 'work' ? 5 : 0)
+		});
+		const work = findFolderSource(view, 'work');
+		expect(work?.noteCount).toBe(5);
 	});
 });

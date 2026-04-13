@@ -1,7 +1,11 @@
-import { folderStore, type FolderID, type FolderItem, type FolderType } from '$lib/stores/folders.svelte';
+import { folderStore, type FolderID, type FolderItem } from '$lib/stores/folders.svelte';
 import { folderService, noteService, trashService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStore } from '$lib/stores/dialog.svelte';
+import type { Component } from 'svelte';
+import Folder from '@lucide/svelte/icons/folder';
+import Star from '@lucide/svelte/icons/star';
+import Trash2 from '@lucide/svelte/icons/trash-2';
 
 const FOLDER_COLOR = '#dcb15a'; // Apple-style gold/folder color
 
@@ -9,25 +13,14 @@ export type SidebarKind = 'trash' | 'favorites' | 'home' | 'regular' | 'deleted'
 export type FolderIcon = 'folder' | 'star' | 'trash';
 export type ContextMenuItemVariant = 'default' | 'destructive';
 
-export type SidebarItemProfile = {
-	kind: SidebarKind;
-	type: 'view' | 'regular';
-	iconName: FolderIcon;
-	getChildIds: (
-		folders: typeof folderStore,
-		folderQueries: typeof folderService,
-		item: FolderItem
-	) => FolderID[];
-	filterChildren: (folders: typeof folderStore, id: FolderID) => boolean;
-	capabilities: {
-		create: boolean;
-		rename: boolean;
-		delete: boolean;
-		recover: boolean;
-		permanentDelete: boolean;
-		emptyTrash: boolean;
-		favorite: boolean;
-	};
+export type SidebarCapabilities = {
+	create: boolean;
+	rename: boolean;
+	delete: boolean;
+	recover: boolean;
+	permanentDelete: boolean;
+	emptyTrash: boolean;
+	favorite: boolean;
 };
 
 export type ContextMenuItem = {
@@ -41,8 +34,8 @@ export type SidebarSourceItem = {
 	id: FolderID;
 	item: FolderItem;
 	kind: SidebarKind;
-	type: string;
-	iconName: FolderIcon;
+	icon: Component<any>;
+	iconProps: Record<string, any>;
 	title: string;
 	depth: number;
 	isSelected: boolean;
@@ -50,7 +43,7 @@ export type SidebarSourceItem = {
 	isOpen: boolean;
 	noteCount: number;
 	children: SidebarSourceItem[];
-	capabilities: SidebarItemProfile['capabilities'];
+	capabilities: SidebarCapabilities;
 	contextMenuItems: ContextMenuItem[];
 };
 
@@ -70,90 +63,69 @@ type SidebarActionDeps = {
 	trashEmpty: () => void;
 };
 
-const PROFILES: Record<SidebarKind, SidebarItemProfile> = {
-	home: {
-		kind: 'home',
-		type: 'view',
-		iconName: 'folder',
-		getChildIds: (st) =>
-			st.items.filter((id) => {
-				const f = st.folders.get(id);
-				return f && f.type !== 'system' && f.type !== 'trash';
-			}),
-		filterChildren: (st, id) => st.folders.get(id)?.deletedAt == null,
+type SidebarProfileConfig = {
+	iconName: FolderIcon;
+	capabilities: SidebarCapabilities;
+	childrenExpandable: boolean;
+	showDeletedChildren: boolean;
+};
+
+const ICON_REGISTRY: Record<FolderIcon, { component: Component<any>; props: Record<string, any> }> = {
+	folder: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } },
+	star: { component: Star as any, props: { class: 'fill-[#e0b64b] text-[#e0b64b]' } },
+	trash: { component: Trash2 as any, props: { class: 'text-destructive/70' } }
+};
+
+const PROFILE_REGISTRY: Record<SidebarKind, SidebarProfileConfig> = {
+	trash: {
+		iconName: 'trash',
 		capabilities: {
-			create: true,
-			rename: false,
-			delete: false,
-			recover: false,
-			permanentDelete: false,
-			emptyTrash: false,
-			favorite: false
-		}
+			create: false, rename: false, delete: false,
+			recover: false, permanentDelete: false,
+			emptyTrash: true, favorite: false
+		},
+		childrenExpandable: false,
+		showDeletedChildren: true
 	},
 	favorites: {
-		kind: 'favorites',
-		type: 'view',
 		iconName: 'star',
-		getChildIds: (_, q) => q.getFavoriteFolderIds(),
-		filterChildren: (st, id) => st.folders.get(id)?.deletedAt == null,
 		capabilities: {
-			create: false,
-			rename: false,
-			delete: false,
-			recover: false,
-			permanentDelete: false,
-			emptyTrash: false,
-			favorite: false
-		}
+			create: false, rename: false, delete: false,
+			recover: false, permanentDelete: false,
+			emptyTrash: false, favorite: false
+		},
+		childrenExpandable: false,
+		showDeletedChildren: false
 	},
-	trash: {
-		kind: 'trash',
-		type: 'view',
-		iconName: 'trash',
-		getChildIds: (_, q) => q.getTrashRootIds(),
-		filterChildren: () => true, // All trash roots are visible
+	home: {
+		iconName: 'folder',
 		capabilities: {
-			create: false,
-			rename: false,
-			delete: false,
-			recover: false,
-			permanentDelete: false,
-			emptyTrash: true,
-			favorite: false
-		}
+			create: true, rename: false, delete: false,
+			recover: false, permanentDelete: false,
+			emptyTrash: false, favorite: false
+		},
+		childrenExpandable: true,
+		showDeletedChildren: false
 	},
 	regular: {
-		kind: 'regular',
-		type: 'regular',
 		iconName: 'folder',
-		getChildIds: (_, __, item) => item.items || [],
-		filterChildren: (st, id) => st.folders.get(id)?.deletedAt == null,
 		capabilities: {
-			create: true,
-			rename: true,
-			delete: true,
-			recover: false,
-			permanentDelete: false,
-			emptyTrash: false,
-			favorite: true
-		}
+			create: true, rename: true, delete: true,
+			recover: false, permanentDelete: false,
+			emptyTrash: false, favorite: true
+		},
+		childrenExpandable: true,
+		showDeletedChildren: false
 	},
 	deleted: {
-		kind: 'deleted',
-		type: 'regular',
 		iconName: 'folder',
-		getChildIds: (_, __, item) => item.items || [],
-		filterChildren: () => true,
 		capabilities: {
-			create: false,
-			rename: false,
-			delete: false,
-			recover: true,
-			permanentDelete: true,
-			emptyTrash: false,
-			favorite: false
-		}
+			create: false, rename: false, delete: false,
+			recover: true, permanentDelete: true,
+			emptyTrash: false, favorite: false
+		},
+		childrenExpandable: false,
+		showDeletedChildren: false
 	}
 };
 
@@ -188,7 +160,7 @@ export class FolderSidebarView {
 				sources: ['home', 'favorites', 'deleted-notes']
 					.map((id) => this.folders.folders.get(id))
 					.filter((item): item is FolderItem => !!item)
-					.map((item) => this.buildSource(item, 0, true))
+					.map((item) => this.buildSource(item, 0, false))
 			},
 			{
 				id: 'folders',
@@ -204,25 +176,43 @@ export class FolderSidebarView {
 		];
 	}
 
-	private resolveProfile(item: FolderItem, isViewTree: boolean): SidebarItemProfile {
-		if (item.deletedAt != null) return PROFILES.deleted;
-		if (item.id === 'home') return PROFILES.home;
-		if (item.id === 'favorites') return PROFILES.favorites;
-		if (item.type === 'trash' || item.id === 'deleted-notes') return PROFILES.trash;
-		return PROFILES.regular;
+	private resolveKind(item: FolderItem): SidebarKind {
+		if (item.deletedAt != null) return 'deleted';
+		if (item.type === 'trash') return 'trash';
+		if (item.id === 'favorites') return 'favorites';
+		if (item.id === 'home') return 'home';
+		return 'regular';
 	}
 
-	private buildSource(item: FolderItem, depth: number, isViewTree = false): SidebarSourceItem {
-		const profile = this.resolveProfile(item, isViewTree);
-		const childIds = profile.getChildIds(this.folders, this.folderQueries, item);
-		const visibleChildIds = childIds.filter((id) => profile.filterChildren(this.folders, id));
+	private resolveChildIds(kind: SidebarKind, item: FolderItem): FolderID[] {
+		switch (kind) {
+			case 'trash':
+				return this.folderQueries.getTrashRootIds();
+			case 'favorites':
+				return this.folderQueries.getFavoriteFolderIds();
+			case 'deleted':
+				return [];
+			default:
+				return item.items ?? [];
+		}
+	}
+
+	private buildSource(item: FolderItem, depth: number, suppressChildren = false): SidebarSourceItem {
+		const kind = this.resolveKind(item);
+		const profile = PROFILE_REGISTRY[kind];
+		const iconConfig = ICON_REGISTRY[profile.iconName];
+
+		const childIds = suppressChildren ? [] : this.resolveChildIds(kind, item);
+		const visibleChildIds = childIds.filter(
+			(id) => profile.showDeletedChildren || this.folders.folders.get(id)?.deletedAt == null
+		);
 
 		return {
 			id: item.id,
 			item,
-			kind: profile.kind,
-			type: profile.type,
-			iconName: profile.iconName,
+			kind,
+			icon: iconConfig.component,
+			iconProps: iconConfig.props,
 			title: item.title,
 			depth,
 			isSelected: this.selection.selectedFolderID === item.id,
@@ -232,17 +222,17 @@ export class FolderSidebarView {
 			children: visibleChildIds
 				.map((id) => this.folders.folders.get(id))
 				.filter((child): child is FolderItem => !!child)
-				.map((child) => this.buildSource(child, depth + 1, isViewTree || profile.type === 'view')),
+				.map((child) => this.buildSource(child, depth + 1, !profile.childrenExpandable)),
 			capabilities: profile.capabilities,
 			contextMenuItems: this.buildContextMenuItems(item, profile)
 		};
 	}
 
-	private buildContextMenuItems(item: FolderItem, profile: SidebarItemProfile): ContextMenuItem[] {
+	private buildContextMenuItems(item: FolderItem, profile: SidebarProfileConfig): ContextMenuItem[] {
 		const items: ContextMenuItem[] = [];
-		const { capabilities } = profile;
+		const caps = profile.capabilities;
 
-		if (capabilities.recover) {
+		if (caps.recover) {
 			items.push({
 				label: 'Recover Folder',
 				action: () => this.actions.trashRecover(item.id),
@@ -258,7 +248,7 @@ export class FolderSidebarView {
 			return items;
 		}
 
-		if (capabilities.emptyTrash) {
+		if (caps.emptyTrash) {
 			items.push({
 				label: 'Empty Trash',
 				action: () => this.actions.trashEmpty(),
@@ -268,7 +258,7 @@ export class FolderSidebarView {
 			return items;
 		}
 
-		if (capabilities.create) {
+		if (caps.create) {
 			items.push({
 				label: 'New Folder',
 				action: () => this.actions.folderCreate(),
@@ -277,7 +267,7 @@ export class FolderSidebarView {
 			});
 		}
 
-		if (capabilities.favorite) {
+		if (caps.favorite) {
 			items.push({
 				label: item.isFavorite ? 'Remove From Favorites' : 'Add To Favorites',
 				action: () => this.actions.folderSetFavorite(item.id, item.isFavorite !== true),
@@ -286,7 +276,7 @@ export class FolderSidebarView {
 			});
 		}
 
-		if (capabilities.rename) {
+		if (caps.rename) {
 			items.push({
 				label: 'Rename',
 				action: () => this.actions.folderStartRename(item.id),
@@ -295,7 +285,7 @@ export class FolderSidebarView {
 			});
 		}
 
-		if (capabilities.delete) {
+		if (caps.delete) {
 			if (items.length > 0) {
 				items[items.length - 1].separatorAfter = true;
 			}
