@@ -149,7 +149,9 @@ class FolderStore {
 
 		if (folder.deletedAt === batch) {
 			folder.deletedAt = null;
-			console.log('Recovering folder:', folder.deletedAt, batch);
+			if (folder.parentId === null && !this.items.includes(id)) {
+				this.items.push(id);
+			}
 			this.folders.set(id, folder);
 			this.persist(id);
 		}
@@ -173,8 +175,15 @@ class FolderStore {
 	rootFolderIfParentMissing(id: string) {
 		const folder = this.folders.get(id);
 		if (!folder) return;
-		if (folder.parentId && !this.folders.has(folder.parentId)) {
+		
+		const parent = folder.parentId ? this.folders.get(folder.parentId) : null;
+		const isParentInvalid = folder.parentId && (!parent || parent.deletedAt != null);
+
+		if (isParentInvalid) {
 			folder.parentId = null;
+			if (!this.items.includes(id)) {
+				this.items.push(id);
+			}
 			this.folders.set(id, folder);
 			this.persist(id);
 		}

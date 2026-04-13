@@ -24,14 +24,10 @@ export class TrashService {
 		const folder = this.folders.findItemById(folderId);
 		if (!folder || folder.deletedAt == null) return;
 
+		this.folders.rootFolderIfParentMissing(folderId);
+
 		const batch = targetBatch ?? folder.deletedAt;
 		this.restoreFolderTree(folderId, batch);
-
-		if (!targetBatch) {
-			this.folders.rootFolderIfParentMissing(folderId);
-			const currentFolder = this.folders.findItemById(folderId);
-			this.tree.restoreParentPath(currentFolder?.parentId);
-		}
 
 		const firstNote =
 			typeof this.notes.listNotes === 'function'
@@ -49,21 +45,11 @@ export class TrashService {
 		const note = this.notes.getNote(noteId);
 		if (!note) return;
 
-		const isHierarchical = !!(note.folderId && this.tree.findTopDeletedAncestor(note.folderId));
 		let restoredFolderId: FolderID | null | undefined = undefined;
 
 		if (note.folderId) {
 			const parentFolder = this.folders.findItemById(note.folderId);
-			if (parentFolder) {
-				if (parentFolder.deletedAt != null) {
-					if (isHierarchical) {
-						const topRoot = this.tree.findTopDeletedAncestor(note.folderId);
-						if (topRoot) this.recoverFolder(topRoot.id);
-					} else {
-						restoredFolderId = null;
-					}
-				}
-			} else {
+			if (!parentFolder || parentFolder.deletedAt != null) {
 				restoredFolderId = null;
 			}
 		}

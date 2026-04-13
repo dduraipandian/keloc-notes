@@ -9,18 +9,6 @@ export class FolderTreeHelper {
 		private readonly notes?: NotesStoreLike
 	) {}
 
-	findTopDeletedAncestor(folderId: FolderID): FolderItem | null {
-		const folder = this.folders.findItemById(folderId);
-		if (!folder || folder.deletedAt == null) return null;
-
-		if (!folder.parentId) return folder;
-
-		const parent = this.folders.findItemById(folder.parentId);
-		if (!parent || parent.deletedAt == null) return folder;
-
-		return this.findTopDeletedAncestor(folder.parentId);
-	}
-
 	getFolderPath(folderId: FolderID): string {
 		const folder = this.folders.findItemById(folderId);
 		if (!folder) return '';
@@ -62,7 +50,12 @@ export class FolderTreeHelper {
 	getHomeFolderChildIds(): FolderID[] {
 		return this.folders.items.filter((id) => {
 			const folder = this.folders.findItemById(id);
-			return folder && (!folder.kind || folder.kind === 'regular') && folder.deletedAt == null;
+			return (
+				folder &&
+				(!folder.kind || folder.kind === 'regular') &&
+				folder.deletedAt == null &&
+				folder.parentId == null
+			);
 		});
 	}
 
