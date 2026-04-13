@@ -48,7 +48,7 @@
 			<Sidebar.Group>
 				{#if section.label}
 					<Sidebar.GroupLabel
-						class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-muted-foreground/40 uppercase"
+						class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-muted-foreground/70 uppercase"
 						>{section.label}</Sidebar.GroupLabel
 					>
 				{/if}
@@ -83,93 +83,91 @@
 {#snippet MenuItemSnippet(source: SidebarSourceItem)}
 	{@const item = source.item}
 	{#if source.children.length > 0}
-			<Collapsible.Root
-				class="group/collapsible"
-				bind:open={
-					() => source.isOpen,
-					(v) => {
-						folderService.toggle(item.id);
-					}
+		<Collapsible.Root
+			class="group/collapsible"
+			bind:open={
+				() => source.isOpen,
+				(v) => {
+					folderService.toggle(item.id);
 				}
-			>
-				<ContextMenu.Root>
-					<ContextMenu.Trigger>
-						<Sidebar.MenuItem>
-							<Collapsible.Trigger>
-								{#snippet child({ props })}
-									<Sidebar.MenuButton
-										class={[
-											menuButtonStyle,
-											source.isSelected
-												? 'bg-accent text-foreground shadow-sm'
-												: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
-										]}
-										{...props}
-										isActive={source.isSelected}
-										onclick={(e) => {
-											(props as any).onclick?.(e);
-											folderService.select(item.id);
-										}}
-									>
-										<div style="width: {source.depth * 0.75}rem" class="shrink-0"></div>
-										<ChevronRight
-											size={14}
-											class={[
-												'shrink-0 text-muted-foreground/40 transition-transform duration-200',
-												source.isOpen ? 'rotate-90' : ''
-											]}
-										/>
-										{#if source.isTrashRoot}
-											<Trash2 size={16} class="text-destructive/70" />
-										{:else if source.kind === 'favorites'}
-											<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
-										{:else}
-											<Folder size={16} style="color: {folderColor}" class="opacity-80" />
-										{/if}
-										{#if source.isEditing}
-											<input
-												bind:value={item.title}
-												class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
-												use:focusAndSelect
-												onkeydown={(e) => handleRenameKeyDown(e, item)}
-												onblur={() => folderService.rename(item.id, item.title)}
-												onclick={(e) => e.stopPropagation()}
-											/>
-										{:else}
-											<span
-												class="notes-folder-label ml-2 truncate text-left text-[13px] font-medium"
-												>{item.title}</span
-											>
-										{/if}
-									</Sidebar.MenuButton>
-								{/snippet}
-							</Collapsible.Trigger>
-							<Sidebar.MenuBadge
-								class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-								>{source.noteCount}</Sidebar.MenuBadge
-							>
-							<Collapsible.Content>
-								<Sidebar.MenuSub class="m-0 border-l-0 p-0">
-									{#each source.children as child}
-										{@render MenuItemSnippet(child)}
-									{/each}
-								</Sidebar.MenuSub>
-							</Collapsible.Content>
-						</Sidebar.MenuItem>
-					</ContextMenu.Trigger>
-					{@render ContextMenuContentSnippet(source)}
-				</ContextMenu.Root>
-			</Collapsible.Root>
-		{:else}
+			}
+		>
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
 					<Sidebar.MenuItem>
-						{@render MenuItemNoChildSnippet(source)}
+						<Collapsible.Trigger>
+							{#snippet child({ props })}
+								<Sidebar.MenuButton
+									class={[
+										menuButtonStyle,
+										source.isSelected
+											? 'bg-accent text-foreground shadow-sm'
+											: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
+									]}
+									{...props}
+									isActive={source.isSelected}
+									onclick={(e) => {
+										(props as any).onclick?.(e);
+										folderService.select(item.id);
+									}}
+								>
+									<div style="width: {source.depth * 0.75}rem" class="shrink-0"></div>
+									<ChevronRight
+										size={14}
+										class={[
+											'shrink-0 text-muted-foreground/40 transition-transform duration-200',
+											source.isOpen ? 'rotate-90' : ''
+										]}
+									/>
+									{#if source.isTrashRoot}
+										<Trash2 size={16} class="text-destructive/70" />
+									{:else if source.kind === 'favorites'}
+										<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
+									{:else}
+										<Folder size={16} style="color: {folderColor}" class="opacity-80" />
+									{/if}
+									{#if source.isEditing}
+										<input
+											bind:value={item.title}
+											class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
+											use:focusAndSelect
+											onkeydown={(e) => handleRenameKeyDown(e, item)}
+											onblur={() => folderService.rename(item.id, item.title)}
+											onclick={(e) => e.stopPropagation()}
+										/>
+									{:else}
+										<span class="notes-folder-label ml-2 truncate text-left text-[13px] font-medium"
+											>{item.title}</span
+										>
+									{/if}
+								</Sidebar.MenuButton>
+							{/snippet}
+						</Collapsible.Trigger>
+						<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
+							>{source.noteCount}</Sidebar.MenuBadge
+						>
+						<Collapsible.Content>
+							<Sidebar.MenuSub class="m-0 border-l-0 p-0">
+								{#each source.children as child}
+									{@render MenuItemSnippet(child)}
+								{/each}
+							</Sidebar.MenuSub>
+						</Collapsible.Content>
 					</Sidebar.MenuItem>
 				</ContextMenu.Trigger>
 				{@render ContextMenuContentSnippet(source)}
 			</ContextMenu.Root>
-		{/if}
+		</Collapsible.Root>
+	{:else}
+		<ContextMenu.Root>
+			<ContextMenu.Trigger>
+				<Sidebar.MenuItem>
+					{@render MenuItemNoChildSnippet(source)}
+				</Sidebar.MenuItem>
+			</ContextMenu.Trigger>
+			{@render ContextMenuContentSnippet(source)}
+		</ContextMenu.Root>
+	{/if}
 {/snippet}
 
 {#snippet ContextMenuContentSnippet(source: SidebarSourceItem)}

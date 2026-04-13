@@ -258,17 +258,7 @@ class FolderStore {
 }
 
 // Initial mock data
-const initialData: FolderItem[] = [
-	{
-		id: 'favorites',
-		title: 'Favorites',
-		url: '#',
-		items: [],
-		parentId: null,
-		type: 'system',
-		isFavorite: false,
-		deletedAt: null
-	},
+const systemFolders: FolderItem[] = [
 	{
 		id: 'deleted-notes',
 		title: 'Recently Deleted',
@@ -278,7 +268,17 @@ const initialData: FolderItem[] = [
 		type: 'trash',
 		isFavorite: false,
 		deletedAt: null
+	},
+	{
+		id: 'favorites',
+		title: 'Favorites',
+		url: '#',
+		items: [],
+		parentId: null,
+		type: 'system',
+		isFavorite: false,
+		deletedAt: null
 	}
 ];
 
-export const folderStore = new FolderStore(initialData);
+export const folderStore = new FolderStore(systemFolders);

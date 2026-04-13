@@ -147,7 +147,7 @@ export class FolderSidebarSelector {
 			id: 'views',
 			label: null,
 			getRoots(selector) {
-				return ['favorites', 'deleted-notes']
+				return ['deleted-notes', 'favorites']
 					.map((id) => selector.folders.folders.get(id))
 					.filter((item): item is FolderItem => !!item);
 			}
@@ -178,11 +178,9 @@ export class FolderSidebarSelector {
 			.map((entry) => ({
 				id: entry.id,
 				label: entry.label,
-				sources: entry
-					.getRoots(this)
-					.map((item) => this.buildSource(item, 0, entry.id === 'views'))
+				sources: entry.getRoots(this).map((item) => this.buildSource(item, 0, entry.id === 'views'))
 			}))
-			.filter((section) => section.sources.length > 0);
+			.filter((section) => section.id === 'folders' || section.sources.length > 0);
 	}
 
 	private buildSource(item: FolderItem, depth: number, isTrashTree = false): SidebarSourceItem {
@@ -216,8 +214,10 @@ export class FolderSidebarSelector {
 				.map((child) => this.buildSource(child, depth + 1, isTrashTree || isTrashRoot)),
 			capabilities: {
 				create: item.deletedAt == null && item.type !== 'system',
-				rename: item.deletedAt == null && !isTrashTree && item.type !== 'system' && item.type !== 'trash',
-				delete: item.deletedAt == null && !isTrashTree && item.type !== 'system' && item.type !== 'trash',
+				rename:
+					item.deletedAt == null && !isTrashTree && item.type !== 'system' && item.type !== 'trash',
+				delete:
+					item.deletedAt == null && !isTrashTree && item.type !== 'system' && item.type !== 'trash',
 				recover: item.deletedAt != null,
 				permanentDelete: item.deletedAt != null,
 				emptyTrash: isTrashTree && item.deletedAt == null
