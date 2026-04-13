@@ -6,27 +6,27 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import type { NoteItem } from '$lib/stores/notes.svelte';
 	import { noteService, trashService } from '$lib/stores/services';
-	import { noteListSelector } from '$lib/stores/selectors';
+	import { noteListView } from '$lib/views/noteListView.svelte.ts';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
 	import { uiStore } from '$lib/stores/dialog.svelte';
 
 	let searchQuery = $state('');
-	const selectedFolderTitle = $derived(noteListSelector.getSelectedFolderTitle());
-	const filteredNotes = $derived(noteListSelector.getFilteredNotes(searchQuery));
-	const canCreateNote = $derived(noteListSelector.canCreateNote());
-	const canDeleteSelectedNote = $derived(noteListSelector.canDeleteSelectedNote());
-	const selectedNoteDeleteContext = $derived(noteListSelector.getSelectedNoteDeleteContext());
+	const selectedFolderTitle = $derived(noteListView.getSelectedFolderTitle());
+	const filteredNotes = $derived(noteListView.getFilteredNotes(searchQuery));
+	const canCreateNote = $derived(noteListView.canCreateNote());
+	const canDeleteSelectedNote = $derived(noteListView.canDeleteSelectedNote());
+	const selectedNoteDeleteContext = $derived(noteListView.getSelectedNoteDeleteContext());
 
 	function getTime(dateStr: string) {
 		return new Date(dateStr).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 	}
 
-	const sections = $derived(noteListSelector.getSections(searchQuery));
+	const sections = $derived(noteListView.getSections(searchQuery));
 
 	function handleNoteRestore(note: NoteItem) {
-		const { isHierarchical } = noteListSelector.getRestoreContext(note);
+		const { isHierarchical } = noteListView.getRestoreContext(note);
 		uiStore.confirmNoteRestore(note.title, isHierarchical, () => {
 			trashService.recoverNote(note.id);
 		});
@@ -51,7 +51,7 @@
 			{#if canCreateNote}
 				<button
 					class="rounded-sm p-1.5 text-muted-foreground transition-colors hover:bg-accent"
-					onclick={() => noteService.create(noteListSelector.getCreateNoteFolderId())}
+					onclick={() => noteService.create(noteListView.getCreateNoteFolderId())}
 					title="New Note"
 				>
 					<SquarePen size={16} />
@@ -96,7 +96,7 @@
 						</span>
 					</Item.Header>
 					{#each notes as note, i (note.id)}
-						{@const isSelected = noteListSelector.isSelectedNote(note.id)}
+						{@const isSelected = noteListView.isSelectedNote(note.id)}
 						<ContextMenu.Root>
 							<ContextMenu.Trigger>
 								<Item.Root

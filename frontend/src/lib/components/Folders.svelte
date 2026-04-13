@@ -8,9 +8,8 @@
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import type { FolderItem } from '$lib/stores/folders.svelte';
-	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { folderSidebarSelector, type SidebarSourceItem } from '$lib/stores/selectors';
-	import { folderService, trashService } from '$lib/stores/services';
+	import { folderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte.ts';
+	import { folderService } from '$lib/stores/services';
 
 	const folderColor = '#dcb15a'; // Apple-style gold/folder color
 	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none';
@@ -31,14 +30,12 @@
 </script>
 
 <Sidebar.Root collapsible="none" class="h-full w-64 border-r-0 bg-sidebar/40">
-	{@const sections = folderSidebarSelector.getSections()}
+	{@const sections = folderSidebarView.getSections()}
 	<Sidebar.Header>
 		{#if sections.find((section) => section.id === 'views')?.sources.length}
 			<Sidebar.Menu class="pt-6">
 				{#each sections.find((section) => section.id === 'views')!.sources as source}
-					<Sidebar.MenuItem>
-						{@render MenuItemSnippet(source)}
-					</Sidebar.MenuItem>
+					{@render FolderItemSnippet(source)}
 				{/each}
 			</Sidebar.Menu>
 		{/if}
@@ -55,7 +52,7 @@
 				<Sidebar.GroupContent>
 					<Sidebar.Menu>
 						{#each section.sources as source}
-							{@render MenuItemSnippet(source)}
+							{@render FolderItemSnippet(source)}
 						{/each}
 					</Sidebar.Menu>
 				</Sidebar.GroupContent>
@@ -80,150 +77,46 @@
 	</Sidebar.Footer>
 </Sidebar.Root>
 
-{#snippet MenuItemSnippet(source: SidebarSourceItem)}
-	{@const item = source.item}
-	{#if source.children.length > 0}
-		<Collapsible.Root
-			class="group/collapsible"
-			bind:open={
-				() => source.isOpen,
-				(v) => {
-					folderService.toggle(item.id);
-				}
-			}
-		>
-			<ContextMenu.Root>
-				<ContextMenu.Trigger>
-					<Sidebar.MenuItem>
+{#snippet FolderItemSnippet(source: SidebarSourceItem)}
+	{@const hasChildren = source.children.length > 0}
+	<ContextMenu.Root>
+		<ContextMenu.Trigger>
+			<Sidebar.MenuItem>
+				{#if hasChildren}
+					<Collapsible.Root
+						class="group/collapsible"
+						open={source.isOpen}
+						onOpenChange={() => folderService.toggle(source.id)}
+					>
 						<Collapsible.Trigger>
 							{#snippet child({ props })}
-								<Sidebar.MenuButton
-									class={[
-										menuButtonStyle,
-										source.isSelected
-											? 'bg-accent text-foreground shadow-sm'
-											: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
-									]}
-									{...props}
-									isActive={source.isSelected}
-									onclick={(e) => {
-										(props as any).onclick?.(e);
-										folderService.select(item.id);
-									}}
-								>
-									<div style="width: {source.depth * 0.75}rem" class="shrink-0"></div>
-									<ChevronRight
-										size={14}
-										class={[
-											'shrink-0 text-muted-foreground/40 transition-transform duration-200',
-											source.isOpen ? 'rotate-90' : ''
-										]}
-									/>
-									{#if source.isTrashRoot}
-										<Trash2 size={16} class="text-destructive/70" />
-									{:else if source.kind === 'favorites'}
-										<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
-									{:else}
-										<Folder size={16} style="color: {folderColor}" class="opacity-80" />
-									{/if}
-									{#if source.isEditing}
-										<input
-											bind:value={item.title}
-											class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
-											use:focusAndSelect
-											onkeydown={(e) => handleRenameKeyDown(e, item)}
-											onblur={() => folderService.rename(item.id, item.title)}
-											onclick={(e) => e.stopPropagation()}
-										/>
-									{:else}
-										<span class="notes-folder-label ml-2 truncate text-left text-[13px] font-medium"
-											>{item.title}</span
-										>
-									{/if}
-								</Sidebar.MenuButton>
+								{@render FolderButtonSnippet(source, props)}
 							{/snippet}
 						</Collapsible.Trigger>
-						<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-							>{source.noteCount}</Sidebar.MenuBadge
-						>
+						<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums">
+							{source.noteCount}
+						</Sidebar.MenuBadge>
 						<Collapsible.Content>
 							<Sidebar.MenuSub class="m-0 border-l-0 p-0">
 								{#each source.children as child}
-									{@render MenuItemSnippet(child)}
+									{@render FolderItemSnippet(child)}
 								{/each}
 							</Sidebar.MenuSub>
 						</Collapsible.Content>
-					</Sidebar.MenuItem>
-				</ContextMenu.Trigger>
-				{@render ContextMenuContentSnippet(source)}
-			</ContextMenu.Root>
-		</Collapsible.Root>
-	{:else}
-		<ContextMenu.Root>
-			<ContextMenu.Trigger>
-				<Sidebar.MenuItem>
-					{@render MenuItemNoChildSnippet(source)}
-				</Sidebar.MenuItem>
-			</ContextMenu.Trigger>
-			{@render ContextMenuContentSnippet(source)}
-		</ContextMenu.Root>
-	{/if}
+					</Collapsible.Root>
+				{:else}
+					{@render FolderButtonSnippet(source)}
+					<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums">
+						{source.noteCount}
+					</Sidebar.MenuBadge>
+				{/if}
+			</Sidebar.MenuItem>
+		</ContextMenu.Trigger>
+		{@render ContextMenuContentSnippet(source)}
+	</ContextMenu.Root>
 {/snippet}
 
-{#snippet ContextMenuContentSnippet(source: SidebarSourceItem)}
-	{@const item = source.item}
-	<ContextMenu.Content class="w-36">
-		{#if source.capabilities.recover}
-			<ContextMenu.Item class="text-[13px]" onSelect={() => trashService.recoverFolder(item.id)}
-				>Recover Folder</ContextMenu.Item
-			>
-			<ContextMenu.Separator />
-			<ContextMenu.Item
-				class="text-[13px] text-destructive focus:text-destructive"
-				onSelect={() =>
-					uiStore.confirmFolderPermanentDelete(item.title, () =>
-						trashService.permanentlyDeleteFolder(item.id)
-					)}>Delete Permanently</ContextMenu.Item
-			>
-		{:else if source.capabilities.emptyTrash}
-			<ContextMenu.Item
-				class="text-[13px] text-destructive focus:text-destructive"
-				onSelect={() => uiStore.confirmEmptyTrash(() => trashService.empty())}
-				>Empty Trash</ContextMenu.Item
-			>
-		{:else}
-			{#if source.capabilities.create}
-				<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.create()}
-					>New Folder</ContextMenu.Item
-				>
-			{/if}
-			{#if item.type !== 'system' && item.type !== 'trash'}
-				<ContextMenu.Item
-					class="text-[13px]"
-					onSelect={() => folderService.setFavorite(item.id, item.isFavorite !== true)}
-				>
-					{item.isFavorite ? 'Remove From Favorites' : 'Add To Favorites'}
-				</ContextMenu.Item>
-			{/if}
-			{#if source.capabilities.rename}
-				<ContextMenu.Item class="text-[13px]" onSelect={() => folderService.startRename(item.id)}
-					>Rename</ContextMenu.Item
-				>
-			{/if}
-			{#if source.capabilities.delete}
-				<ContextMenu.Separator />
-				<ContextMenu.Item
-					class="text-[13px] text-destructive focus:text-destructive"
-					onSelect={() =>
-						uiStore.confirmFolderDelete(item.title, () => folderService.delete(item.id))}
-					>Delete</ContextMenu.Item
-				>
-			{/if}
-		{/if}
-	</ContextMenu.Content>
-{/snippet}
-
-{#snippet MenuItemNoChildSnippet(source: SidebarSourceItem)}
+{#snippet FolderButtonSnippet(source: SidebarSourceItem, props = {})}
 	{@const item = source.item}
 	<Sidebar.MenuButton
 		class={[
@@ -232,40 +125,68 @@
 				? 'bg-accent text-foreground shadow-sm'
 				: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
 		]}
+		{...props}
 		isActive={source.isSelected}
-		onclick={() => {
+		onclick={(e) => {
+			(props as any).onclick?.(e);
 			folderService.select(item.id);
 		}}
 	>
-		{#snippet child({ props })}
-			<div class="flex w-full items-center" {...props}>
-				<div style="width: {source.depth * 0.75}rem" class="shrink-0"></div>
-				<div class="size-3.5 shrink-0"><!-- Spacer to align with chevron --></div>
-				{#if source.isTrashRoot}
-					<Trash2 size={16} class="text-destructive/70" />
-				{:else if source.kind === 'favorites'}
-					<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
-				{:else}
-					<Folder size={16} style="color: {folderColor}" class="opacity-80" />
-				{/if}
-				{#if source.isEditing}
-					<input
-						bind:value={item.title}
-						class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
-						use:focusAndSelect
-						onkeydown={(e) => handleRenameKeyDown(e, item)}
-						onblur={() => folderService.rename(item.id, item.title)}
-						onclick={(e) => e.stopPropagation()}
-					/>
-				{:else}
-					<span class="notes-folder-label ml-2 truncate text-left text-[13px] font-medium"
-						>{item.title}</span
-					>
-				{/if}
-			</div>
-		{/snippet}
+		<div style="width: {source.depth * 0.75}rem" class="shrink-0"></div>
+
+		{#if source.children.length > 0}
+			<ChevronRight
+				size={14}
+				class={[
+					'shrink-0 text-muted-foreground/40 transition-transform duration-200',
+					source.isOpen ? 'rotate-90' : ''
+				]}
+			/>
+		{:else}
+			<div class="size-3.5 shrink-0"><!-- Spacer --></div>
+		{/if}
+
+		{#if source.icon === 'trash'}
+			<Trash2 size={16} class="text-destructive/70" />
+		{:else if source.icon === 'star'}
+			<Star size={16} class="fill-[#e0b64b] text-[#e0b64b]" />
+		{:else}
+			<Folder size={16} style="color: {folderColor}" class="opacity-80" />
+		{/if}
+
+		{#if source.isEditing}
+			<input
+				bind:value={item.title}
+				class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
+				use:focusAndSelect
+				onkeydown={(e) => handleRenameKeyDown(e, item)}
+				onblur={() => folderService.rename(item.id, item.title)}
+				onclick={(e) => e.stopPropagation()}
+			/>
+		{:else}
+			<span class="notes-folder-label ml-2 truncate text-left text-[13px] font-medium"
+				>{item.title}</span
+			>
+		{/if}
 	</Sidebar.MenuButton>
-	<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
-		>{source.noteCount}</Sidebar.MenuBadge
-	>
 {/snippet}
+
+{#snippet ContextMenuContentSnippet(source: SidebarSourceItem)}
+	<ContextMenu.Content class="w-36">
+		{#each source.contextMenuItems as menuItem}
+			<ContextMenu.Item
+				class={[
+					'text-[13px]',
+					menuItem.variant === 'destructive' && 'text-destructive focus:text-destructive'
+				]}
+				onSelect={menuItem.action}
+			>
+				{menuItem.label}
+			</ContextMenu.Item>
+			{#if menuItem.separatorAfter}
+				<ContextMenu.Separator />
+			{/if}
+		{/each}
+	</ContextMenu.Content>
+{/snippet}
+

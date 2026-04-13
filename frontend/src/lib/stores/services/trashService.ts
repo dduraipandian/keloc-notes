@@ -1,0 +1,172 @@
+import { folderStore, type FolderID, type FolderItem } from '../folders.svelte';
+import { notesStore, type NoteID, type NoteItem } from '../notes.svelte';
+import { selectionStore } from '../selection.svelte';
+import { trashRepository } from '../repositories';
+import type { FolderStoreLike, NotesStoreLike, SelectionStoreLike } from './types';
+import { FolderTreeHelper } from '../domain/folderTree';
+import { snapshotNote } from './helpers';
+
+export class TrashService {
+	private readonly tree: FolderTreeHelper;
+	private readonly selection: SelectionStoreLike;
+
+	constructor(
+		private readonly folders: FolderStoreLike = folderStore,
+		private readonly notes: NotesStoreLike = notesStore,
+		private readonly trash = trashRepository,
+		selection: SelectionStoreLike = selectionStore
+	) {
+		this.tree = new FolderTreeHelper(folders, notes);
+		this.selection = selection;
+	}
+
+	recoverFolder(folderId: FolderID, targetBatch?: number) {
+		const folder = this.folders.findItemById(folderId);
+		if (!folder || folder.deletedAt == null) return;
+
+		const batch = targetBatch ?? folder.deletedAt;
+		this.restoreFolderTree(folderId, batch);
+
+		if (!targetBatch) {
+			this.folders.rootFolderIfParentMissing(folderId);
+			const currentFolder = this.folders.findItemById(folderId);
+			this.tree.restoreParentPath(currentFolder?.parentId);
+		}
+
+		const firstNote =
+			typeof this.notes.listNotes === 'function'
+				? this.notes
+						.listNotes()
+						.filter((note) => note.folderId === folderId && note.deletedAt == null)
+						.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0] ?? null
+				: null;
+
+		this.selection.selectFolder(folderId);
+		this.notes.selectNote(firstNote?.id ?? null);
+	}
+
+	recoverNote(noteId: NoteID) {
+		const note = this.notes.getNote(noteId);
+		if (!note) return;
+
+		const isHierarchical = !!(note.folderId && this.tree.findTopDeletedAncestor(note.folderId));
+		let restoredFolderId: FolderID | null | undefined = undefined;
+
+		if (note.folderId) {
+			const parentFolder = this.folders.findItemById(note.folderId);
+			if (parentFolder) {
+				if (parentFolder.deletedAt != null) {
+					if (isHierarchical) {
+						const topRoot = this.tree.findTopDeletedAncestor(note.folderId);
+						if (topRoot) this.recoverFolder(topRoot.id);
+					} else {
+						restoredFolderId = null;
+					}
+				}
+			} else {
+				restoredFolderId = null;
+			}
+		}
+
+		this.notes.restoreNote(noteId, restoredFolderId);
+		const selectedFolderId = restoredFolderId !== undefined ? restoredFolderId : (note.folderId ?? null);
+		this.selection.selectFolder(selectedFolderId);
+		this.notes.selectNote(noteId);
+	}
+
+	async permanentlyDeleteFolder(folderId: FolderID, targetBatch?: number) {
+		const folder = this.folders.findItemById(folderId);
+		if (!folder || folder.deletedAt == null) return;
+
+		const batch = targetBatch ?? folder.deletedAt;
+		const foldersToDelete = this.tree.collectFolderSubtree(folderId);
+		const notesToDelete = this.collectFolderNotesWithPaths(foldersToDelete, batch);
+
+		try {
+			await this.trash.permanentlyDeleteFolderTree(notesToDelete, foldersToDelete, Date.now());
+			notesToDelete.forEach(({ note }) => this.notes.removeNoteLocally(note.id));
+			this.folders.applyPermanentDeleteState(foldersToDelete);
+			this.selection.clearFolderIfSelected(folderId);
+		} catch (error) {
+			console.error('Failed to permanently delete folder and children:', error);
+			throw error;
+		}
+	}
+
+	async permanentlyDeleteNote(noteId: NoteID) {
+		const note = this.notes.getNote(noteId);
+		if (!note) return;
+
+		const folderPath = note.folderId ? this.tree.getFolderPath(note.folderId) : 'root';
+		const fullPath = note.folderId ? `${folderPath}/${note.title}:${note.id}` : `${note.title}:${note.id}`;
+
+		try {
+			await this.trash.permanentlyDeleteNote(snapshotNote(note), fullPath, Date.now());
+			this.notes.removeNoteLocally(noteId);
+			this.notes.clearSelectionIfSelected(noteId);
+		} catch (error) {
+			console.error('Failed to permanently delete note:', error);
+			throw error;
+		}
+	}
+
+	async empty() {
+		const foldersToDelete = this.tree.getTrashRootIds().flatMap((id) => this.tree.collectFolderSubtree(id));
+		const deletedFolderIds = new Set(foldersToDelete.map((f) => f.id));
+		const folderNotes = this.collectFolderNotesWithPaths(foldersToDelete);
+		const individualNotes = this.collectAllDeletedNotesWithPaths();
+		const seenIds = new Set(folderNotes.map((entry) => entry.note.id));
+		const notesToDelete = [
+			...folderNotes,
+			...individualNotes.filter((entry) => !seenIds.has(entry.note.id))
+		];
+
+		try {
+			await this.trash.permanentlyDeleteFolderTree(notesToDelete, foldersToDelete, Date.now());
+			notesToDelete.forEach(({ note }) => this.notes.removeNoteLocally(note.id));
+			this.folders.applyPermanentDeleteState(foldersToDelete);
+			deletedFolderIds.forEach((id) => this.selection.clearFolderIfSelected(id));
+		} catch (error) {
+			console.error('Failed to empty trash:', error);
+			throw error;
+		}
+	}
+
+	private restoreFolderTree(folderId: FolderID, batch: number) {
+		const folder = this.folders.findItemById(folderId);
+		if (!folder || folder.deletedAt !== batch) return;
+
+		this.folders.restoreFolder(folderId, batch);
+		this.notes.restoreNotesInFolder(folderId, batch);
+
+		for (const childId of folder.items ?? []) {
+			this.restoreFolderTree(childId, batch);
+		}
+	}
+
+	private collectFolderNotesWithPaths(
+		folders: FolderItem[],
+		batch?: number
+	): { note: NoteItem; path: string }[] {
+		return folders.flatMap((folder) => {
+			const folderPath = this.tree.getFolderPath(folder.id);
+			const notes =
+				batch !== undefined
+					? this.notes.getNotesToArchive(folder.id, batch)
+					: this.notes.getDeletedNotes().filter((note) => note.folderId === folder.id);
+
+			return notes.map((note) => ({
+				note: snapshotNote(note),
+				path: `${folderPath}/${note.title}:${note.id}`
+			}));
+		});
+	}
+
+	private collectAllDeletedNotesWithPaths(): { note: NoteItem; path: string }[] {
+		return this.notes.getDeletedNotes().map((note) => {
+			const folderPath = note.folderId ? this.tree.getFolderPath(note.folderId) : null;
+			const path = folderPath ? `${folderPath}/${note.title}:${note.id}` : `${note.title}:${note.id}`;
+			return { note: snapshotNote(note), path };
+		});
+	}
+}
