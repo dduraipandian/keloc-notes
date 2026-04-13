@@ -48,9 +48,6 @@ export class FolderService {
 		this.folders.openFolder(folderId);
 	}
 
-	findTopDeletedAncestor(folderId: FolderID): FolderItem | null {
-		return this.tree.findTopDeletedAncestor(folderId);
-	}
 
 	getFolderPath(folderId: FolderID): string {
 		return this.tree.getFolderPath(folderId);
