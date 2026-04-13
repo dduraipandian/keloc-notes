@@ -4,9 +4,9 @@ import { notesStore, type NoteItem } from './notes.svelte';
 import { folderService, noteService } from './services';
 import { selectionStore } from './selection.svelte';
 
-type systemFolders = 'trash' | 'favorites' | 'notes';
-type folderKinds = 'regular' | systemFolders;
-type folderTypes = 'view' | 'regular';
+type SystemFolders = 'trash' | 'favorites' | 'notes';
+type FolderKinds = 'regular' | SystemFolders;
+type FolderTypes = 'view' | 'regular';
 
 type FolderStoreLike = {
 	items: FolderID[];
@@ -38,8 +38,8 @@ type NoteServiceLike = {
 export type SidebarSourceItem = {
 	id: FolderID;
 	item: FolderItem;
-	kind: folderKinds;
-	type: folderTypes;
+	kind: FolderKinds;
+	type: FolderTypes;
 	title: string;
 	depth: number;
 	isTrashTree: boolean;
