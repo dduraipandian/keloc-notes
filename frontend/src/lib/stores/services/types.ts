@@ -1,4 +1,4 @@
-import type { FolderID, FolderItem, FolderType } from '../folders.svelte';
+import type { FolderID, FolderItem, SidebarKind } from '../folders.svelte';
 import type { NoteID, NoteItem } from '../notes.svelte';
 
 export type FolderStoreLike = {

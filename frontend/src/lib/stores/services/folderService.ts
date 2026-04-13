@@ -68,6 +68,10 @@ export class FolderService {
 		return this.tree.getFavoriteFolderIds();
 	}
 
+	getHomeFolderChildIds(): FolderID[] {
+		return this.tree.getHomeFolderChildIds();
+	}
+
 	setFavorite(folderId: FolderID, isFavorite: boolean) {
 		this.folders.setFavorite(folderId, isFavorite);
 	}
