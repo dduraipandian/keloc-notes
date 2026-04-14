@@ -5,6 +5,7 @@
 `buildSource()` is a single method trying to handle 5 different behavioral profiles through branching on `kind`, `type`, `isViewTree`, `item.type`, and `item.deletedAt`. The result is tangled logic where trash, favorites, notes, and regular folders mix together — making it hard to understand what capabilities each kind actually has.
 
 **Current branching complexity in `buildSource()`:**
+
 ```
 kind = item.type === 'trash' ? 'trash' : item.id === 'favorites' ? 'favorites' : 'regular'
 type = kind === 'trash' || kind === 'favorites' ? 'view' : 'regular'
@@ -46,13 +47,13 @@ type SidebarItemProfile = {
 
 ### Profile Definitions
 
-| Kind | Icon | Children Source | Capabilities |
-|------|------|---------------|--------------|
-| **trash** | `Trash2` | `getTrashRootIds()` | emptyTrash |
-| **favorites** | `Star` | `getFavoriteFolderIds()` | — |
-| **notes** | `Folder` | `getActiveFolderIds()` or `[]` | create |
-| **regular** | `Folder` | `item.items` | create, rename, delete, favorite |
-| **deleted** | `Folder` | `item.items` | recover, permanentDelete |
+| Kind          | Icon     | Children Source                | Capabilities                     |
+| ------------- | -------- | ------------------------------ | -------------------------------- |
+| **trash**     | `Trash2` | `getTrashRootIds()`            | emptyTrash                       |
+| **favorites** | `Star`   | `getFavoriteFolderIds()`       | —                                |
+| **notes**     | `Folder` | `getActiveFolderIds()` or `[]` | create                           |
+| **regular**   | `Folder` | `item.items`                   | create, rename, delete, favorite |
+| **deleted**   | `Folder` | `item.items`                   | recover, permanentDelete         |
 
 > [!IMPORTANT]
 > The `notes` view (All Notes) is a new system folder. Its profile should match its intent: show all notes, no children in the sidebar, support creating notes. It should **not** inherit trash or favorites behavior.
@@ -69,6 +70,7 @@ type SidebarItemProfile = {
 6. **Add `favorite` capability**: Currently the favorites context menu item uses `item.type !== 'system' && item.type !== 'trash'` — this should be a capability flag in the profile.
 
 **Before (`buildSource` core logic):**
+
 ```typescript
 const kind = item.type === 'trash' ? 'trash' : item.id === 'favorites' ? 'favorites' : 'regular';
 const type = kind === 'trash' || kind === 'favorites' ? 'view' : 'regular';
@@ -77,6 +79,7 @@ const iconName = kind === 'trash' ? 'trash' : kind === 'favorites' ? 'star' : 'f
 ```
 
 **After (`buildSource` core logic):**
+
 ```typescript
 const profile = this.resolveProfile(item, isViewTree);
 const childIds = profile.getChildIds(item);
@@ -87,6 +90,7 @@ const visibleChildIds = childIds.filter(profile.filterChildren);
 ### [MODIFY] [folderSidebarView.test.ts](file:///Users/dduraipandian/apps/mdnotes/frontend/tests/unit/folderSidebarView.test.ts)
 
 Rewrite tests organized by profile kind:
+
 - `describe('trash profile')` — emptyTrash capability, trash children, recover/permanentDelete on children
 - `describe('favorites profile')` — star icon, favorite children, no capabilities on root
 - `describe('notes profile')` — folder icon, no children, create capability
@@ -98,6 +102,7 @@ Rewrite tests organized by profile kind:
 
 > [!IMPORTANT]
 > The `notes` system folder — what should its sidebar behavior be?
+>
 > - Should it show children (sub-folders) or be a flat "All Notes" view?
 > - Should it have a "New Folder" context menu item?
 > - Is `type: 'system'` correct, or should it have its own type like `type: 'all'`?
@@ -105,12 +110,14 @@ Rewrite tests organized by profile kind:
 ## Verification Plan
 
 ### Automated Tests
+
 ```bash
 npm run test    # All 125+ unit tests pass
 npm run test:e2e # All 13 E2E tests pass
 ```
 
 ### Manual Verification
+
 - Verify each sidebar kind renders with the correct icon and color
 - Verify context menus show only the correct items per kind
 - Verify the new `notes` view works as expected

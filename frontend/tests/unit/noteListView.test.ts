@@ -10,7 +10,7 @@ describe('NoteListView', () => {
 			{} as any,
 			{
 				selectedFolderID: 'notes',
-				getSelectedFolder: () => ({ id: 'notes', title: 'Notes', url: '#' })
+				getSelectedFolder: () => ({ id: 'notes', title: 'Notes' })
 			} as any
 		);
 

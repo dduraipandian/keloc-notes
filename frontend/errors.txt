@@ -1,0 +1,1226 @@
+
+> frontend@0.0.1 check
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /Users/dduraipandian/apps/mdnotes/frontend
+Getting Svelte diagnostics...
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:80:2
+Error: Unexpected keyword or identifier. 
+
+	async init() {
+		if (this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:80:15
+Error: ';' expected. 
+
+	async init() {
+		if (this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:95:12
+Error: ',' expected. 
+
+	persist(id: string) {
+		if (!this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:95:22
+Error: ';' expected. 
+
+	persist(id: string) {
+		if (!this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:108:16
+Error: ',' expected. 
+
+	startRename(id: string) {
+		// Use setTimeout to ensure focus-return logic from menus is finished
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:108:26
+Error: ';' expected. 
+
+	startRename(id: string) {
+		// Use setTimeout to ensure focus-return logic from menus is finished
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:115:17
+Error: ';' expected. 
+
+	cancelRename() {
+		this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:119:23
+Error: ',' expected. 
+
+	createFolder(parentId: FolderID | null = null) {
+		const newFolder: FolderItem = {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:119:41
+Error: ',' expected. 
+
+	createFolder(parentId: FolderID | null = null) {
+		const newFolder: FolderItem = {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:119:49
+Error: ';' expected. 
+
+	createFolder(parentId: FolderID | null = null) {
+		const newFolder: FolderItem = {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:151:17
+Error: ',' expected. 
+
+	deleteFolder(id: string, batchTimestamp?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:151:42
+Error: Expression expected. 
+
+	deleteFolder(id: string, batchTimestamp?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:151:52
+Error: ';' expected. 
+
+	deleteFolder(id: string, batchTimestamp?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:163:18
+Error: ',' expected. 
+
+	restoreFolder(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:163:40
+Error: Expression expected. 
+
+	restoreFolder(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:163:50
+Error: ';' expected. 
+
+	restoreFolder(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:179:43
+Error: ',' expected. 
+
+	applyPermanentDeleteState(foldersToDelete: FolderItem[]) {
+		foldersToDelete.forEach((f) => {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:179:56
+Error: An element access expression should take an argument. 
+
+	applyPermanentDeleteState(foldersToDelete: FolderItem[]) {
+		foldersToDelete.forEach((f) => {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:179:59
+Error: ';' expected. 
+
+	applyPermanentDeleteState(foldersToDelete: FolderItem[]) {
+		foldersToDelete.forEach((f) => {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:194:30
+Error: ',' expected. 
+
+	rootFolderIfParentMissing(id: string) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:194:40
+Error: ';' expected. 
+
+	rootFolderIfParentMissing(id: string) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:211:27
+Error: ',' expected. 
+
+	clearEditingIfSelected(id: string) {
+		if (this.editingId === id) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:211:37
+Error: ';' expected. 
+
+	clearEditingIfSelected(id: string) {
+		if (this.editingId === id) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:2
+Error: Declaration or statement expected. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:28
+Error: ',' expected. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:45
+Error: ',' expected. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:54
+Error: ';' expected. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:56
+Error: Unexpected keyword or identifier. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:225:17
+Error: ',' expected. 
+
+	findItemById(id: FolderID): FolderItem | null {
+		return this.folders.get(id) || null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:225:28
+Error: ';' expected. 
+
+	findItemById(id: FolderID): FolderItem | null {
+		return this.folders.get(id) || null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:225:48
+Error: ';' expected. 
+
+	findItemById(id: FolderID): FolderItem | null {
+		return this.folders.get(id) || null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:229:17
+Error: ',' expected. 
+
+	renameFolder(id: FolderID, newTitle: string) {
+		this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:229:37
+Error: ',' expected. 
+
+	renameFolder(id: FolderID, newTitle: string) {
+		this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:229:47
+Error: ';' expected. 
+
+	renameFolder(id: FolderID, newTitle: string) {
+		this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:239:15
+Error: ',' expected. 
+
+	openFolder(id: FolderID) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:239:27
+Error: ';' expected. 
+
+	openFolder(id: FolderID) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:247:16
+Error: ',' expected. 
+
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:247:38
+Error: ',' expected. 
+
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:247:49
+Error: ';' expected. 
+
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:255:22
+Error: ';' expected. 
+
+	getDefaultFolderId(): string {
+		const findRegular = (ids: string[]): string | null => {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:255:24
+Error: Unexpected keyword or identifier. 
+
+	getDefaultFolderId(): string {
+		const findRegular = (ids: string[]): string | null => {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:286:1
+Error: Declaration or statement expected. 
+	}
+}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:80:2
+Error: Cannot find name 'async'. 
+
+	async init() {
+		if (this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:80:8
+Error: Cannot find name 'init'. 
+
+	async init() {
+		if (this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:81:7
+Error: Object is possibly 'undefined'. 
+	async init() {
+		if (this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:86:5
+Error: Object is possibly 'undefined'. 
+			if (allFolders && allFolders.length > 0) {
+				this.loadItems(allFolders);
+			}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:88:4
+Error: Object is possibly 'undefined'. 
+			}
+			this.isInitialized = true;
+		} catch (error) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:95:2
+Error: Cannot find name 'persist'. 
+
+	persist(id: string) {
+		if (!this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:95:10
+Error: Cannot find name 'id'. 
+
+	persist(id: string) {
+		if (!this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:95:14
+Error: 'string' only refers to a type, but is being used as a value here. 
+
+	persist(id: string) {
+		if (!this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:96:8
+Error: Object is possibly 'undefined'. 
+	persist(id: string) {
+		if (!this.isInitialized) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:98:18
+Error: Object is possibly 'undefined'. 
+
+		const folder = this.folders.get(id);
+		if (folder) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:98:35
+Error: Cannot find name 'id'. 
+
+		const folder = this.folders.get(id);
+		if (folder) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:108:2
+Error: Cannot find name 'startRename'. 
+
+	startRename(id: string) {
+		// Use setTimeout to ensure focus-return logic from menus is finished
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:108:14
+Error: Cannot find name 'id'. 
+
+	startRename(id: string) {
+		// Use setTimeout to ensure focus-return logic from menus is finished
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:108:18
+Error: 'string' only refers to a type, but is being used as a value here. 
+
+	startRename(id: string) {
+		// Use setTimeout to ensure focus-return logic from menus is finished
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:111:4
+Error: Object is possibly 'undefined'. 
+		setTimeout(() => {
+			this.editingId = id;
+		}, 0);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:111:21
+Error: Cannot find name 'id'. 
+		setTimeout(() => {
+			this.editingId = id;
+		}, 0);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:115:2
+Error: Cannot find name 'cancelRename'. 
+
+	cancelRename() {
+		this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:116:3
+Error: Object is possibly 'undefined'. 
+	cancelRename() {
+		this.editingId = null;
+	}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:119:2
+Error: Cannot find name 'createFolder'. 
+
+	createFolder(parentId: FolderID | null = null) {
+		const newFolder: FolderItem = {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:119:15
+Error: Cannot find name 'parentId'. Did you mean 'parent'? 
+
+	createFolder(parentId: FolderID | null = null) {
+		const newFolder: FolderItem = {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:119:25
+Error: 'FolderID' only refers to a type, but is being used as a value here. 
+
+	createFolder(parentId: FolderID | null = null) {
+		const newFolder: FolderItem = {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:119:36
+Error: The value 'null' cannot be used here. 
+
+	createFolder(parentId: FolderID | null = null) {
+		const newFolder: FolderItem = {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:129:8
+Error: Cannot find name 'parentId'. 
+
+		if (!parentId) {
+			this.items.unshift(newFolder.id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:130:4
+Error: Object is possibly 'undefined'. 
+		if (!parentId) {
+			this.items.unshift(newFolder.id);
+		} else {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:132:19
+Error: Object is possibly 'undefined'. 
+		} else {
+			const parent = this.folders.get(parentId);
+			if (parent) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:132:36
+Error: Cannot find name 'parentId'. 
+		} else {
+			const parent = this.folders.get(parentId);
+			if (parent) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:140:5
+Error: Object is possibly 'undefined'. 
+				newFolder.parentId = parent.id;
+				this.persist(parent.id);
+			}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:145:3
+Error: Object is possibly 'undefined'. 
+		let nf = newFolder;
+		this.folders.set(newFolder.id, nf);
+		this.persist(newFolder.id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:146:3
+Error: Object is possibly 'undefined'. 
+		this.folders.set(newFolder.id, nf);
+		this.persist(newFolder.id);
+		this.startRename(newFolder.id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:147:3
+Error: Object is possibly 'undefined'. 
+		this.persist(newFolder.id);
+		this.startRename(newFolder.id);
+		return newFolder.id;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:151:2
+Error: Cannot find name 'deleteFolder'. 
+
+	deleteFolder(id: string, batchTimestamp?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:151:15
+Error: Cannot find name 'id'. 
+
+	deleteFolder(id: string, batchTimestamp?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:151:19
+Error: 'string' only refers to a type, but is being used as a value here. 
+
+	deleteFolder(id: string, batchTimestamp?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:151:27
+Error: Cannot find name 'batchTimestamp'. 
+
+	deleteFolder(id: string, batchTimestamp?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:151:44
+Error: 'number' only refers to a type, but is being used as a value here. 
+
+	deleteFolder(id: string, batchTimestamp?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:152:18
+Error: Object is possibly 'undefined'. 
+	deleteFolder(id: string, batchTimestamp?: number) {
+		const folder = this.folders.get(id);
+		if (!folder) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:152:35
+Error: Cannot find name 'id'. 
+	deleteFolder(id: string, batchTimestamp?: number) {
+		const folder = this.folders.get(id);
+		if (!folder) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:155:14
+Error: Cannot find name 'batchTimestamp'. 
+
+		const ts = batchTimestamp ?? Date.now();
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:158:3
+Error: Object is possibly 'undefined'. 
+		folder.deletedAt = ts;
+		this.folders.set(id, folder);
+		this.persist(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:158:20
+Error: Cannot find name 'id'. 
+		folder.deletedAt = ts;
+		this.folders.set(id, folder);
+		this.persist(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:159:3
+Error: Object is possibly 'undefined'. 
+		this.folders.set(id, folder);
+		this.persist(id);
+		this.clearEditingIfSelected(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:159:16
+Error: Cannot find name 'id'. 
+		this.folders.set(id, folder);
+		this.persist(id);
+		this.clearEditingIfSelected(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:160:3
+Error: Object is possibly 'undefined'. 
+		this.persist(id);
+		this.clearEditingIfSelected(id);
+	}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:160:31
+Error: Cannot find name 'id'. 
+		this.persist(id);
+		this.clearEditingIfSelected(id);
+	}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:163:2
+Error: Cannot find name 'restoreFolder'. 
+
+	restoreFolder(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:163:16
+Error: Cannot find name 'id'. 
+
+	restoreFolder(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:163:20
+Error: 'string' only refers to a type, but is being used as a value here. 
+
+	restoreFolder(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:163:28
+Error: Cannot find name 'targetBatch'. 
+
+	restoreFolder(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:163:42
+Error: 'number' only refers to a type, but is being used as a value here. 
+
+	restoreFolder(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:164:18
+Error: Object is possibly 'undefined'. 
+	restoreFolder(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+		if (!folder || folder.deletedAt == null) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:164:35
+Error: Cannot find name 'id'. 
+	restoreFolder(id: string, targetBatch?: number) {
+		const folder = this.folders.get(id);
+		if (!folder || folder.deletedAt == null) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:167:17
+Error: Cannot find name 'targetBatch'. 
+
+		const batch = targetBatch ?? folder.deletedAt;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:171:37
+Error: Object is possibly 'undefined'. 
+			folder.deletedAt = null;
+			if (folder.parentId === null && !this.items.includes(id)) {
+				this.items.push(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:171:57
+Error: Cannot find name 'id'. 
+			folder.deletedAt = null;
+			if (folder.parentId === null && !this.items.includes(id)) {
+				this.items.push(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:172:5
+Error: Object is possibly 'undefined'. 
+			if (folder.parentId === null && !this.items.includes(id)) {
+				this.items.push(id);
+			}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:172:21
+Error: Cannot find name 'id'. 
+			if (folder.parentId === null && !this.items.includes(id)) {
+				this.items.push(id);
+			}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:174:4
+Error: Object is possibly 'undefined'. 
+			}
+			this.folders.set(id, folder);
+			this.persist(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:174:21
+Error: Cannot find name 'id'. 
+			}
+			this.folders.set(id, folder);
+			this.persist(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:175:4
+Error: Object is possibly 'undefined'. 
+			this.folders.set(id, folder);
+			this.persist(id);
+		}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:175:17
+Error: Cannot find name 'id'. 
+			this.folders.set(id, folder);
+			this.persist(id);
+		}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:179:2
+Error: Cannot find name 'applyPermanentDeleteState'. 
+
+	applyPermanentDeleteState(foldersToDelete: FolderItem[]) {
+		foldersToDelete.forEach((f) => {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:179:28
+Error: Cannot find name 'foldersToDelete'. 
+
+	applyPermanentDeleteState(foldersToDelete: FolderItem[]) {
+		foldersToDelete.forEach((f) => {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:179:45
+Error: 'FolderItem' only refers to a type, but is being used as a value here. 
+
+	applyPermanentDeleteState(foldersToDelete: FolderItem[]) {
+		foldersToDelete.forEach((f) => {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:180:3
+Error: Cannot find name 'foldersToDelete'. 
+	applyPermanentDeleteState(foldersToDelete: FolderItem[]) {
+		foldersToDelete.forEach((f) => {
+			this.clearEditingIfSelected(f.id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:180:28
+Error: Parameter 'f' implicitly has an 'any' type. 
+	applyPermanentDeleteState(foldersToDelete: FolderItem[]) {
+		foldersToDelete.forEach((f) => {
+			this.clearEditingIfSelected(f.id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:181:4
+Error: Object is possibly 'undefined'. 
+		foldersToDelete.forEach((f) => {
+			this.clearEditingIfSelected(f.id);
+			if (f.parentId) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:183:20
+Error: Object is possibly 'undefined'. 
+			if (f.parentId) {
+				const parent = this.folders.get(f.parentId);
+				if (parent && parent.items) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:185:42
+Error: Parameter 'itemId' implicitly has an 'any' type. 
+				if (parent && parent.items) {
+					parent.items = parent.items.filter((itemId) => itemId !== f.id);
+				}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:188:5
+Error: Object is possibly 'undefined'. 
+			} else {
+				this.items = this.items.filter((itemId) => itemId !== f.id);
+			}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:188:18
+Error: Object is possibly 'undefined'. 
+			} else {
+				this.items = this.items.filter((itemId) => itemId !== f.id);
+			}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:188:37
+Error: Parameter 'itemId' implicitly has an 'any' type. 
+			} else {
+				this.items = this.items.filter((itemId) => itemId !== f.id);
+			}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:190:4
+Error: Object is possibly 'undefined'. 
+			}
+			this.folders.delete(f.id);
+		});
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:194:2
+Error: Cannot find name 'rootFolderIfParentMissing'. 
+
+	rootFolderIfParentMissing(id: string) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:194:28
+Error: Cannot find name 'id'. 
+
+	rootFolderIfParentMissing(id: string) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:194:32
+Error: 'string' only refers to a type, but is being used as a value here. 
+
+	rootFolderIfParentMissing(id: string) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:195:18
+Error: Object is possibly 'undefined'. 
+	rootFolderIfParentMissing(id: string) {
+		const folder = this.folders.get(id);
+		if (!folder) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:195:35
+Error: Cannot find name 'id'. 
+	rootFolderIfParentMissing(id: string) {
+		const folder = this.folders.get(id);
+		if (!folder) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:198:36
+Error: Object is possibly 'undefined'. 
+		
+		const parent = folder.parentId ? this.folders.get(folder.parentId) : null;
+		const isParentInvalid = folder.parentId && (!parent || parent.deletedAt != null);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:203:9
+Error: Object is possibly 'undefined'. 
+			folder.parentId = null;
+			if (!this.items.includes(id)) {
+				this.items.push(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:203:29
+Error: Cannot find name 'id'. 
+			folder.parentId = null;
+			if (!this.items.includes(id)) {
+				this.items.push(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:204:5
+Error: Object is possibly 'undefined'. 
+			if (!this.items.includes(id)) {
+				this.items.push(id);
+			}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:204:21
+Error: Cannot find name 'id'. 
+			if (!this.items.includes(id)) {
+				this.items.push(id);
+			}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:206:4
+Error: Object is possibly 'undefined'. 
+			}
+			this.folders.set(id, folder);
+			this.persist(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:206:21
+Error: Cannot find name 'id'. 
+			}
+			this.folders.set(id, folder);
+			this.persist(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:207:4
+Error: Object is possibly 'undefined'. 
+			this.folders.set(id, folder);
+			this.persist(id);
+		}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:207:17
+Error: Cannot find name 'id'. 
+			this.folders.set(id, folder);
+			this.persist(id);
+		}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:211:2
+Error: Cannot find name 'clearEditingIfSelected'. 
+
+	clearEditingIfSelected(id: string) {
+		if (this.editingId === id) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:211:25
+Error: Cannot find name 'id'. 
+
+	clearEditingIfSelected(id: string) {
+		if (this.editingId === id) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:211:29
+Error: 'string' only refers to a type, but is being used as a value here. 
+
+	clearEditingIfSelected(id: string) {
+		if (this.editingId === id) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:212:7
+Error: Object is possibly 'undefined'. 
+	clearEditingIfSelected(id: string) {
+		if (this.editingId === id) {
+			this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:212:26
+Error: Cannot find name 'id'. 
+	clearEditingIfSelected(id: string) {
+		if (this.editingId === id) {
+			this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:213:4
+Error: Object is possibly 'undefined'. 
+		if (this.editingId === id) {
+			this.editingId = null;
+		}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:10
+Error: Cannot find name 'isChildOf'. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:20
+Error: Cannot find name 'parentId'. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:30
+Error: 'string' only refers to a type, but is being used as a value here. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:38
+Error: Cannot find name 'childId'. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:47
+Error: 'string' only refers to a type, but is being used as a value here. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:217:56
+Error: 'boolean' only refers to a type, but is being used as a value here. 
+
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:218:18
+Error: Object is possibly 'undefined'. 
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+		if (!parent || !parent.items) return false;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:218:35
+Error: Cannot find name 'parentId'. 
+	private isChildOf(parentId: string, childId: string): boolean {
+		const parent = this.folders.get(parentId);
+		if (!parent || !parent.items) return false;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:220:29
+Error: Cannot find name 'childId'. 
+		if (!parent || !parent.items) return false;
+		if (parent.items.includes(childId)) return true;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:225:2
+Error: Cannot find name 'findItemById'. 
+
+	findItemById(id: FolderID): FolderItem | null {
+		return this.folders.get(id) || null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:225:15
+Error: Cannot find name 'id'. 
+
+	findItemById(id: FolderID): FolderItem | null {
+		return this.folders.get(id) || null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:225:19
+Error: 'FolderID' only refers to a type, but is being used as a value here. 
+
+	findItemById(id: FolderID): FolderItem | null {
+		return this.folders.get(id) || null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:225:30
+Error: 'FolderItem' only refers to a type, but is being used as a value here. 
+
+	findItemById(id: FolderID): FolderItem | null {
+		return this.folders.get(id) || null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:225:43
+Error: The value 'null' cannot be used here. 
+
+	findItemById(id: FolderID): FolderItem | null {
+		return this.folders.get(id) || null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:229:2
+Error: Cannot find name 'renameFolder'. 
+
+	renameFolder(id: FolderID, newTitle: string) {
+		this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:229:15
+Error: Cannot find name 'id'. 
+
+	renameFolder(id: FolderID, newTitle: string) {
+		this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:229:19
+Error: 'FolderID' only refers to a type, but is being used as a value here. 
+
+	renameFolder(id: FolderID, newTitle: string) {
+		this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:229:29
+Error: Cannot find name 'newTitle'. 
+
+	renameFolder(id: FolderID, newTitle: string) {
+		this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:229:39
+Error: 'string' only refers to a type, but is being used as a value here. 
+
+	renameFolder(id: FolderID, newTitle: string) {
+		this.editingId = null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:230:3
+Error: Object is possibly 'undefined'. 
+	renameFolder(id: FolderID, newTitle: string) {
+		this.editingId = null;
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:231:18
+Error: Object is possibly 'undefined'. 
+		this.editingId = null;
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:231:35
+Error: Cannot find name 'id'. 
+		this.editingId = null;
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:233:17
+Error: Cannot find name 'newTitle'. 
+
+		if (folder && newTitle.trim() !== '') {
+			folder.title = newTitle;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:234:19
+Error: Cannot find name 'newTitle'. 
+		if (folder && newTitle.trim() !== '') {
+			folder.title = newTitle;
+			this.persist(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:235:4
+Error: Object is possibly 'undefined'. 
+			folder.title = newTitle;
+			this.persist(id);
+		}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:235:17
+Error: Cannot find name 'id'. 
+			folder.title = newTitle;
+			this.persist(id);
+		}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:239:2
+Error: Cannot find name 'openFolder'. 
+
+	openFolder(id: FolderID) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:239:13
+Error: Cannot find name 'id'. 
+
+	openFolder(id: FolderID) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:239:17
+Error: 'FolderID' only refers to a type, but is being used as a value here. 
+
+	openFolder(id: FolderID) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:240:18
+Error: Object is possibly 'undefined'. 
+	openFolder(id: FolderID) {
+		const folder = this.folders.get(id);
+		if (folder) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:240:35
+Error: Cannot find name 'id'. 
+	openFolder(id: FolderID) {
+		const folder = this.folders.get(id);
+		if (folder) {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:243:4
+Error: Object is possibly 'undefined'. 
+			folder.isOpen = !folder.isOpen;
+			this.persist(id);
+		}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:243:17
+Error: Cannot find name 'id'. 
+			folder.isOpen = !folder.isOpen;
+			this.persist(id);
+		}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:247:2
+Error: Cannot find name 'setFavorite'. 
+
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:247:14
+Error: Cannot find name 'id'. 
+
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:247:18
+Error: 'FolderID' only refers to a type, but is being used as a value here. 
+
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:247:28
+Error: Cannot find name 'isFavorite'. 
+
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:247:40
+Error: 'boolean' only refers to a type, but is being used as a value here. 
+
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:248:18
+Error: Object is possibly 'undefined'. 
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+		if (!folder) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:248:35
+Error: Cannot find name 'id'. 
+	setFavorite(id: FolderID, isFavorite: boolean) {
+		const folder = this.folders.get(id);
+		if (!folder) return;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:250:23
+Error: Cannot find name 'isFavorite'. 
+		if (!folder) return;
+		folder.isFavorite = isFavorite;
+		this.folders.set(id, folder);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:251:3
+Error: Object is possibly 'undefined'. 
+		folder.isFavorite = isFavorite;
+		this.folders.set(id, folder);
+		this.persist(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:251:20
+Error: Cannot find name 'id'. 
+		folder.isFavorite = isFavorite;
+		this.folders.set(id, folder);
+		this.persist(id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:252:3
+Error: Object is possibly 'undefined'. 
+		this.folders.set(id, folder);
+		this.persist(id);
+	}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:252:16
+Error: Cannot find name 'id'. 
+		this.folders.set(id, folder);
+		this.persist(id);
+	}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:255:2
+Error: Cannot find name 'getDefaultFolderId'. 
+
+	getDefaultFolderId(): string {
+		const findRegular = (ids: string[]): string | null => {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:255:24
+Error: 'string' only refers to a type, but is being used as a value here. 
+
+	getDefaultFolderId(): string {
+		const findRegular = (ids: string[]): string | null => {
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:258:20
+Error: Object is possibly 'undefined'. 
+			for (const id of ids) {
+				const folder = this.folders.get(id);
+				if (!folder) continue;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:270:39
+Error: Object is possibly 'undefined'. 
+
+		const regularFolderId = findRegular(this.items);
+		if (regularFolderId) return regularFolderId;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:281:3
+Error: Object is possibly 'undefined'. 
+		let nf = newFolder;
+		this.folders.set(newFolder.id, nf);
+		this.items.unshift(newFolder.id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:282:3
+Error: Object is possibly 'undefined'. 
+		this.folders.set(newFolder.id, nf);
+		this.items.unshift(newFolder.id);
+		this.persist(newFolder.id);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/folders.svelte.ts:283:3
+Error: Object is possibly 'undefined'. 
+		this.items.unshift(newFolder.id);
+		this.persist(newFolder.id);
+		return newFolder.id;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/selection.svelte.ts:42:22
+Error: Property 'findItemById' does not exist on type 'FolderStore'. 
+		if (!this.selectedFolderID) return null;
+		return folderStore.findItemById(this.selectedFolderID);
+	}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/selection.svelte.ts:52:22
+Error: Property 'findItemById' does not exist on type 'FolderStore'. 
+		if (!id) return null;
+		return folderStore.findItemById(id) ? id : null;
+	}
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/services/folderService.ts:13:3
+Error: Type 'FolderStore' is missing the following properties from type 'FolderStoreLike': findItemById, getDefaultFolderId, createFolder, startRename, and 8 more. 
+	constructor(
+		private readonly folders: FolderStoreLike = folderStore,
+		private readonly notes: NotesStoreLike = notesStore,
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/services/noteService.ts:13:3
+Error: Type 'FolderStore' is missing the following properties from type 'FolderStoreLike': findItemById, getDefaultFolderId, createFolder, startRename, and 8 more. 
+	constructor(
+		private readonly folders: FolderStoreLike = folderStore,
+		private readonly notes: NotesStoreLike = notesStore,
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/services/trashService.ts:14:3
+Error: Type 'FolderStore' is missing the following properties from type 'FolderStoreLike': findItemById, getDefaultFolderId, createFolder, startRename, and 8 more. 
+	constructor(
+		private readonly folders: FolderStoreLike = folderStore,
+		private readonly notes: NotesStoreLike = notesStore,
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/stores/services.ts:18:54
+Error: Argument of type 'FolderStore' is not assignable to parameter of type 'FolderStoreLike'.
+  Type 'FolderStore' is missing the following properties from type 'FolderStoreLike': findItemById, getDefaultFolderId, createFolder, startRename, and 8 more. 
+// Re-export shared helper for components or other logic
+export const folderTreeHelper = new FolderTreeHelper(folderStore, notesStore);
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/lib/views/noteListView.svelte.ts:81:37
+Error: Property 'findItemById' does not exist on type 'FolderStore'. 
+
+		const parentFolder = this.folders.findItemById(note.folderId);
+		const isHomeTarget = !parentFolder || parentFolder.deletedAt != null;
+
+/Users/dduraipandian/apps/mdnotes/frontend/src/routes/+layout.svelte:20:22
+Error: Property 'init' does not exist on type 'FolderStore'. (ts)
+		try {
+			await folderStore.init();
+			await selectionStore.init();
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/folders.test.ts:43:15
+Error: Property 'rootFolderIfParentMissing' does not exist on type 'FolderStore'. 
+		// Execution: rootFolderIfParentMissing
+		folderStore.rootFolderIfParentMissing('c1');
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/folders.test.ts:54:15
+Error: Property 'rootFolderIfParentMissing' does not exist on type 'FolderStore'. 
+		
+		folderStore.rootFolderIfParentMissing('f1');
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/folders.test.ts:66:15
+Error: Property 'restoreFolder' does not exist on type 'FolderStore'. 
+
+		folderStore.restoreFolder('f1', 123);
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/permanent_delete.test.ts:49:4
+Error: Object literal may only specify known properties, and 'url' does not exist in type 'FolderItem'. 
+			title: 'Folder',
+			url: '#',
+			items: [],
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/recovery_architecture.test.ts:55:34
+Error: Argument of type 'FolderStore' is not assignable to parameter of type 'FolderStoreLike'.
+  Type 'FolderStore' is missing the following properties from type 'FolderStoreLike': findItemById, getDefaultFolderId, createFolder, startRename, and 8 more. 
+	describe('TrashService: Flat Recovery Model (Scenario A & B follows B)', () => {
+		const trash = new TrashService(folderStore, notesStore, trashRepository, selectionStore);
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/recovery_architecture.test.ts:140:16
+Error: Property 'rootFolderIfParentMissing' does not exist on type 'FolderStore'. 
+			
+			folderStore.rootFolderIfParentMissing('f');
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/recovery_architecture.test.ts:152:16
+Error: Property 'rootFolderIfParentMissing' does not exist on type 'FolderStore'. 
+
+			folderStore.rootFolderIfParentMissing('c');
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/recovery_architecture.test.ts:160:37
+Error: Argument of type 'FolderStore' is not assignable to parameter of type 'FolderStoreLike'.
+  Type 'FolderStore' is missing the following properties from type 'FolderStoreLike': findItemById, getDefaultFolderId, createFolder, startRename, and 8 more. 
+	describe('Service Layer Integrity: TypeError Prevention', () => {
+		const service = new FolderService(folderStore, notesStore, selectionStore);
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/selection.test.ts:35:74
+Error: Object literal may only specify known properties, and 'url' does not exist in type 'FolderItem'. 
+	it('should load a persisted selection when the folder exists', async () => {
+		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder', url: '#' });
+		vi.mocked(settingsRepository.getAll).mockResolvedValue({ selectedFolderID: 'folder-1' } as any);
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/selection.test.ts:55:74
+Error: Object literal may only specify known properties, and 'url' does not exist in type 'FolderItem'. 
+	it('should persist folder selection changes', async () => {
+		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder', url: '#' });
+		vi.mocked(settingsRepository.getAll).mockResolvedValue({} as any);
+
+/Users/dduraipandian/apps/mdnotes/frontend/tests/unit/selection.test.ts:67:74
+Error: Object literal may only specify known properties, and 'url' does not exist in type 'FolderItem'. 
+	it('should clear selection when the selected folder is removed', async () => {
+		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder', url: '#' });
+		vi.mocked(settingsRepository.getAll).mockResolvedValue({} as any);
+
+====================================
+svelte-check found 205 errors and 0 warnings in 12 files

@@ -16,7 +16,6 @@ export type NoteItem = {
 
 class NotesStore {
 	notes = new SvelteMap<NoteID, NoteItem>();
-	folderNotes = new SvelteMap<FolderID, NoteID[]>();
 	selectedNoteID = $state<NoteID | null>(null);
 	private isInitialized = false;
 
@@ -46,7 +45,6 @@ class NotesStore {
 				}
 			});
 			this.notes.clear();
-			this.folderNotes.clear();
 
 			if (allNotes) {
 				allNotes.forEach((note) => {
@@ -63,11 +61,13 @@ class NotesStore {
 		}
 	}
 
-	persist(id: NoteID) {
+	persist(id: NoteID | null) {
 		if (!this.isInitialized) return;
-		const note = this.notes.get(id);
-		if (note) {
-			notesRepository.save($state.snapshot(note));
+		if (id) {
+			const note = this.notes.get(id);
+			if (note) {
+				notesRepository.save($state.snapshot(note));
+			}
 		}
 		settingsRepository.save('selectedNoteID', this.selectedNoteID);
 	}
@@ -196,40 +196,8 @@ class NotesStore {
 
 	selectNote(id: NoteID | null) {
 		this.selectedNoteID = id;
-		this.persist(id!);
+		this.persist(id);
 	}
 }
-
-const initialMockNotes: NoteItem[] = [
-	{
-		id: '1',
-		folderId: 'notes',
-		title: 'Weekly Goals',
-		content:
-			'15-SEP-2025, Monday\n- Complete UI framework component test cases\n- Understand B-Tree in depth',
-		updatedAt: '2025-09-15T08:48:00Z'
-	},
-	{
-		id: '2',
-		folderId: 'notes',
-		title: 'Methodologies',
-		content: 'Rice Theorem - Let S be a set of languages...',
-		updatedAt: '2025-08-25T10:00:00Z'
-	},
-	{
-		id: '3',
-		folderId: 'notes',
-		title: 'Tech Blogs',
-		content: 'Function Point Analysis - Measuring software size...',
-		updatedAt: '2022-03-15T14:30:00Z'
-	},
-	{
-		id: '4',
-		folderId: 'work',
-		title: 'Sprint Planning',
-		content: 'Discussing the new sidebar architecture...',
-		updatedAt: new Date().toISOString()
-	}
-];
 
 export const notesStore = new NotesStore([]);

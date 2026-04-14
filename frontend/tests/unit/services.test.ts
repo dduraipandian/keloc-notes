@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FolderService, NoteService, TrashService } from '../../src/lib/stores/services';
-import type { SidebarKind } from '../../src/lib/stores/folders.svelte';
 import { trashRepository } from '../../src/lib/stores/repositories';
 
 vi.mock('../../src/lib/stores/repositories', () => ({
@@ -241,7 +240,7 @@ describe('NoteService', () => {
 	});
 
 	it('should delegate note updates', () => {
-		const folders = { findItemById: (id) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
+		const folders = { findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
 		const notes = { updateNote: vi.fn() };
 
 		new NoteService(folders as any, notes as any).update('note-1', { title: 'Updated' });
@@ -250,7 +249,7 @@ describe('NoteService', () => {
 	});
 
 	it('should delegate note selection', () => {
-		const folders = { findItemById: (id) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
+		const folders = { findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
 		const notes = { selectNote: vi.fn() };
 
 		new NoteService(folders as any, notes as any).select('note-1');
@@ -261,7 +260,7 @@ describe('NoteService', () => {
 	it('should delegate note favorite toggles', () => {
 		const notes = { setFavorite: vi.fn() };
 
-		new NoteService({ findItemById: (id) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? id : 'regular' }) } as any, notes as any).setFavorite('note-1', true);
+		new NoteService({ findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? id : 'regular' }) } as any, notes as any).setFavorite('note-1', true);
 
 		expect(notes.setFavorite).toHaveBeenCalledWith('note-1', true);
 	});
@@ -331,7 +330,7 @@ describe('NoteService', () => {
 	});
 
 	it('should return deleted notes for trash folder', () => {
-		const folders = { findItemById: (id) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
+		const folders = { findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([
 				{ id: '1', folderId: 'f1', deletedAt: 123, updatedAt: '2025-01-01T00:00:00Z' },
@@ -371,7 +370,7 @@ describe('NoteService', () => {
 			])
 		};
 
-		const result = new NoteService({ findItemById: (id) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? id : 'regular' }) } as any, notes as any).getNotesForFolder(
+		const result = new NoteService({ findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? id : 'regular' }) } as any, notes as any).getNotesForFolder(
 			'favorites',
 			'favorites'
 		);

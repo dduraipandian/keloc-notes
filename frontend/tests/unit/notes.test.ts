@@ -4,7 +4,7 @@ import { folderStore, type FolderItem } from '../../src/lib/stores/folders.svelt
 import { noteService, trashService } from '../../src/lib/stores/services';
 import { selectionStore } from '../../src/lib/stores/selection.svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { notesRepository } from '../../src/lib/stores/repositories';
+import { notesRepository, settingsRepository } from '../../src/lib/stores/repositories';
 
 // Mock IDBR module
 vi.mock('../../src/lib/stores/repositories', () => ({
@@ -77,5 +77,11 @@ describe('NotesStore (Flat Recovery)', () => {
 
 		expect(notesStore.notes.get('n1')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('n1')?.folderId).toBeNull(); // Ejected to Home
+	});
+
+	it('should persist null selection when selectNote(null) is called', () => {
+		notesStore.selectNote(null);
+		expect(notesStore.selectedNoteID).toBeNull();
+		expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', null);
 	});
 });

@@ -5,10 +5,8 @@ export type FolderID = string;
 export type FolderItem = {
 	id: FolderID;
 	title: string;
-	url: string;
 	profile?: string;
 	isFavorite?: boolean;
-	badge?: number;
 	items?: FolderID[];
 	isOpen?: boolean;
 	parentId?: FolderID | null;
@@ -48,7 +46,6 @@ class FolderStore {
 			const folder = $state({
 				id,
 				title,
-				url: '#',
 				items: [],
 				parentId: null,
 				profile,
@@ -64,7 +61,7 @@ class FolderStore {
 			if (item.id) {
 				if (item.deletedAt === undefined) item.deletedAt = null;
 				if (item.isFavorite === undefined) item.isFavorite = false;
-				let i = $state(item);
+				let i = item;
 				this.folders.set(item.id, i);
 
 				// Plan 8: Section Isolation
@@ -77,7 +74,6 @@ class FolderStore {
 				}
 			}
 		});
-		console.log('loaded items:', this.items);
 	}
 
 	async init() {
@@ -96,7 +92,6 @@ class FolderStore {
 	}
 
 	persist(id: string) {
-		console.log('isInitialized', this.isInitialized);
 		if (!this.isInitialized) return;
 
 		const folder = this.folders.get(id);
@@ -124,7 +119,6 @@ class FolderStore {
 		const newFolder: FolderItem = {
 			id: crypto.randomUUID(),
 			title: 'New Folder',
-			url: '#',
 			isFavorite: false,
 			items: [],
 			parentId: null,
@@ -137,8 +131,7 @@ class FolderStore {
 			const parent = this.folders.get(parentId);
 			if (parent) {
 				if (!parent.items) {
-					let i = $state([]);
-					parent.items = i;
+					parent.items = [];
 				}
 				parent.items.unshift(newFolder.id);
 				parent.isOpen = true;
@@ -147,7 +140,7 @@ class FolderStore {
 			}
 		}
 
-		let nf = $state(newFolder);
+		let nf = newFolder;
 		this.folders.set(newFolder.id, nf);
 		this.persist(newFolder.id);
 		this.startRename(newFolder.id);
@@ -279,12 +272,11 @@ class FolderStore {
 		const newFolder: FolderItem = {
 			id: 'notes',
 			title: 'Notes',
-			url: '#',
 			items: [],
 			parentId: null,
 			deletedAt: null
 		};
-		let nf = $state(newFolder);
+		let nf = newFolder;
 		this.folders.set(newFolder.id, nf);
 		this.items.unshift(newFolder.id);
 		this.persist(newFolder.id);

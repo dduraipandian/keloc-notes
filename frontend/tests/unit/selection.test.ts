@@ -32,7 +32,7 @@ describe('SelectionStore', () => {
 	});
 
 	it('should load a persisted selection when the folder exists', async () => {
-		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder', url: '#' });
+		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder' });
 		vi.mocked(settingsRepository.getAll).mockResolvedValue({ selectedFolderID: 'folder-1' } as any);
 
 		await selectionStore.init();
@@ -52,7 +52,7 @@ describe('SelectionStore', () => {
 	});
 
 	it('should persist folder selection changes', async () => {
-		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder', url: '#' });
+		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder' });
 		vi.mocked(settingsRepository.getAll).mockResolvedValue({} as any);
 		await selectionStore.init();
 		vi.clearAllMocks();
@@ -64,7 +64,7 @@ describe('SelectionStore', () => {
 	});
 
 	it('should clear selection when the selected folder is removed', async () => {
-		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder', url: '#' });
+		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder' });
 		vi.mocked(settingsRepository.getAll).mockResolvedValue({} as any);
 		await selectionStore.init();
 		selectionStore.selectFolder('folder-1');

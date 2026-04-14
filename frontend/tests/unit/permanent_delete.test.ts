@@ -46,7 +46,6 @@ describe('Permanent Deletion with Archival', () => {
 	const addFolder = (folder: Partial<FolderItem> & { id: string }) => {
 		const fullFolder: FolderItem = {
 			title: 'Folder',
-			url: '#',
 			items: [],
 			parentId: null,
 			deletedAt: null,

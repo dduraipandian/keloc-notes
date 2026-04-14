@@ -12,7 +12,6 @@
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
-			console.log('Save: ', item);
 			folderService.rename(item.id, item.title);
 		} else if (e.key === 'Escape') {
 			folderService.cancelRename();
