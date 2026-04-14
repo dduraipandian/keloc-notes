@@ -18,13 +18,12 @@ describe('NotesStore Note Counts (Performance Optimization)', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Reset store state
-		(notesStore as any).notes = new SvelteMap<string, NoteItem>();
+		(notesStore as any).notes.clear();
 		(notesStore as any).isInitialized = true;
-		(notesStore as any).counts = {
-			byFolder: new SvelteMap<string | null, number>(),
-			favorites: 0,
-			trash: 0
-		};
+		(notesStore as any).folderNoteCounts = {};
+		(notesStore as any).favoriteCount = 0;
+		(notesStore as any).trashCount = 0;
+		(notesStore as any).selectedNoteID = null;
 		
 		// Reset folder store if needed
 		(folderStore as any).folders = new SvelteMap();
@@ -32,93 +31,172 @@ describe('NotesStore Note Counts (Performance Optimization)', () => {
 	});
 
 	it('should maintain accurate counts for notes in folders', () => {
-		// Initial state
-		// @ts-ignore - counts will be added later
-		expect(notesStore.counts.byFolder.get('f1')).toBeUndefined();
+		expect(notesStore.getNoteCount('f1')).toBe(0);
 
 		// Create a note in folder f1
 		notesStore.createNote('f1');
-		
-		// Verification (Expected to fail until implemented)
-		// @ts-ignore
-		expect(notesStore.counts.byFolder.get('f1')).toBe(1);
+		expect(notesStore.getNoteCount('f1')).toBe(1);
 
 		// Create another note in f1
 		notesStore.createNote('f1');
-		// @ts-ignore
-		expect(notesStore.counts.byFolder.get('f1')).toBe(2);
+		expect(notesStore.getNoteCount('f1')).toBe(2);
 
 		// Create a note in f2
 		notesStore.createNote('f2');
-		// @ts-ignore
-		expect(notesStore.counts.byFolder.get('f2')).toBe(1);
+		expect(notesStore.getNoteCount('f2')).toBe(1);
 	});
 
 	it('should update counts when a note is deleted (moved to trash)', () => {
-		notesStore.createNote('f1'); // note id will be 'test-uuid' because of crypto mock or actual random
-		const noteId = Array.from(notesStore.notes.keys())[0];
+		notesStore.createNote('f1');
+		const noteId = notesStore.selectedNoteID!;
 
-		// Initial verification
-		// @ts-ignore
-		expect(notesStore.counts.byFolder.get('f1')).toBe(1);
-		// @ts-ignore
+		expect(notesStore.getNoteCount('f1')).toBe(1);
 		expect(notesStore.counts.trash).toBe(0);
 
 		// Delete note
 		notesStore.deleteNote(noteId);
 
-		// Folder count should decrease, trash count should increase
-		// @ts-ignore
-		expect(notesStore.counts.byFolder.get('f1')).toBe(0);
-		// @ts-ignore
+		expect(notesStore.getNoteCount('f1')).toBe(0);
 		expect(notesStore.counts.trash).toBe(1);
 	});
 
 	it('should update counts when a note is restored from trash', () => {
 		notesStore.createNote('f1');
-		const noteId = Array.from(notesStore.notes.keys())[0];
+		const noteId = notesStore.selectedNoteID!;
 		notesStore.deleteNote(noteId);
+
+		expect(notesStore.counts.trash).toBe(1);
 
 		// Restore note
 		notesStore.restoreNote(noteId, 'f1');
 
-		// @ts-ignore
-		expect(notesStore.counts.byFolder.get('f1')).toBe(1);
-		// @ts-ignore
+		expect(notesStore.getNoteCount('f1')).toBe(1);
 		expect(notesStore.counts.trash).toBe(0);
 	});
 
 	it('should maintain accurate counts for favorites', () => {
 		notesStore.createNote('f1');
-		const noteId = Array.from(notesStore.notes.keys())[0];
+		const noteId = notesStore.selectedNoteID!;
 
-		// @ts-ignore
 		expect(notesStore.counts.favorites).toBe(0);
 
 		// Set favorite
 		notesStore.setFavorite(noteId, true);
-		// @ts-ignore
 		expect(notesStore.counts.favorites).toBe(1);
 
 		// Unfavorite
 		notesStore.setFavorite(noteId, false);
-		// @ts-ignore
 		expect(notesStore.counts.favorites).toBe(0);
 	});
 
 	it('should decrease favorite count when a favorite note is deleted', () => {
 		notesStore.createNote('f1');
-		const noteId = Array.from(notesStore.notes.keys())[0];
+		const noteId = notesStore.selectedNoteID!;
 		notesStore.setFavorite(noteId, true);
 
-		// @ts-ignore
 		expect(notesStore.counts.favorites).toBe(1);
 
-		// Delete favorite note
 		notesStore.deleteNote(noteId);
 
-		// It's in trash, so it's no longer an "active" favorite
-		// @ts-ignore
 		expect(notesStore.counts.favorites).toBe(0);
+		expect(notesStore.counts.trash).toBe(1);
+	});
+});
+
+describe('NotesStore Count Reactivity (Regression Test)', () => {
+	beforeEach(() => {
+		(notesStore as any).folderNoteCounts = {};
+		(notesStore as any).favoriteCount = 0;
+		(notesStore as any).trashCount = 0;
+		(notesStore as any).selectedNoteID = null;
+		(notesStore as any).notes.clear();
+	});
+
+	it('should trigger reactivity when selectedNote changes', () => {
+		let callCount = 0;
+		const sn = $derived.by(() => {
+			callCount++;
+			return notesStore.selectedNote;
+		});
+
+		// Initial track
+		expect(sn).toBeNull();
+		expect(callCount).toBe(1);
+
+		// Select a note via creation
+		notesStore.createNote('f1');
+		const noteId = notesStore.selectedNoteID!;
+		
+		expect(sn?.id).toBe(noteId);
+		expect(callCount).toBe(2);
+
+		// Deselect
+		notesStore.selectNote(null);
+		expect(sn).toBeNull();
+		expect(callCount).toBe(3);
+	});
+
+	it('should trigger reactivity when folderNoteCounts changes', () => {
+		let callCount = 0;
+		const dc = $derived.by(() => {
+			callCount++;
+			return notesStore.getNoteCount('f1');
+		});
+
+		expect(dc).toBe(0);
+		expect(callCount).toBe(1);
+
+		notesStore.createNote('f1');
+
+		expect(dc).toBe(1);
+		expect(callCount).toBe(2);
+	});
+
+	it('should trigger reactivity when favoriteCount changes', () => {
+		let callCount = 0;
+		const df = $derived.by(() => {
+			callCount++;
+			return notesStore.counts.favorites;
+		});
+
+		expect(df).toBe(0);
+		expect(callCount).toBe(1);
+
+		notesStore.createNote('f1');
+		const noteId = notesStore.selectedNoteID!;
+		notesStore.setFavorite(noteId, true);
+
+		expect(df).toBe(1);
+		expect(callCount).toBe(2);
+	});
+
+	it('should trigger reactivity when moving notes between folders', () => {
+		notesStore.createNote('f1');
+		const noteId = notesStore.selectedNoteID!;
+		
+		let f1Calls = 0;
+		let f2Calls = 0;
+
+		const f1Count = $derived.by(() => {
+			f1Calls++;
+			return notesStore.getNoteCount('f1');
+		});
+		const f2Count = $derived.by(() => {
+			f2Calls++;
+			return notesStore.getNoteCount('f2');
+		});
+
+		expect(f1Count).toBe(1);
+		expect(f2Count).toBe(0);
+		expect(f1Calls).toBe(1);
+		expect(f2Calls).toBe(1);
+
+		// Move note
+		notesStore.updateNote(noteId, { folderId: 'f2' });
+
+		expect(f1Count).toBe(0);
+		expect(f2Count).toBe(1);
+		expect(f1Calls).toBe(2);
+		expect(f2Calls).toBe(2);
 	});
 });
