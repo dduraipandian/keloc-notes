@@ -41,4 +41,5 @@ export type NotesStoreLike = {
 	deleteNotesInFolder(folderId: FolderID, batchTimestamp: number): void;
 	removeNoteLocally(id: NoteID): void;
 	clearSelectionIfSelected(id: NoteID): void;
+	getNoteCount(folderId: FolderID | null, profileId?: string): number;
 };

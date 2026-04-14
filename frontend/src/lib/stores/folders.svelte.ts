@@ -136,7 +136,8 @@ class FolderStore {
 			}
 		}
 
-		this.folders.set(newFolder.id, newFolder);
+		let f = $state(newFolder);
+		this.folders.set(newFolder.id, f);
 		this.persist(newFolder.id);
 		this.startRename(newFolder.id);
 		return newFolder.id;

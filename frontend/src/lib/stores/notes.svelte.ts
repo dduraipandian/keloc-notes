@@ -16,8 +16,12 @@ export type NoteItem = {
 
 class NotesStore {
 	notes = new SvelteMap<NoteID, NoteItem>();
-	selectedNoteID = $state<NoteID | null>(null);
 	private isInitialized = false;
+	counts = $state({
+		byFolder: new SvelteMap<string | null, number>(),
+		favorites: 0,
+		trash: 0
+	});
 
 	constructor(initialNotes: NoteItem[] = []) {
 		if (initialNotes.length > 0) {
@@ -50,6 +54,7 @@ class NotesStore {
 				allNotes.forEach((note) => {
 					this.notes.set(note.id, note);
 				});
+				this.recalculateCounts();
 				if (settings && settings.selectedNoteID) {
 					this.selectedNoteID = settings.selectedNoteID;
 				}
@@ -58,6 +63,24 @@ class NotesStore {
 		} catch (error) {
 			console.error('Failed to load notes from storage:', error);
 			throw error;
+		}
+	}
+
+	private recalculateCounts() {
+		this.counts.byFolder.clear();
+		this.counts.favorites = 0;
+		this.counts.trash = 0;
+
+		for (const note of this.notes.values()) {
+			if (note.deletedAt != null) {
+				this.counts.trash++;
+			} else {
+				const folderId = note.folderId ?? null;
+				this.counts.byFolder.set(folderId, (this.counts.byFolder.get(folderId) ?? 0) + 1);
+				if (note.isFavorite) {
+					this.counts.favorites++;
+				}
+			}
 		}
 	}
 
@@ -94,6 +117,10 @@ class NotesStore {
 		};
 		let n = $state(newNote);
 		this.notes.set(newNote.id, n);
+
+		// Update counts
+		this.counts.byFolder.set(folderId, (this.counts.byFolder.get(folderId) ?? 0) + 1);
+
 		this.selectedNoteID = newNote.id;
 		this.persist(newNote.id);
 	}
@@ -101,10 +128,38 @@ class NotesStore {
 	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {
 		const note = this.notes.get(id);
 		if (note) {
+			const oldFolderId = note.folderId ?? null;
+			const oldIsFavorite = !!note.isFavorite;
+			const oldDeletedAt = note.deletedAt;
+
 			Object.assign(note, {
 				...updates,
 				updatedAt: new Date().toISOString()
 			});
+
+			// If any of the count-affecting properties changed, update counts
+			if (oldDeletedAt === null && note.deletedAt === null) {
+				// We were and are active, check movements
+				if (updates.folderId !== undefined && updates.folderId !== oldFolderId) {
+					const newFolderId = updates.folderId ?? null;
+					this.counts.byFolder.set(oldFolderId, (this.counts.byFolder.get(oldFolderId) ?? 0) - 1);
+					this.counts.byFolder.set(newFolderId, (this.counts.byFolder.get(newFolderId) ?? 0) + 1);
+				}
+				if (updates.isFavorite !== undefined && updates.isFavorite !== oldIsFavorite) {
+					this.counts.favorites += updates.isFavorite ? 1 : -1;
+				}
+			} else if (oldDeletedAt === null && note.deletedAt !== null) {
+				// This case is usually handled by deleteNote, but just in case updateNote is used
+				this.counts.byFolder.set(oldFolderId, (this.counts.byFolder.get(oldFolderId) ?? 0) - 1);
+				this.counts.trash++;
+				if (oldIsFavorite) this.counts.favorites--;
+			} else if (oldDeletedAt !== null && note.deletedAt === null) {
+				// This case is usually handled by restoreNote
+				const currentFolderId = note.folderId ?? null;
+				this.counts.byFolder.set(currentFolderId, (this.counts.byFolder.get(currentFolderId) ?? 0) + 1);
+				this.counts.trash--;
+				if (note.isFavorite) this.counts.favorites++;
+			}
 
 			this.persist(id);
 		}
@@ -115,19 +170,34 @@ class NotesStore {
 		if (this.selectedNoteID === id) {
 			this.selectedNoteID = null;
 		}
-		if (note) {
+		if (note && note.deletedAt == null) {
+			const folderId = note.folderId ?? null;
 			note.deletedAt = batchTimestamp ?? Date.now();
 			this.notes.set(id, note);
+
+			// Update counts
+			this.counts.byFolder.set(folderId, (this.counts.byFolder.get(folderId) ?? 0) - 1);
+			this.counts.trash++;
+			if (note.isFavorite) this.counts.favorites--;
 		}
 		this.persist(id);
 	}
 
 	restoreNote(id: NoteID, folderId?: string | null) {
 		const note = this.notes.get(id);
-		if (note) {
+		if (note && note.deletedAt != null) {
+			const oldFolderId = note.folderId ?? null;
 			if (folderId !== undefined) note.folderId = folderId;
+			const newFolderId = note.folderId ?? null;
+			
 			note.deletedAt = null;
 			this.notes.set(id, note);
+
+			// Update counts
+			this.counts.trash--;
+			this.counts.byFolder.set(newFolderId, (this.counts.byFolder.get(newFolderId) ?? 0) + 1);
+			if (note.isFavorite) this.counts.favorites++;
+
 			this.persist(id);
 		}
 	}
@@ -136,8 +206,15 @@ class NotesStore {
 		const allNotes = Array.from(this.notes.values());
 		for (const note of allNotes) {
 			if ((note.folderId ?? 'root') === folderId && note.deletedAt == null) {
+				const oldFolderId = note.folderId ?? null;
 				note.deletedAt = batchTimestamp;
 				this.notes.set(note.id, note);
+
+				// Update counts
+				this.counts.byFolder.set(oldFolderId, (this.counts.byFolder.get(oldFolderId) ?? 0) - 1);
+				this.counts.trash++;
+				if (note.isFavorite) this.counts.favorites--;
+
 				if (this.selectedNoteID === note.id) {
 					this.selectedNoteID = null;
 				}
@@ -153,6 +230,13 @@ class NotesStore {
 				if (!targetBatch || note.deletedAt === targetBatch) {
 					note.deletedAt = null;
 					this.notes.set(note.id, note);
+
+					// Update counts
+					this.counts.trash--;
+					const currentFolderId = note.folderId ?? null;
+					this.counts.byFolder.set(currentFolderId, (this.counts.byFolder.get(currentFolderId) ?? 0) + 1);
+					if (note.isFavorite) this.counts.favorites++;
+
 					this.persist(note.id);
 				}
 			}
@@ -175,13 +259,31 @@ class NotesStore {
 	setFavorite(id: NoteID, isFavorite: boolean) {
 		const note = this.notes.get(id);
 		if (!note) return;
+		const oldFav = !!note.isFavorite;
 		note.isFavorite = isFavorite;
 		this.notes.set(id, note);
+
+		// Update counts if not in trash
+		if (note.deletedAt == null && oldFav !== isFavorite) {
+			this.counts.favorites += isFavorite ? 1 : -1;
+		}
+
 		this.persist(id);
 	}
 
 	removeNoteLocally(id: string) {
-		this.notes.delete(id);
+		const note = this.notes.get(id);
+		if (note) {
+			// Update counts before removal
+			if (note.deletedAt != null) {
+				this.counts.trash--;
+			} else {
+				const folderId = note.folderId ?? null;
+				this.counts.byFolder.set(folderId, (this.counts.byFolder.get(folderId) ?? 0) - 1);
+				if (note.isFavorite) this.counts.favorites--;
+			}
+			this.notes.delete(id);
+		}
 		this.clearSelectionIfSelected(id);
 	}
 
@@ -197,6 +299,17 @@ class NotesStore {
 	selectNote(id: NoteID | null) {
 		this.selectedNoteID = id;
 		this.persist(id);
+	}
+
+	getNoteCount(folderId: FolderID | null, profileId?: string): number {
+		if (profileId === 'trash') {
+			return this.counts.trash;
+		}
+		if (profileId === 'favorites') {
+			return this.counts.favorites;
+		}
+		// Regular folder or home
+		return this.counts.byFolder.get(folderId) ?? 0;
 	}
 }
 

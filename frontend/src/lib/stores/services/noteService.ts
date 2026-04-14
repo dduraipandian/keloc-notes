@@ -61,6 +61,6 @@ export class NoteService {
 	}
 
 	getNoteCountForFolder(folderId: FolderID | null, folderProfile?: string) {
-		return this.getNotesForFolder(folderId, folderProfile).length;
+		return this.notes.getNoteCount(folderId, folderProfile);
 	}
 }
