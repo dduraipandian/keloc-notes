@@ -11,7 +11,7 @@ Conventions:
 
 ## 1. Bugs
 
-### 1.1 Note count badge is wrong for system-view folders
+### [x] 1.1 Note count badge is wrong for system-view folders
 - **Start at:** `frontend/src/lib/stores/services/noteService.ts` — find `getNoteCountForFolder`. Then open [`Folders.svelte`](frontend/src/lib/components/Folders.svelte) and follow how `source.noteCount` is computed in [`folderSidebarView.svelte.ts`](frontend/src/lib/views/folderSidebarView.svelte.ts) (`this.noteQueries.getNoteCountForFolder(item.id, item.profile)`).
 - **Investigate:**
   - For each system view (`home`, `favorites`, `deleted-notes`), does the returned count actually match what the folder's profile's `resolveNotes` would produce? Compare against `PROFILE_REGISTRY[*].resolveNotes` in [`profiles.ts`](frontend/src/lib/stores/domain/profiles.ts).
@@ -82,7 +82,7 @@ Conventions:
   - Coordinates with item 4.1 (debounce) — probably they should be fixed together.
 - **Done when:** typing into a note does not cause the list to re-sort on each keystroke. The note's displayed "last updated" time updates at a cadence that feels right (define: every N seconds of typing, or on blur). Verify with a visible test: type into a note that's not first in the list and confirm it doesn't jump until the debounce fires.
 
-### 3.3 `getNoteCountForFolder` re-runs full iteration every render
+### [x] 3.3 `getNoteCountForFolder` re-runs full iteration every render
 - **Files:**
   - [`noteService.ts`](frontend/src/lib/stores/services/noteService.ts) — `getNoteCountForFolder`.
   - [`folderSidebarView.svelte.ts`](frontend/src/lib/views/folderSidebarView.svelte.ts) — where it's called in `buildSource`.
@@ -126,7 +126,7 @@ Conventions:
 
 ## 5. UX
 
-### 5.1 Auto-advance after note delete
+### [x] 5.1 Auto-advance after note delete
 - **Start at:** [`noteService.ts`](frontend/src/lib/stores/services/noteService.ts) — find the delete path. Compare with how `folderService.delete` already handles selection via `getNextFolderSelectionAfterDelete`.
 - **Investigate:**
   - After deleting the selected note, what's shown? (Currently: empty editor.)
@@ -171,22 +171,22 @@ Conventions:
 
 ## 6. Code Cleanup
 
-### 6.1 Remove unused `folderNotes` SvelteMap
+### [x] 6.1 Remove unused `folderNotes` SvelteMap
 - **File:** [`notes.svelte.ts:19, 49`](frontend/src/lib/stores/notes.svelte.ts#L19) — declared, cleared on init, never read or written elsewhere.
 - **Verify:** `grep` the codebase for `folderNotes` — all hits should be in `notes.svelte.ts` (plus one false-positive local variable in `trashService.ts`, which is unrelated).
 - **Done when:** the declaration is gone, `npm run check` passes.
 
-### 6.2 Remove unused `initialMockNotes`
+### [x] 6.2 Remove unused `initialMockNotes`
 - **File:** [`notes.svelte.ts:203-233`](frontend/src/lib/stores/notes.svelte.ts#L203).
 - **Verify:** grep for `initialMockNotes` — the constructor call is `new NotesStore([])`, not `new NotesStore(initialMockNotes)`, so it's dead.
 - **Done when:** deleted.
 
-### 6.3 Remove unused `url` field from `FolderItem`
+### [x] 6.3 Remove unused `url` field from `FolderItem`
 - **File:** [`folders.svelte.ts:8`](frontend/src/lib/stores/folders.svelte.ts#L8) — field declared, set to `'#'` in three places, never read for anything.
 - **Investigate:** grep `\.url\b` in `frontend/src` and confirm no read sites. `runtime.d.ts` has an unrelated `BrowserOpenURL` — ignore.
 - **Done when:** the field is gone from the type and every construction site. Tests still pass. (Note: some test fixtures in `frontend/tests/unit/` currently fail because they're missing `url` — removing the field fixes that too.)
 
-### 6.4 Remove unused `badge` field from `FolderItem`
+### [x] 6.4 Remove unused `badge` field from `FolderItem`
 - **File:** [`folders.svelte.ts:11`](frontend/src/lib/stores/folders.svelte.ts#L11).
 - **Verify:** grep for `\.badge` — no reads.
 - **Done when:** deleted.
@@ -227,7 +227,7 @@ Conventions:
   - Decide: are the recovery plans historical docs worth keeping in-repo (maybe under `/docs/`), or strictly private to the refactor? They shouldn't be published on a public repo.
 - **Done when:** working tree is clean. All files are either committed or deleted. `recovery-plan/` is resolved one way or the other.
 
-### 6.10 Fix pre-existing test-suite type errors
+### [x] 6.10 Fix pre-existing test-suite type errors
 - **How to see them:** `cd frontend && npm run check`.
 - **Files:**
   - `tests/unit/folders.test.ts`, `notes.test.ts`, `recovery_architecture.test.ts` — fixtures miss `url` on `FolderItem`. Item 6.3 removes `url`, so these will likely pass after that — but double-check.
