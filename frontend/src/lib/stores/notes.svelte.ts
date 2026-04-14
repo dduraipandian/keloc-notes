@@ -20,7 +20,8 @@ class NotesStore {
 	selectedNoteID = $state<NoteID | null>(null);
 
 	// Flattened reactive state for counts to ensure reliable tracking
-	folderNoteCounts = $state<Record<string, number>>({});
+	folderNoteCounts = $state<Record<string, number>>({ null: 0 });
+	folderDeletedNoteCounts = $state<Record<string, number>>({ null: 0 });
 	favoriteCount = $state(0);
 	trashCount = $state(0);
 
@@ -79,18 +80,18 @@ class NotesStore {
 	}
 
 	private recalculateCounts() {
-		// Reset Record
-		for (const key in this.folderNoteCounts) {
-			delete this.folderNoteCounts[key];
-		}
+		// Reset Records
+		this.folderNoteCounts = { null: 0 };
+		this.folderDeletedNoteCounts = { null: 0 };
 		this.favoriteCount = 0;
 		this.trashCount = 0;
 
 		for (const note of this.notes.values()) {
+			const folderId = note.folderId ?? 'null';
 			if (note.deletedAt != null) {
 				this.trashCount++;
+				this.folderDeletedNoteCounts[folderId] = (this.folderDeletedNoteCounts[folderId] ?? 0) + 1;
 			} else {
-				const folderId = note.folderId ?? 'null';
 				this.folderNoteCounts[folderId] = (this.folderNoteCounts[folderId] ?? 0) + 1;
 				if (note.isFavorite) {
 					this.favoriteCount++;
@@ -121,9 +122,10 @@ class NotesStore {
 	}
 
 	createNote(folderId: FolderID | null) {
+		const targetFolderId = folderId === 'home' ? null : folderId;
 		const newNote: NoteItem = {
 			id: crypto.randomUUID(),
-			folderId,
+			folderId: targetFolderId,
 			title: 'Untitled Note',
 			content: '',
 			updatedAt: new Date().toISOString(),
@@ -134,11 +136,13 @@ class NotesStore {
 		this.notes.set(newNote.id, n);
 
 		// Update counts
-		const fid = folderId ?? 'null';
+		const fid = targetFolderId ?? 'null';
+		if (this.folderNoteCounts[fid] === undefined) this.folderNoteCounts[fid] = 0;
 		this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) + 1;
 
 		this.selectedNoteID = newNote.id;
 		this.persist(newNote.id);
+		return newNote;
 	}
 
 	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {
@@ -153,30 +157,41 @@ class NotesStore {
 				updatedAt: new Date().toISOString()
 			});
 
-			// If any of the count-affecting properties changed, update counts
-			if (oldDeletedAt === null && note.deletedAt === null) {
-				// We were and are active, check movements
-				if (updates.folderId !== undefined) {
-					const newFolderId = updates.folderId ?? 'null';
-					if (newFolderId !== oldFolderId) {
-						this.folderNoteCounts[oldFolderId] = (this.folderNoteCounts[oldFolderId] ?? 0) - 1;
-						this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) + 1;
-					}
+			const newFolderId = note.folderId ?? 'null';
+			const newDeletedAt = note.deletedAt;
+			const newIsFavorite = !!note.isFavorite;
+
+			// Handle Folder Movement
+			if (oldFolderId !== newFolderId) {
+				if (oldDeletedAt === null) {
+					this.folderNoteCounts[oldFolderId] = (this.folderNoteCounts[oldFolderId] ?? 0) - 1;
+				} else {
+					this.folderDeletedNoteCounts[oldFolderId] = (this.folderDeletedNoteCounts[oldFolderId] ?? 0) - 1;
 				}
-				if (updates.isFavorite !== undefined && updates.isFavorite !== oldIsFavorite) {
-					this.favoriteCount += updates.isFavorite ? 1 : -1;
+
+				if (newDeletedAt === null) {
+					this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) + 1;
+				} else {
+					this.folderDeletedNoteCounts[newFolderId] = (this.folderDeletedNoteCounts[newFolderId] ?? 0) + 1;
 				}
-			} else if (oldDeletedAt === null && note.deletedAt !== null) {
-				// This case is usually handled by deleteNote
-				this.folderNoteCounts[oldFolderId] = (this.folderNoteCounts[oldFolderId] ?? 0) - 1;
+			}
+
+			// Handle Deletion State Change
+			if (oldDeletedAt === null && newDeletedAt !== null) {
+				this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) - 1;
+				this.folderDeletedNoteCounts[newFolderId] = (this.folderDeletedNoteCounts[newFolderId] ?? 0) + 1;
 				this.trashCount++;
 				if (oldIsFavorite) this.favoriteCount--;
-			} else if (oldDeletedAt !== null && note.deletedAt === null) {
-				// This case is usually handled by restoreNote
-				const currentFolderId = note.folderId ?? 'null';
-				this.folderNoteCounts[currentFolderId] = (this.folderNoteCounts[currentFolderId] ?? 0) + 1;
+			} else if (oldDeletedAt !== null && newDeletedAt === null) {
+				this.folderDeletedNoteCounts[newFolderId] = (this.folderDeletedNoteCounts[newFolderId] ?? 0) - 1;
+				this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) + 1;
 				this.trashCount--;
-				if (note.isFavorite) this.favoriteCount++;
+				if (newIsFavorite) this.favoriteCount++;
+			}
+
+			// Handle Favorite State Change (only if active)
+			if (newDeletedAt === null && oldIsFavorite !== newIsFavorite) {
+				this.favoriteCount += newIsFavorite ? 1 : -1;
 			}
 
 			this.persist(id);
@@ -189,12 +204,13 @@ class NotesStore {
 			this.selectedNoteID = null;
 		}
 		if (note && note.deletedAt == null) {
-			const folderId = note.folderId ?? 'null';
+			const fid = note.folderId ?? 'null';
 			note.deletedAt = batchTimestamp ?? Date.now();
 			this.notes.set(id, note);
 
 			// Update counts
-			this.folderNoteCounts[folderId] = (this.folderNoteCounts[folderId] ?? 0) - 1;
+			this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) - 1;
+			this.folderDeletedNoteCounts[fid] = (this.folderDeletedNoteCounts[fid] ?? 0) + 1;
 			this.trashCount++;
 			if (note.isFavorite) this.favoriteCount--;
 		}
@@ -204,6 +220,7 @@ class NotesStore {
 	restoreNote(id: NoteID, folderId?: string | null) {
 		const note = this.notes.get(id);
 		if (note && note.deletedAt != null) {
+			const oldFolderId = note.folderId ?? 'null';
 			if (folderId !== undefined) note.folderId = folderId;
 			const newFolderId = note.folderId ?? 'null';
 			
@@ -212,6 +229,7 @@ class NotesStore {
 
 			// Update counts
 			this.trashCount--;
+			this.folderDeletedNoteCounts[oldFolderId] = (this.folderDeletedNoteCounts[oldFolderId] ?? 0) - 1;
 			this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) + 1;
 			if (note.isFavorite) this.favoriteCount++;
 
@@ -229,6 +247,7 @@ class NotesStore {
 
 				// Update counts
 				this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) - 1;
+				this.folderDeletedNoteCounts[fid] = (this.folderDeletedNoteCounts[fid] ?? 0) + 1;
 				this.trashCount++;
 				if (note.isFavorite) this.favoriteCount--;
 
@@ -251,6 +270,7 @@ class NotesStore {
 					// Update counts
 					this.trashCount--;
 					const fid = note.folderId ?? 'null';
+					this.folderDeletedNoteCounts[fid] = (this.folderDeletedNoteCounts[fid] ?? 0) - 1;
 					this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) + 1;
 					if (note.isFavorite) this.favoriteCount++;
 
@@ -291,11 +311,12 @@ class NotesStore {
 	removeNoteLocally(id: string) {
 		const note = this.notes.get(id);
 		if (note) {
+			const fid = note.folderId ?? 'null';
 			// Update counts before removal
 			if (note.deletedAt != null) {
 				this.trashCount--;
+				this.folderDeletedNoteCounts[fid] = (this.folderDeletedNoteCounts[fid] ?? 0) - 1;
 			} else {
-				const fid = note.folderId ?? 'null';
 				this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) - 1;
 				if (note.isFavorite) this.favoriteCount--;
 			}
@@ -319,14 +340,20 @@ class NotesStore {
 	}
 
 	getNoteCount(folderId: FolderID | null, profileId?: string): number {
+		const normId = (folderId === 'home' || folderId === null) ? 'null' : folderId;
+		
 		if (profileId === 'trash') {
 			return this.trashCount;
 		}
 		if (profileId === 'favorites') {
 			return this.favoriteCount;
 		}
+		if (profileId === 'deleted') {
+			return this.folderDeletedNoteCounts[normId] ?? 0;
+		}
+		
 		// Regular folder or home
-		return this.folderNoteCounts[folderId ?? 'null'] ?? 0;
+		return this.folderNoteCounts[normId] ?? 0;
 	}
 }
 

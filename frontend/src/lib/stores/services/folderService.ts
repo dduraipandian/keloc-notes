@@ -20,10 +20,14 @@ export class FolderService {
 
 	create() {
 		const selectedFolder = this.selection.getSelectedFolder();
-		const parentFolderId =
+		let parentFolderId =
 			selectedFolder && resolveProfile(selectedFolder).capabilities.createFolder
 				? this.selection.selectedFolderID
 				: null;
+		
+		// Normalize root parent to null
+		if (parentFolderId === 'home') parentFolderId = null;
+
 		const newFolderId = this.folders.createFolder(parentFolderId);
 		this.selection.selectFolder(newFolderId ?? null);
 	}

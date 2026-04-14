@@ -19,15 +19,17 @@ export class NoteService {
 	}
 
 	create(folderId: FolderID | null) {
-		let actualFolderId = folderId;
-		const folder = folderId ? this.folders.findItemById(folderId) : this.folders.findItemById('home');
+		const actualFolderId = (folderId === 'home' || folderId === null) ? null : folderId;
+		const folder = actualFolderId ? this.folders.findItemById(actualFolderId) : this.folders.findItemById('home');
 
 		if (!folder || !resolveProfile(folder).capabilities.createNote) {
-			actualFolderId = this.folders.getDefaultFolderId();
+			const defaultId = this.folders.getDefaultFolderId();
+			this.selection.selectFolder(defaultId);
+			this.notes.createNote(defaultId);
+		} else {
+			this.selection.selectFolder(folderId);
+			this.notes.createNote(folderId);
 		}
-
-		this.selection.selectFolder(actualFolderId);
-		this.notes.createNote(actualFolderId);
 	}
 
 	update(noteId: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {

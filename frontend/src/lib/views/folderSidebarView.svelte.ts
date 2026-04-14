@@ -84,7 +84,7 @@ export class FolderSidebarView {
 		private readonly actions: SidebarActionDeps = defaultSidebarActionDeps
 	) {}
 
-	getSections(): SidebarSourceSection[] {
+	sections = $derived.by(() => {
 		return [
 			{
 				id: 'views',
@@ -106,6 +106,10 @@ export class FolderSidebarView {
 					.map((item) => this.buildSource(item, 0, false))
 			}
 		];
+	});
+
+	getSections(): SidebarSourceSection[] {
+		return this.sections;
 	}
 
 	private buildSource(item: FolderItem, depth: number, suppressChildren = false): SidebarSourceItem {
@@ -129,7 +133,7 @@ export class FolderSidebarView {
 			isSelected: this.selection.selectedFolderID === item.id,
 			isEditing: this.folders.editingId === item.id,
 			isOpen: item.isOpen ?? false,
-			noteCount: this.noteQueries.getNoteCountForFolder(item.id, item.profile),
+			noteCount: this.noteQueries.getNoteCountForFolder(item.id, getProfileId(item)),
 			children: visibleChildIds
 				.map((id) => this.folders.folders.get(id))
 				.filter((child): child is FolderItem => !!child)
