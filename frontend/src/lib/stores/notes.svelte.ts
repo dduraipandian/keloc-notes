@@ -15,8 +15,8 @@ export type NoteItem = {
 };
 
 class NotesStore {
-	notes = new SvelteMap<NoteID, NoteItem>();
-	folderNotes = new SvelteMap<FolderID, NoteID[]>();
+	notes = $state(new SvelteMap<NoteID, NoteItem>());
+	folderNotes = $state(new SvelteMap<FolderID, NoteID[]>());
 	selectedNoteID = $state<NoteID | null>(null);
 	private isInitialized = false;
 

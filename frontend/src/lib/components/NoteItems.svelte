@@ -44,8 +44,7 @@
 		<div class="flex min-w-0 items-center gap-2 overflow-hidden">
 			{#if noteListView.getSelectedFolderIconConfig()}
 				{@const iconConfig = noteListView.getSelectedFolderIconConfig()}
-				<svelte:component
-					this={iconConfig.component}
+				<iconConfig.component
 					size={14}
 					{...iconConfig.props}
 					class="shrink-0 {iconConfig.props.class}"

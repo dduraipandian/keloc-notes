@@ -19,9 +19,16 @@ export class FolderService {
 	}
 
 	create(parentId?: FolderID) {
-		const targetParentId = parentId ?? this.selection.selectedFolderID;
+		const selectedId = this.selection.selectedFolderID;
+		const selectedFolder = selectedId ? this.folders.findItemById(selectedId) : null;
+		const selectedProfile = selectedFolder ? resolveProfile(selectedFolder) : null;
+
+		// Default to root (null) if no parent passed AND selected item is a view
+		// This preserves E2E compatibility for the global "New Folder" button.
+		const isViewSelected = selectedProfile && selectedProfile.section === 'views';
+		const targetParentId = parentId ?? (isViewSelected ? null : selectedId);
+
 		const parentFolder = targetParentId ? this.folders.findItemById(targetParentId) : null;
-		
 		const actualParentId =
 			parentFolder && resolveProfile(parentFolder).capabilities.createFolder
 				? targetParentId
@@ -51,7 +58,6 @@ export class FolderService {
 	toggle(folderId: FolderID) {
 		this.folders.openFolder(folderId);
 	}
-
 
 	getFolderPath(folderId: FolderID): string {
 		return this.tree.getFolderPath(folderId);

@@ -22,6 +22,10 @@ class FolderStore {
 	items = $state<string[]>([]);
 	editingId = $state<string | null>(null);
 	folders = new SvelteMap<string, FolderItem>();
+	private readonly homeItem = $state(getProfileItem('home')!);
+	private readonly favoritesItem = $state(getProfileItem('favorites')!);
+	private readonly trashItem = $state(getProfileItem('trash')!);
+	private readonly virtualOpenState = $state(new SvelteMap<string, boolean>());
 	private isInitialized = false;
 
 	trashItems = $derived.by(() => {
@@ -39,8 +43,6 @@ class FolderStore {
 	});
 
 	constructor(initialItems: FolderItem[] = []) {
-		let i = $state<string[]>([]);
-		this.items = i;
 		this.folders.clear();
 		this.loadItems(initialItems);
 	}
@@ -152,6 +154,9 @@ class FolderStore {
 		const ts = batchTimestamp ?? Date.now();
 
 		folder.deletedAt = ts;
+		if (folder.parentId === null) {
+			this.items = this.items.filter((itemId) => itemId !== id);
+		}
 		this.folders.set(id, folder);
 		this.persist(id);
 		this.clearEditingIfSelected(id);
@@ -191,7 +196,7 @@ class FolderStore {
 	rootFolderIfParentMissing(id: string) {
 		const folder = this.folders.get(id);
 		if (!folder) return;
-		
+
 		const parent = folder.parentId ? this.folders.get(folder.parentId) : null;
 		const isParentInvalid = folder.parentId && (!parent || parent.deletedAt != null);
 
@@ -220,13 +225,26 @@ class FolderStore {
 	}
 
 	findItemById(id: FolderID): FolderItem | null {
-		// Plan: Pure logical views. First check if it's a system view.
-		const profile = PROFILE_REGISTRY[id];
-		if (profile && profile.section === 'views') {
-			return getProfileItem(id);
+		let virtual: FolderItem | null = null;
+		if (id === 'home') virtual = this.homeItem;
+		else if (id === 'favorites') virtual = this.favoritesItem;
+		else if (id === 'trash') virtual = this.trashItem;
+
+		if (virtual) {
+			virtual.isOpen = this.isOpen(id);
+			return virtual;
 		}
 
 		return this.folders.get(id) || null;
+	}
+
+	isOpen(id: FolderID): boolean {
+		const profile = PROFILE_REGISTRY[id];
+		if (profile && profile.section === 'views') {
+			// Virtual views are open by default
+			return this.virtualOpenState.get(id) ?? true;
+		}
+		return this.folders.get(id)?.isOpen ?? false;
 	}
 
 	renameFolder(id: FolderID, newTitle: string) {
@@ -240,6 +258,12 @@ class FolderStore {
 	}
 
 	openFolder(id: FolderID) {
+		const profile = PROFILE_REGISTRY[id];
+		if (profile && profile.section === 'views') {
+			this.virtualOpenState.set(id, !this.isOpen(id));
+			return;
+		}
+
 		const folder = this.folders.get(id);
 		if (folder) {
 			folder.isOpen = !folder.isOpen;

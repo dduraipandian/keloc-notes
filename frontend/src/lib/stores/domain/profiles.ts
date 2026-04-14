@@ -85,25 +85,26 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 		},
 		resolveNotes: (_, allNotes) => allNotes.filter((n) => n.isFavorite && n.deletedAt == null)
 	},
-	'deleted-notes': {
+	trash: {
 		title: 'Recently Deleted',
 		iconName: 'trash',
 		section: 'views',
-		childrenExpandable: false,
+		childrenExpandable: true,
 		showDeletedChildren: true,
 		capabilities: {
 			createNote: false,
 			createFolder: false,
 			rename: false,
 			delete: false,
-			recover: false,
-			permanentDelete: false,
+			recover: true,
+			permanentDelete: true,
 			emptyTrash: true,
 			favorite: false,
 			selectableAfterDelete: false
 		},
 		resolveChildFolderIds: (item, store) => {
-			return Array.from(store.folders.values())
+			const allFolders = Array.from(store.folders.values());
+			return allFolders
 				.filter((f: FolderItem) => {
 					if (f.deletedAt == null) return false;
 					if (!f.parentId) return true;
