@@ -82,7 +82,6 @@ class FolderStore {
 			}
 			this.isInitialized = true;
 		} catch (error) {
-			console.error('Failed to load folders from storage:', error);
 			throw error;
 		}
 	}
@@ -136,8 +135,7 @@ class FolderStore {
 			}
 		}
 
-		let f = $state(newFolder);
-		this.folders.set(newFolder.id, f);
+		this.folders.set(newFolder.id, newFolder); // newFolder is already $state
 		this.persist(newFolder.id);
 		this.startRename(newFolder.id);
 		return newFolder.id;

@@ -32,8 +32,8 @@ export class NoteService {
 		}
 	}
 
-	update(noteId: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {
-		this.notes.updateNote(noteId, updates);
+	update(noteId: NoteID, updates: Partial<Omit<NoteItem, 'id'>>, opts?: { bumpUpdatedAt?: boolean }) {
+		this.notes.updateNote(noteId, updates, opts);
 	}
 
 	select(noteId: NoteID | null) {

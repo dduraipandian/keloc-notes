@@ -245,7 +245,7 @@ describe('NoteService', () => {
 
 		new NoteService(folders as any, notes as any).update('note-1', { title: 'Updated' });
 
-		expect(notes.updateNote).toHaveBeenCalledWith('note-1', { title: 'Updated' });
+		expect(notes.updateNote).toHaveBeenCalledWith('note-1', { title: 'Updated' }, undefined);
 	});
 
 	it('should delegate note selection', () => {

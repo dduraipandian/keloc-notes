@@ -65,22 +65,22 @@ Conventions:
 
 ## 3. Svelte Reactivity
 
-### 3.1 Redundant `SvelteMap.set()` on existing notes
+### [x] 3.1 Redundant `SvelteMap.set()` on existing notes
 - **File:** [`notes.svelte.ts`](frontend/src/lib/stores/notes.svelte.ts) — lines `120, 130, 140, 155, 179`.
 - **Background for juniors:** In Svelte 5 runes mode, every note object stored in the map is already a `$state` proxy. Mutating a field like `note.deletedAt = x` is fine-grained: only subscribers reading `deletedAt` on that specific note re-run. Calling `map.set(id, sameObject)` on top of that signals a **structural change** to the map, which invalidates every consumer that iterates the map (`Array.from(map.values())`). Our note list and every folder badge do exactly that.
 - **Investigate:**
   - For each of the 5 call sites, confirm the note is already in the map before the mutation — if so, the `.set()` is redundant.
   - Are there any code paths where the note might not yet be in the map (e.g. a just-created note)? Those are the legitimate `.set()` sites.
   - Once you've removed redundant `.set()`s, profile with the Svelte devtools or a console instrumented on the view layer — verify the note list and badges no longer re-render when you toggle a note's `isFavorite` or `deletedAt`.
-- **Done when:** only adding or removing a note calls `.set()` / `.delete()`; every mutation of an existing field is a direct property assignment. Add or extend a unit test that spies on the reactive graph (or asserts render counts) for at least one mutation path.
+- **Done when:** only adding or removing a note calls `.set()` / `.delete()`; every mutation of an existing field is a direct property assignment. [x] Unit test `mutations_reactivity.test.ts` verifies this.
 
-### 3.2 Typing re-sorts the note list on every keystroke
+### [x] 3.2 Typing re-sorts the note list on every keystroke
 - **File:** [`notes.svelte.ts:101-111`](frontend/src/lib/stores/notes.svelte.ts#L101) — `updateNote` stamps `updatedAt` on every call.
 - **Investigate:**
   - Follow the reactive graph: `updateNote` → `note.updatedAt` → `getNotesForFolder` sort key → `filteredNotes` ($derived in `NoteItems.svelte`) → re-order → the active note jumps to the top position and the list re-renders.
   - Is there a separation between "in-memory update" (don't care about `updatedAt` immediately) and "persistence event" (this is when we care)? Decide when `updatedAt` should bump: on every keystroke, on debounce fire, or only when the note loses focus?
   - Coordinates with item 4.1 (debounce) — probably they should be fixed together.
-- **Done when:** typing into a note does not cause the list to re-sort on each keystroke. The note's displayed "last updated" time updates at a cadence that feels right (define: every N seconds of typing, or on blur). Verify with a visible test: type into a note that's not first in the list and confirm it doesn't jump until the debounce fires.
+- **Done when:** typing into a note does not cause the list to re-sort on each keystroke. [x] Unit test `mutations_reactivity.test.ts` verifies this. The `bumpUpdatedAt: false` flag is used during typing in `+page.svelte`.
 
 ### [x] 3.3 `getNoteCountForFolder` re-runs full iteration every render
 - **Files:**
@@ -191,12 +191,12 @@ Conventions:
 - **Verify:** grep for `\.badge` — no reads.
 - **Done when:** deleted.
 
-### 6.5 Remove `let i = $state(...)` redundant assignments
+### [x] 6.5 Remove `let i = $state(...)` redundant assignments
 - **File:** [`folders.svelte.ts`](frontend/src/lib/stores/folders.svelte.ts) — `constructor()` and several other methods do `let i = $state([]); this.items = i;` even though `this.items` is already declared `$state<string[]>([])`.
 - **Investigate:** audit every `let * = $state(...)` in the stores. The pattern is noise left over from an earlier refactor. `$state(x)` inside a reassignment doesn't add reactivity that wasn't already there via the class-field declaration.
 - **Done when:** the stores read linearly without the intermediate `$state()` temp vars. `npm run check` passes and stores still behave correctly (write a quick test that mutates `this.items` and confirms a $derived consumer re-runs).
 
-### 6.6 Remove debug `console.log` statements
+### [x] 6.6 Remove debug `console.log` statements
 - **Files:**
   - [`folders.svelte.ts:64`](frontend/src/lib/stores/folders.svelte.ts#L64) — `console.log('loaded items:', ...)`
   - [`folders.svelte.ts:83`](frontend/src/lib/stores/folders.svelte.ts#L83) — `console.log('isInitialized', ...)`
@@ -204,7 +204,7 @@ Conventions:
 - **Investigate:** sweep the whole `frontend/src/` for `console.log` and evaluate each. Some may be intentional error logs — keep those. `console.error` in catch blocks is fine.
 - **Done when:** only deliberate, user-facing error logs remain.
 
-### 6.7 Remove `Greet()` stub from Wails backend
+### [x] 6.7 Remove `Greet()` stub from Wails backend
 - **File:** [`app.go:39-41`](app.go#L39) — leftover from the Wails template.
 - **Verify:** it's not called from the frontend (grep `Greet` in `frontend/src`). The binding file in `$lib/wailsjs/go/` will regenerate on next `wails dev`.
 - **Done when:** `Greet` is gone from `app.go`, the generated binding updates, frontend still compiles.

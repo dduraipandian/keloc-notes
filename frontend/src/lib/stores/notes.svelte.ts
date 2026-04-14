@@ -53,24 +53,19 @@ class NotesStore {
 			const settings = await settingsRepository.getAll();
 			let allNotes: NoteItem[] = [];
 
+			this.notes.clear();
 			allNotesData.forEach((note) => {
 				if (note && note.id) {
 					if (note.deletedAt === undefined) note.deletedAt = null;
 					if (note.isFavorite === undefined) note.isFavorite = false;
 					let n = $state(note);
-					allNotes.push(n);
+					this.notes.set(note.id, n);
 				}
 			});
-			this.notes.clear();
 
-			if (allNotes) {
-				allNotes.forEach((note) => {
-					this.notes.set(note.id, note);
-				});
-				this.recalculateCounts();
-				if (settings && settings.selectedNoteID) {
-					this.selectedNoteID = settings.selectedNoteID;
-				}
+			this.recalculateCounts();
+			if (settings && settings.selectedNoteID) {
+				this.selectedNoteID = settings.selectedNoteID;
 			}
 			this.isInitialized = true;
 		} catch (error) {
@@ -145,17 +140,21 @@ class NotesStore {
 		return newNote;
 	}
 
-	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>) {
+	updateNote(
+		id: NoteID,
+		updates: Partial<Omit<NoteItem, 'id'>>,
+		{ bumpUpdatedAt = true }: { bumpUpdatedAt?: boolean } = {}
+	) {
 		const note = this.notes.get(id);
 		if (note) {
 			const oldFolderId = note.folderId ?? 'null';
 			const oldIsFavorite = !!note.isFavorite;
 			const oldDeletedAt = note.deletedAt;
 
-			Object.assign(note, {
-				...updates,
-				updatedAt: new Date().toISOString()
-			});
+			Object.assign(note, updates);
+			if (bumpUpdatedAt) {
+				note.updatedAt = new Date().toISOString();
+			}
 
 			const newFolderId = note.folderId ?? 'null';
 			const newDeletedAt = note.deletedAt;
@@ -206,7 +205,6 @@ class NotesStore {
 		if (note && note.deletedAt == null) {
 			const fid = note.folderId ?? 'null';
 			note.deletedAt = batchTimestamp ?? Date.now();
-			this.notes.set(id, note);
 
 			// Update counts
 			this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) - 1;
@@ -225,7 +223,6 @@ class NotesStore {
 			const newFolderId = note.folderId ?? 'null';
 			
 			note.deletedAt = null;
-			this.notes.set(id, note);
 
 			// Update counts
 			this.trashCount--;
@@ -243,7 +240,6 @@ class NotesStore {
 			if ((note.folderId ?? 'root') === folderId && note.deletedAt == null) {
 				const fid = note.folderId ?? 'null';
 				note.deletedAt = batchTimestamp;
-				this.notes.set(note.id, note);
 
 				// Update counts
 				this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) - 1;
@@ -265,7 +261,6 @@ class NotesStore {
 			if ((note.folderId ?? 'root') === folderId && note.deletedAt != null) {
 				if (!targetBatch || note.deletedAt === targetBatch) {
 					note.deletedAt = null;
-					this.notes.set(note.id, note);
 
 					// Update counts
 					this.trashCount--;
@@ -298,7 +293,6 @@ class NotesStore {
 		if (!note) return;
 		const oldFav = !!note.isFavorite;
 		note.isFavorite = isFavorite;
-		this.notes.set(id, note);
 
 		// Update counts if not in trash
 		if (note.deletedAt == null && oldFav !== isFavorite) {
