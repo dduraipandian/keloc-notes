@@ -63,7 +63,7 @@
 					<textarea
 						bind:value={selectedNote.title}
 						oninput={() =>
-							noteService.update(selectedNote!.id, { title: selectedNote!.title }, { bumpUpdatedAt: false })}
+							noteService.update(selectedNote!.id, { title: selectedNote!.title })}
 						placeholder="Note Title"
 						readonly={selectedNote.deletedAt != null}
 						onclick={() => {
@@ -90,8 +90,7 @@
 						oninput={() =>
 							noteService.update(
 								selectedNote!.id,
-								{ content: selectedNote!.content },
-								{ bumpUpdatedAt: false }
+								{ content: selectedNote!.content }
 							)}
 						placeholder="Start writing..."
 						class="w-full flex-1 resize-none bg-transparent leading-relaxed text-foreground/90 outline-none placeholder:text-muted-foreground/10"

@@ -86,13 +86,15 @@ test.describe('Note Recovery (Flat Model)', () => {
 		await expect(restoreBtn).toBeVisible();
 		await restoreBtn.click();
 
-		// 7. Verify the note moved to Home (Root)
-		// Home doesn't have a label in the pane usually, it shows top-level notes.
-		// We expect the note to be selected and visible in the pane while Home view is active.
-		await expect(getNoteEditorTitle(page)).toHaveValue(noteName);
+		// 7. Verify we STAY in trash and the note is removed from the trash list
+		await expect(getNotePaneTitle(page, 'Recently Deleted')).toBeVisible();
+		await expect(getNoteTitleInPane(page).getByText(noteName, { exact: true })).toBeHidden();
 		
-		// Ensure it appears in the Note Pane (which should now be showing Home/Root notes)
+		// 8. Manually go to Home to verify the note was actually restored
+		await page.getByText('Home', { exact: true }).first().click();
+		await expect(getNotePaneTitle(page, 'Home')).toBeVisible();
 		await expect(getNoteTitleInPane(page).getByText(noteName, { exact: true })).toBeVisible();
+		await expect(getNoteEditorTitle(page)).toHaveValue(noteName);
 	});
 
 	test('should recover a note to its original folder if the folder is still active', async ({ page }) => {
@@ -116,7 +118,12 @@ test.describe('Note Recovery (Flat Model)', () => {
 		await page.getByText('Restore', { exact: true }).click();
 		await getAlertDialog(page).getByRole('button', { name: 'Restore' }).click();
 
-		// 5. Verify it returned to the folder
+		// 5. Verify we STAY in trash and note is removed
+		await expect(getNotePaneTitle(page, 'Recently Deleted')).toBeVisible();
+		await expect(getNoteTitleInPane(page).getByText(noteName, { exact: true })).toBeHidden();
+
+		// 6. Manually visit folder to verify restoration
+		await getSideBarFolderByLabel(page, folderName).click();
 		await expect(getNotePaneTitle(page, folderName)).toBeVisible();
 		await expect(getNoteEditorTitle(page)).toHaveValue(noteName);
 	});

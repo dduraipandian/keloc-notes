@@ -63,19 +63,25 @@ describe('Recovery Architecture: Comprehensive Suite', () => {
 
 			const restored = notesStore.notes.get('nA');
 			expect(restored?.deletedAt).toBeNull();
-			expect(restored?.folderId).toBe('f1'); // Preserved
-			expect(selectionStore.selectedFolderID).toBe('f1');
+			expect(restored?.folderId).toBe('f1');
+			
+			// Stay in trash (selectedFolderID should not change)
+			expect(selectionStore.selectedFolderID).not.toBe('f1');
+			// Neighbor 'nR' should be selected
+			expect(notesStore.selectedNoteID).toBe('nR');
 		});
 
 		it('Scenario 1.2: Recover note from DELETED parent -> Eject to Home (Root)', () => {
-			const { n1, f2, f3 } = setupHierarchy();
+			const { n1 } = setupHierarchy();
 			
 			trash.recoverNote('n1');
 
 			const restored = notesStore.notes.get('n1');
 			expect(restored?.deletedAt).toBeNull();
 			expect(restored?.folderId).toBeNull(); // Ejected to Home
-			expect(selectionStore.selectedFolderID).toBeNull();
+			
+			// Stay in trash, neighbor 'nR' selected
+			expect(notesStore.selectedNoteID).toBe('nR');
 			
 			// Parent should remain deleted
 			expect(folderStore.folders.get('f3')?.deletedAt).toBe(100);

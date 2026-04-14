@@ -218,9 +218,15 @@ test('can soft delete and recover a note from trash', async ({ page }) => {
 	await expect(
 		page.getByText('This note is in the Trash. Restore it to edit.', { exact: true })
 	).toBeHidden();
-	await expect(getNoteEditorTitle(page)).toHaveValue(noteTitle);
 
-	await expect(getNoteTitleInPane(page)).toContainText(noteTitle);
+	// Verify STAY in trash
+	await expect(getNotePaneTitle(page, 'Recently Deleted')).toBeVisible();
+	await expect(getNoteTitleInPane(page).getByText(noteTitle, { exact: true })).toBeHidden();
+
+	// Verify it's back in Home
+	await page.getByText('Home', { exact: true }).first().click();
+	await expect(getNotePaneTitle(page, 'Home')).toBeVisible();
+	await expect(getNoteEditorTitle(page)).toHaveValue(noteTitle);
 });
 
 test('recovering a note re-selects the proper folder and note', async ({ page }) => {
@@ -241,6 +247,12 @@ test('recovering a note re-selects the proper folder and note', async ({ page })
 		.getByRole('button', { name: 'Restore' })
 		.click();
 
+	// 5. Verify we STAY in trash after restore
+	await expect(getNotePaneTitle(page, 'Recently Deleted')).toBeVisible();
+	await expect(getNoteTitleInPane(page).getByText(noteTitle, { exact: true })).toBeHidden();
+
+	// 6. Manually verify it's back in the folder
+	await getSideBarFolderByLabel(page, folderTitle).click();
 	await expect(getNotePaneTitle(page, folderTitle)).toBeVisible();
 	await expect(getNoteEditorTitle(page)).toHaveValue(noteTitle);
 });

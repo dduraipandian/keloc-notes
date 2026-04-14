@@ -32,7 +32,7 @@ export class NoteService {
 		}
 	}
 
-	update(noteId: NoteID, updates: Partial<Omit<NoteItem, 'id'>>, opts?: { bumpUpdatedAt?: boolean }) {
+	update(noteId: NoteID, updates: Partial<Omit<NoteItem, 'id'>>, opts?: { updatedTimestamp?: boolean }) {
 		this.notes.updateNote(noteId, updates, opts);
 	}
 
@@ -47,8 +47,15 @@ export class NoteService {
 			currentFolder?.profile
 		);
 		const currentIndex = visibleNotes.findIndex((note) => note.id === noteId);
-		const nextNoteId =
-			currentIndex >= 0 ? (visibleNotes[currentIndex + 1]?.id ?? null) : null;
+		let nextNoteId: NoteID | null = null;
+
+		if (currentIndex >= 0) {
+			if (visibleNotes[currentIndex + 1]) {
+				nextNoteId = visibleNotes[currentIndex + 1].id;
+			} else if (visibleNotes[currentIndex - 1]) {
+				nextNoteId = visibleNotes[currentIndex - 1].id;
+			}
+		}
 
 		this.notes.deleteNote(noteId, batchTimestamp);
 		this.notes.selectNote(nextNoteId);

@@ -1,5 +1,6 @@
 import { SvelteMap } from 'svelte/reactivity';
 import { notesRepository, settingsRepository } from './repositories';
+import { KeyedDebouncer } from '../debounce';
 import type { FolderID } from './folders.svelte';
 
 export type NoteID = string;
@@ -18,14 +19,13 @@ class NotesStore {
 	notes = new SvelteMap<NoteID, NoteItem>();
 	private isInitialized = false;
 	selectedNoteID = $state<NoteID | null>(null);
+	private debouncer = new KeyedDebouncer();
 
-	// Flattened reactive state for counts to ensure reliable tracking
 	folderNoteCounts = $state<Record<string, number>>({ null: 0 });
 	folderDeletedNoteCounts = $state<Record<string, number>>({ null: 0 });
 	favoriteCount = $state(0);
 	trashCount = $state(0);
 
-	// Backward-compatible getter for components/services
 	get counts() {
 		return {
 			byFolder: {
@@ -51,7 +51,6 @@ class NotesStore {
 		try {
 			const allNotesData = await notesRepository.list();
 			const settings = await settingsRepository.getAll();
-			let allNotes: NoteItem[] = [];
 
 			this.notes.clear();
 			allNotesData.forEach((note) => {
@@ -75,7 +74,6 @@ class NotesStore {
 	}
 
 	private recalculateCounts() {
-		// Reset Records
 		this.folderNoteCounts = { null: 0 };
 		this.folderDeletedNoteCounts = { null: 0 };
 		this.favoriteCount = 0;
@@ -95,14 +93,17 @@ class NotesStore {
 		}
 	}
 
-	persist(id: NoteID | null) {
-		if (!this.isInitialized) return;
-		if (id) {
-			const note = this.notes.get(id);
-			if (note) {
-				notesRepository.save($state.snapshot(note));
-			}
+	persistNote(id: NoteID | null) {
+		if (!this.isInitialized || !id) return;
+		this.debouncer.cancel(id);
+		const note = this.notes.get(id);
+		if (note) {
+			notesRepository.save($state.snapshot(note));
 		}
+	}
+
+	persistSelection() {
+		if (!this.isInitialized) return;
 		settingsRepository.save('selectedNoteID', this.selectedNoteID);
 	}
 
@@ -130,20 +131,20 @@ class NotesStore {
 		let n = $state(newNote);
 		this.notes.set(newNote.id, n);
 
-		// Update counts
 		const fid = targetFolderId ?? 'null';
 		if (this.folderNoteCounts[fid] === undefined) this.folderNoteCounts[fid] = 0;
 		this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) + 1;
 
 		this.selectedNoteID = newNote.id;
-		this.persist(newNote.id);
+		this.persistNote(newNote.id);
+		this.persistSelection();
 		return newNote;
 	}
 
 	updateNote(
 		id: NoteID,
 		updates: Partial<Omit<NoteItem, 'id'>>,
-		{ bumpUpdatedAt = true }: { bumpUpdatedAt?: boolean } = {}
+		{ updatedTimestamp = true }: { updatedTimestamp?: boolean } = {}
 	) {
 		const note = this.notes.get(id);
 		if (note) {
@@ -152,9 +153,14 @@ class NotesStore {
 			const oldDeletedAt = note.deletedAt;
 
 			Object.assign(note, updates);
-			if (bumpUpdatedAt) {
-				note.updatedAt = new Date().toISOString();
-			}
+			
+			// Throttled persistence and timestamp update
+			this.debouncer.debounce(id, () => {
+				if (updatedTimestamp) {
+					note.updatedAt = new Date().toISOString();
+				}
+				this.persistNote(id);
+			}, 400);
 
 			const newFolderId = note.folderId ?? 'null';
 			const newDeletedAt = note.deletedAt;
@@ -193,7 +199,7 @@ class NotesStore {
 				this.favoriteCount += newIsFavorite ? 1 : -1;
 			}
 
-			this.persist(id);
+			// We don't call this.persistNote(id) directly anymore
 		}
 	}
 
@@ -212,7 +218,8 @@ class NotesStore {
 			this.trashCount++;
 			if (note.isFavorite) this.favoriteCount--;
 		}
-		this.persist(id);
+		this.persistNote(id);
+		this.persistSelection();
 	}
 
 	restoreNote(id: NoteID, folderId?: string | null) {
@@ -230,12 +237,14 @@ class NotesStore {
 			this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) + 1;
 			if (note.isFavorite) this.favoriteCount++;
 
-			this.persist(id);
+			this.persistNote(id);
+			this.persistSelection();
 		}
 	}
 
 	deleteNotesInFolder(folderId: string, batchTimestamp: number) {
 		const allNotes = Array.from(this.notes.values());
+		let selectionChanged = false;
 		for (const note of allNotes) {
 			if ((note.folderId ?? 'root') === folderId && note.deletedAt == null) {
 				const fid = note.folderId ?? 'null';
@@ -249,9 +258,13 @@ class NotesStore {
 
 				if (this.selectedNoteID === note.id) {
 					this.selectedNoteID = null;
+					selectionChanged = true;
 				}
-				this.persist(note.id);
+				this.persistNote(note.id);
 			}
+		}
+		if (selectionChanged) {
+			this.persistSelection();
 		}
 	}
 
@@ -269,7 +282,7 @@ class NotesStore {
 					this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) + 1;
 					if (note.isFavorite) this.favoriteCount++;
 
-					this.persist(note.id);
+					this.persistNote(note.id);
 				}
 			}
 		}
@@ -281,7 +294,9 @@ class NotesStore {
 	}
 
 	getDeletedNotes(): NoteItem[] {
-		return Array.from(this.notes.values()).filter((n) => n.deletedAt != null);
+		return Array.from(this.notes.values())
+			.filter((n) => n.deletedAt != null)
+			.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 	}
 
 	listNotes(): NoteItem[] {
@@ -299,7 +314,7 @@ class NotesStore {
 			this.favoriteCount += isFavorite ? 1 : -1;
 		}
 
-		this.persist(id);
+		this.persistNote(id);
 	}
 
 	removeNoteLocally(id: string) {
@@ -322,15 +337,16 @@ class NotesStore {
 	clearSelectionIfSelected(id: string) {
 		if (this.selectedNoteID === id) {
 			this.selectedNoteID = null;
-			if (this.isInitialized) {
-				settingsRepository.save('selectedNoteID', null);
-			}
+			this.persistSelection();
 		}
 	}
 
 	selectNote(id: NoteID | null) {
+		if (this.selectedNoteID) {
+			this.debouncer.flush(this.selectedNoteID);
+		}
 		this.selectedNoteID = id;
-		this.persist(id);
+		this.persistSelection();
 	}
 
 	getNoteCount(folderId: FolderID | null, profileId?: string): number {

@@ -388,7 +388,8 @@ describe('NoteService', () => {
 				{ id: '2', folderId: 'f1', deletedAt: null, updatedAt: '2024-01-01T00:00:00Z' },
 				{ id: '3', folderId: 'f2', deletedAt: null, updatedAt: '2023-01-01T00:00:00Z' }
 			]),
-			getNoteCount: vi.fn().mockReturnValue(2)
+			getNoteCount: vi.fn().mockReturnValue(2),
+			getDeletedNotes: vi.fn(() => [])
 		};
 
 		const count = new NoteService(folders as any, notes as any).getNoteCountForFolder('f1');
@@ -436,17 +437,18 @@ describe('TrashService (Flat Recovery)', () => {
 			selectNote: vi.fn()
 		};
 
-		new TrashService(
+		const trashService = new TrashService(
 			folders as any,
 			notes as any,
 			trashRepository as any,
 			selection as any
-		).recoverNote('note-1');
+		);
 
-		// Verification: note is restored with parentId: null (ejected to root)
-		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', null);
-		expect(selection.selectFolder).toHaveBeenCalledWith(null);
-		expect(notes.selectNote).toHaveBeenCalledWith('note-1');
+		// When n1 is restored, TrashService should now look for a neighbor in Trash.
+		// In our test mock, getDeletedNotes returns empty by default, so it will select null.
+		trashService.recoverNote('n1');
+		expect(notes.restoreNote).toHaveBeenCalledWith('n1', null);
+		expect(notes.selectNote).toHaveBeenCalledWith(null);
 	});
 
 	it('should recover a note to its original folder if parent is active', () => {
@@ -462,16 +464,17 @@ describe('TrashService (Flat Recovery)', () => {
 			selectNote: vi.fn()
 		};
 
-		new TrashService(
+		const trashService = new TrashService(
 			folders as any,
 			notes as any,
 			trashRepository as any,
 			selection as any
-		).recoverNote('note-1');
-
-		// Verification: note is restored locally because parent is not deleted
+		);
+		trashService.recoverNote('note-1');
 		expect(notes.restoreNote).toHaveBeenCalledWith('note-1', undefined);
-		expect(selection.selectFolder).toHaveBeenCalledWith('folder-a');
+		// Should NOT select the folder, stay in Trash view
+		expect(selection.selectFolder).not.toHaveBeenCalled();
+		expect(notes.selectNote).toHaveBeenCalledWith(null);
 	});
 
 	it('should root the folder if its parent is deleted during recovery', () => {

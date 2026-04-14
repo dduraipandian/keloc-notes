@@ -54,10 +54,21 @@ export class TrashService {
 			}
 		}
 
+		// Find neighbor in current view (Trash) before restoring
+		const deletedNotes = typeof this.notes.getDeletedNotes === 'function' ? this.notes.getDeletedNotes() : [];
+		const currentIndex = deletedNotes.findIndex((n) => n.id === noteId);
+		let nextNoteId: NoteID | null = null;
+
+		if (currentIndex >= 0) {
+			if (deletedNotes[currentIndex + 1]) {
+				nextNoteId = deletedNotes[currentIndex + 1].id;
+			} else if (deletedNotes[currentIndex - 1]) {
+				nextNoteId = deletedNotes[currentIndex - 1].id;
+			}
+		}
+
 		this.notes.restoreNote(noteId, restoredFolderId);
-		const selectedFolderId = restoredFolderId !== undefined ? restoredFolderId : (note.folderId ?? null);
-		this.selection.selectFolder(selectedFolderId);
-		this.notes.selectNote(noteId);
+		this.notes.selectNote(nextNoteId);
 	}
 
 	async permanentlyDeleteFolder(folderId: FolderID, targetBatch?: number) {

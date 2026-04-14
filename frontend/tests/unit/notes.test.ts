@@ -52,7 +52,8 @@ describe('NotesStore (Flat Recovery)', () => {
 
 		expect(notesStore.notes.get('n1')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('n1')?.folderId).toBeNull(); // Ejected to Home
-		expect(selectionStore.selectedFolderID).toBeNull();
+		// Stay in trash, n1 removed from selection (since it's the only note)
+		expect(notesStore.selectedNoteID).toBeNull();
 	});
 
 	it('should recover a note to its folder if parent is active', () => {
@@ -66,7 +67,8 @@ describe('NotesStore (Flat Recovery)', () => {
 
 		expect(notesStore.notes.get('n1')?.deletedAt).toBeNull();
 		expect(notesStore.notes.get('n1')?.folderId).toBe('f1'); // Preserved parent
-		expect(selectionStore.selectedFolderID).toBe('f1');
+		// Stay in trash
+		expect(notesStore.selectedNoteID).toBeNull();
 	});
 
 	it('should recover a note to Home (null) if parent is MISSING', () => {

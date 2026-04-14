@@ -29,9 +29,9 @@ export type FolderProfileConfig = {
 
 // Single source of truth for system view folders — order determines sidebar display order.
 export const SYSTEM_VIEWS: ReadonlyArray<{ id: string; title: string; profile: string }> = [
-	{ id: 'deleted-notes', title: 'Recently Deleted', profile: 'trash' },
+	{ id: 'home', title: 'Home', profile: 'home' },
 	{ id: 'favorites', title: 'Favorites', profile: 'favorites' },
-	{ id: 'home', title: 'Home', profile: 'home' }
+	{ id: 'deleted-notes', title: 'Recently Deleted', profile: 'trash' }
 ];
 
 export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
