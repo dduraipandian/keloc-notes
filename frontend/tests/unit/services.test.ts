@@ -12,7 +12,10 @@ vi.mock('../../src/lib/stores/repositories', () => ({
 
 describe('FolderService', () => {
 	it('should delegate folder creation', () => {
-		const folders = { createFolder: vi.fn() };
+		const folders = { 
+			createFolder: vi.fn(),
+			findItemById: vi.fn().mockReturnValue({ id: 'parent', profile: 'regular' })
+		};
 		const selection = {
 			selectedFolderID: 'parent',
 			selectFolder: vi.fn(),
@@ -26,8 +29,11 @@ describe('FolderService', () => {
 		expect(selection.selectFolder).toHaveBeenCalled();
 	});
 
-	it('should create at the root when a virtual view is selected', () => {
-		const folders = { createFolder: vi.fn() };
+	it('should create at the root when a non-creatable virtual view is selected', () => {
+		const folders = { 
+			createFolder: vi.fn(),
+			findItemById: vi.fn().mockReturnValue({ id: 'favorites', profile: 'favorites' })
+		};
 		const selection = {
 			selectedFolderID: 'favorites',
 			selectFolder: vi.fn(),
@@ -38,6 +44,23 @@ describe('FolderService', () => {
 		new FolderService(folders as any, {} as any, selection as any).create();
 
 		expect(folders.createFolder).toHaveBeenCalledWith(null);
+	});
+
+	it('should create under home when home view is selected', () => {
+		const folders = { 
+			createFolder: vi.fn(),
+			findItemById: vi.fn().mockReturnValue({ id: 'home', profile: 'home' })
+		};
+		const selection = {
+			selectedFolderID: 'home',
+			selectFolder: vi.fn(),
+			getSelectedFolder: vi.fn().mockReturnValue({ id: 'home', profile: 'home' }),
+			clearFolderIfSelected: vi.fn()
+		};
+
+		new FolderService(folders as any, {} as any, selection as any).create();
+
+		expect(folders.createFolder).toHaveBeenCalledWith('home');
 	});
 
 	it('should select the first note when a folder is selected', () => {

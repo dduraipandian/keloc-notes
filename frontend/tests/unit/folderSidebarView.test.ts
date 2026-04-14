@@ -254,9 +254,8 @@ describe('home profile', () => {
 				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
-				sub: { id: 'sub', title: 'Sub', profile: 'regular' }
-			},
-			homeFolderChildIds: ['sub']
+				sub: { id: 'sub', title: 'Sub', profile: 'regular', parentId: 'home' }
+			}
 		});
 		const home = findViewSource(view, 'home');
 		expect(home?.children).toHaveLength(1);

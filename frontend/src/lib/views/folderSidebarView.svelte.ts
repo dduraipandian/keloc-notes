@@ -38,7 +38,7 @@ export type SidebarSourceSection = {
 };
 
 type SidebarActionDeps = {
-	folderCreate: () => void;
+	folderCreate: (id?: FolderID) => void;
 	folderStartRename: (id: FolderID) => void;
 	folderDelete: (id: FolderID) => void;
 	folderSetFavorite: (id: FolderID, isFav: boolean) => void;
@@ -48,7 +48,7 @@ type SidebarActionDeps = {
 };
 
 const defaultSidebarActionDeps: SidebarActionDeps = {
-	folderCreate: () => folderService.create(),
+	folderCreate: (id) => folderService.create(id),
 	folderStartRename: (id) => folderService.startRename(id),
 	folderDelete: (id) =>
 		uiStore.confirmFolderDelete(folderStore.folders.get(id)?.title ?? '', () =>
@@ -162,7 +162,7 @@ export class FolderSidebarView {
 		if (caps.createFolder) {
 			items.push({
 				label: 'New Folder',
-				action: () => this.actions.folderCreate(),
+				action: () => this.actions.folderCreate(item.id),
 				variant: 'default',
 				separatorAfter: false
 			});

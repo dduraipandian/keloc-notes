@@ -25,18 +25,24 @@ export class FolderTreeHelper {
 		const folder = this.folders.findItemById(folderId);
 		if (!folder) return [];
 
+		const profile = resolveProfile(folder);
+		const childIds = profile.resolveChildFolderIds(folder, this.folders);
+
 		return [
 			snapshotFolder(folder),
-			...(folder.items ?? []).flatMap((childId) => this.collectFolderSubtree(childId))
+			...childIds.flatMap((childId) => this.collectFolderSubtree(childId))
 		];
 	}
 
 	getFolderSubtreeIds(rootId: FolderID) {
 		const ids = new Set<FolderID>([rootId]);
 		const folder = this.folders.findItemById(rootId);
-		if (!folder?.items) return ids;
+		if (!folder) return ids;
 
-		for (const childId of folder.items) {
+		const profile = resolveProfile(folder);
+		const childIds = profile.resolveChildFolderIds(folder, this.folders);
+
+		for (const childId of childIds) {
 			const childSubtree = this.getFolderSubtreeIds(childId);
 			childSubtree.forEach((id) => ids.add(id));
 		}
@@ -48,10 +54,6 @@ export class FolderTreeHelper {
 		return this.folders.trashItems;
 	}
 
-	getHomeFolderChildIds(): FolderID[] {
-		// Plan 8: Home has no children in sidebar to avoid duplication with 'folders' section
-		return [];
-	}
 
 	getFavoriteFolderIds(): FolderID[] {
 		const result: FolderID[] = [];
@@ -68,9 +70,15 @@ export class FolderTreeHelper {
 
 	getActiveFolderIds(): FolderID[] {
 		const result: FolderID[] = [];
+		
+		// 1. Traverse Home tree
+		this.collectActiveFolderIds('home', result);
+
+		// 2. Traverse global root items (parentId: null)
 		for (const rootId of this.folders.items) {
 			this.collectActiveFolderIds(rootId, result);
 		}
+		
 		return result;
 	}
 
@@ -114,7 +122,8 @@ export class FolderTreeHelper {
 
 		output.push(folder.id);
 
-		for (const childId of folder.items ?? []) {
+		const childIds = profile.resolveChildFolderIds(folder, this.folders);
+		for (const childId of childIds) {
 			this.collectActiveFolderIds(childId, output);
 		}
 	}

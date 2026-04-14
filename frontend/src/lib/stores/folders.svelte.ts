@@ -116,13 +116,14 @@ class FolderStore {
 			url: '#',
 			isFavorite: false,
 			items: [],
-			parentId: null,
+			parentId: parentId, // Plan: Preserve virtual parent ID
 			deletedAt: null
 		};
 
 		if (!parentId) {
 			this.items.unshift(newFolder.id);
 		} else {
+			// If it's a physical folder, update the parent-child pointers
 			const parent = this.folders.get(parentId);
 			if (parent) {
 				if (!parent.items) {
@@ -131,9 +132,10 @@ class FolderStore {
 				}
 				parent.items.unshift(newFolder.id);
 				parent.isOpen = true;
-				newFolder.parentId = parent.id;
 				this.persist(parent.id);
 			}
+			// If it's a virtual parent (like 'home'), we don't need to add it to a physical items array.
+			// The profile's resolveChildFolderIds will pick it up from the Map.
 		}
 
 		let nf = $state(newFolder);

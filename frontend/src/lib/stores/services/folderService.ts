@@ -18,13 +18,16 @@ export class FolderService {
 		this.selection = selection;
 	}
 
-	create() {
-		const selectedFolder = this.selection.getSelectedFolder();
-		const parentFolderId =
-			selectedFolder && resolveProfile(selectedFolder).capabilities.createFolder
-				? this.selection.selectedFolderID
+	create(parentId?: FolderID) {
+		const targetParentId = parentId ?? this.selection.selectedFolderID;
+		const parentFolder = targetParentId ? this.folders.findItemById(targetParentId) : null;
+		
+		const actualParentId =
+			parentFolder && resolveProfile(parentFolder).capabilities.createFolder
+				? targetParentId
 				: null;
-		const newFolderId = this.folders.createFolder(parentFolderId);
+
+		const newFolderId = this.folders.createFolder(actualParentId);
 		this.selection.selectFolder(newFolderId ?? null);
 	}
 

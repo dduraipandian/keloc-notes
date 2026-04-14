@@ -40,7 +40,7 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 		title: 'Home',
 		iconName: 'folder',
 		section: 'views',
-		childrenExpandable: false,
+		childrenExpandable: true,
 		showDeletedChildren: false,
 		capabilities: {
 			createNote: true,
@@ -55,11 +55,11 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 		},
 		resolveChildFolderIds: (item, store) => {
 			return Array.from(store.folders.values())
-				.filter((f: FolderItem) => f.parentId == null && f.deletedAt == null && (!f.profile || f.profile === 'regular'))
+				.filter((f: FolderItem) => f.parentId === 'home' && f.deletedAt == null)
 				.map((f: FolderItem) => f.id);
 		},
 		resolveNotes: (_, allNotes) =>
-			allNotes.filter((n) => n.folderId == null && n.deletedAt == null)
+			allNotes.filter((n) => (n.folderId === 'home' || n.folderId == null) && n.deletedAt == null)
 	},
 	favorites: {
 		title: 'Favorites',
