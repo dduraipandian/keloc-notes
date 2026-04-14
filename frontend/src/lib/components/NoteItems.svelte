@@ -42,6 +42,15 @@
 	<!-- Header -->
 	<header class="flex h-[52px] shrink-0 items-center justify-between gap-2 px-6">
 		<div class="flex min-w-0 items-center gap-2 overflow-hidden">
+			{#if noteListView.getSelectedFolderIconConfig()}
+				{@const iconConfig = noteListView.getSelectedFolderIconConfig()}
+				<svelte:component
+					this={iconConfig.component}
+					size={14}
+					{...iconConfig.props}
+					class="shrink-0 {iconConfig.props.class}"
+				/>
+			{/if}
 			<h2 class="truncate text-xs font-bold tracking-wider text-muted-foreground/60 uppercase">
 				{selectedFolderTitle}
 			</h2>

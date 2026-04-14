@@ -1,5 +1,9 @@
 import type { FolderID, FolderItem } from '../folders.svelte';
 import type { NoteItem } from '../notes.svelte';
+import { type Component } from 'svelte';
+import Folder from '@lucide/svelte/icons/folder';
+import Star from '@lucide/svelte/icons/star';
+import Trash2 from '@lucide/svelte/icons/trash-2';
 
 export type FolderIcon = 'folder' | 'star' | 'trash';
 
@@ -17,6 +21,7 @@ export type SidebarCapabilities = {
 
 export type FolderProfileConfig = {
 	// === View ===
+	title?: string; // Standard title for system views
 	iconName: FolderIcon;
 	section: 'views' | 'folders';
 	childrenExpandable: boolean;
@@ -32,6 +37,7 @@ export type FolderProfileConfig = {
 
 export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 	home: {
+		title: 'Home',
 		iconName: 'folder',
 		section: 'views',
 		childrenExpandable: false,
@@ -56,6 +62,7 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 			allNotes.filter((n) => n.folderId == null && n.deletedAt == null)
 	},
 	favorites: {
+		title: 'Favorites',
 		iconName: 'star',
 		section: 'views',
 		childrenExpandable: false,
@@ -78,7 +85,8 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 		},
 		resolveNotes: (_, allNotes) => allNotes.filter((n) => n.isFavorite && n.deletedAt == null)
 	},
-	trash: {
+	'deleted-notes': {
+		title: 'Recently Deleted',
 		iconName: 'trash',
 		section: 'views',
 		childrenExpandable: false,
@@ -160,6 +168,17 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 	}
 };
 
+const FOLDER_COLOR = '#dcb15a'; // Apple-style gold/folder color
+
+export const ICON_REGISTRY: Record<
+	FolderIcon,
+	{ component: Component<any>; props: Record<string, any> }
+> = {
+	folder: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } },
+	star: { component: Star as any, props: { class: 'fill-[#e0b64b] text-[#e0b64b]' } },
+	trash: { component: Trash2 as any, props: { class: 'text-destructive/70' } }
+};
+
 export function getProfileId(item: FolderItem): string {
 	if (item.deletedAt != null) return 'deleted';
 	return item.profile ?? 'regular';
@@ -167,4 +186,24 @@ export function getProfileId(item: FolderItem): string {
 
 export function resolveProfile(item: FolderItem): FolderProfileConfig {
 	return PROFILE_REGISTRY[getProfileId(item)];
+}
+
+/**
+ * Returns a virtual FolderItem for a given profile ID.
+ * This is used for system views that don't exist in the physical store.
+ */
+export function getProfileItem(id: string): FolderItem | null {
+	const profile = PROFILE_REGISTRY[id];
+	if (!profile) return null;
+
+	return {
+		id,
+		title: profile.title || 'Notes',
+		url: '#',
+		profile: id,
+		items: [],
+		parentId: null,
+		deletedAt: null,
+		isFavorite: false
+	};
 }

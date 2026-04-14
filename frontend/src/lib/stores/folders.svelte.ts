@@ -1,4 +1,4 @@
-import { resolveProfile } from './domain/profiles';
+import { resolveProfile, getProfileItem, PROFILE_REGISTRY } from './domain/profiles';
 
 export type FolderID = string;
 
@@ -48,6 +48,11 @@ class FolderStore {
 	loadItems(initialItems: any[] = []) {
 		initialItems.forEach((item) => {
 			if (item.id) {
+				// Don't load items that collide with system view IDs from the persistent store
+				const profileKey = item.profile || item.id;
+				const p = PROFILE_REGISTRY[profileKey] || PROFILE_REGISTRY[item.id];
+				if (p && p.section === 'views') return;
+
 				if (item.deletedAt === undefined) item.deletedAt = null;
 				if (item.isFavorite === undefined) item.isFavorite = false;
 				let i = $state(item);
@@ -213,6 +218,12 @@ class FolderStore {
 	}
 
 	findItemById(id: FolderID): FolderItem | null {
+		// Plan: Pure logical views. First check if it's a system view.
+		const profile = PROFILE_REGISTRY[id];
+		if (profile && profile.section === 'views') {
+			return getProfileItem(id);
+		}
+
 		return this.folders.get(id) || null;
 	}
 
@@ -276,38 +287,4 @@ class FolderStore {
 	}
 }
 
-// Initial mock data
-const systemFolders: FolderItem[] = [
-	{
-		id: 'home',
-		title: 'Home',
-		url: '#',
-		items: [],
-		parentId: null,
-		profile: 'home',
-		isFavorite: false,
-		deletedAt: null
-	},
-	{
-		id: 'deleted-notes',
-		title: 'Recently Deleted',
-		url: '#',
-		items: [],
-		parentId: null,
-		profile: 'trash',
-		isFavorite: false,
-		deletedAt: null
-	},
-	{
-		id: 'favorites',
-		title: 'Favorites',
-		url: '#',
-		items: [],
-		parentId: null,
-		profile: 'favorites',
-		isFavorite: false,
-		deletedAt: null
-	}
-];
-
-export const folderStore = new FolderStore(systemFolders);
+export const folderStore = new FolderStore();

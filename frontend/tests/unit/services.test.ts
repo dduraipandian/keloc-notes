@@ -203,7 +203,7 @@ describe('NoteService', () => {
 
 	it('should fall back to the default folder for trash/favorites views', () => {
 		const folders = {
-			findItemById: vi.fn().mockReturnValue({ id: 'deleted-notes', profile: 'trash' }),
+			findItemById: vi.fn().mockReturnValue({ id: 'deleted-notes', profile: 'deleted-notes' }),
 			getDefaultFolderId: vi.fn().mockReturnValue('notes')
 		};
 		const selection = {
@@ -241,7 +241,7 @@ describe('NoteService', () => {
 	});
 
 	it('should delegate note updates', () => {
-		const folders = { findItemById: (id) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
+		const folders = { findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes'].includes(id) ? id : 'regular' }) };
 		const notes = { updateNote: vi.fn() };
 
 		new NoteService(folders as any, notes as any).update('note-1', { title: 'Updated' });
@@ -250,7 +250,7 @@ describe('NoteService', () => {
 	});
 
 	it('should delegate note selection', () => {
-		const folders = { findItemById: (id) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
+		const folders = { findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes'].includes(id) ? id : 'regular' }) };
 		const notes = { selectNote: vi.fn() };
 
 		new NoteService(folders as any, notes as any).select('note-1');
@@ -317,7 +317,7 @@ describe('NoteService', () => {
 	});
 
 	it('should return notes for a folder sorted by updatedAt descending', () => {
-		const folders = { findItemById: vi.fn().mockImplementation((id) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? id : 'regular' })) };
+		const folders = { findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes'].includes(id) ? id : 'regular' }) };
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([
 				{ id: '1', folderId: 'f1', updatedAt: '2020-01-01T00:00:00Z', deletedAt: null },
@@ -331,7 +331,7 @@ describe('NoteService', () => {
 	});
 
 	it('should return deleted notes for trash folder', () => {
-		const folders = { findItemById: (id) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
+		const folders = { findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes'].includes(id) ? id : 'regular' }) };
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([
 				{ id: '1', folderId: 'f1', deletedAt: 123, updatedAt: '2025-01-01T00:00:00Z' },

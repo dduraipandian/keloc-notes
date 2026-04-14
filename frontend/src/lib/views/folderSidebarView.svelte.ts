@@ -2,14 +2,8 @@ import { folderStore, type FolderID, type FolderItem } from '$lib/stores/folders
 import { folderService, noteService, trashService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStore } from '$lib/stores/dialog.svelte';
-import type { Component } from 'svelte';
-import Folder from '@lucide/svelte/icons/folder';
-import Star from '@lucide/svelte/icons/star';
-import Trash2 from '@lucide/svelte/icons/trash-2';
-import type { FolderIcon, FolderProfileConfig, SidebarCapabilities } from '$lib/stores/domain/profiles';
-import { resolveProfile, getProfileId } from '$lib/stores/domain/profiles';
-
-const FOLDER_COLOR = '#dcb15a'; // Apple-style gold/folder color
+import { type FolderIcon, type FolderProfileConfig, type SidebarCapabilities, ICON_REGISTRY, PROFILE_REGISTRY } from '$lib/stores/domain/profiles';
+import { resolveProfile, getProfileId, getProfileItem } from '$lib/stores/domain/profiles';
 
 export type ContextMenuItemVariant = 'default' | 'destructive';
 
@@ -24,7 +18,7 @@ export type SidebarSourceItem = {
 	id: FolderID;
 	item: FolderItem;
 	profile: string;
-	icon: Component<any>;
+	icon: any; // Using any for component to avoid strict Component<any> mismatch if any
 	iconProps: Record<string, any>;
 	title: string;
 	depth: number;
@@ -53,12 +47,6 @@ type SidebarActionDeps = {
 	trashEmpty: () => void;
 };
 
-const ICON_REGISTRY: Record<FolderIcon, { component: Component<any>; props: Record<string, any> }> = {
-	folder: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } },
-	star: { component: Star as any, props: { class: 'fill-[#e0b64b] text-[#e0b64b]' } },
-	trash: { component: Trash2 as any, props: { class: 'text-destructive/70' } }
-};
-
 const defaultSidebarActionDeps: SidebarActionDeps = {
 	folderCreate: () => folderService.create(),
 	folderStartRename: (id) => folderService.startRename(id),
@@ -83,14 +71,18 @@ export class FolderSidebarView {
 	) {}
 
 	getSections(): SidebarSourceSection[] {
+		// Plan: Build section sources according to logical constraints in profile registry
+		const viewSources = Object.keys(PROFILE_REGISTRY)
+			.filter((id) => PROFILE_REGISTRY[id].section === 'views')
+			.map((id) => getProfileItem(id))
+			.filter((item): item is FolderItem => !!item)
+			.map((item) => this.buildSource(item, 0, false));
+
 		return [
 			{
 				id: 'views',
 				label: null,
-				sources: ['home', 'favorites', 'deleted-notes']
-					.map((id) => this.folders.folders.get(id))
-					.filter((item): item is FolderItem => !!item)
-					.map((item) => this.buildSource(item, 0, false))
+				sources: viewSources
 			},
 			{
 				id: 'folders',
@@ -122,12 +114,12 @@ export class FolderSidebarView {
 			profile: getProfileId(item),
 			icon: iconConfig.component,
 			iconProps: iconConfig.props,
-			title: item.title,
+			title: profile.title || item.title,
 			depth,
 			isSelected: this.selection.selectedFolderID === item.id,
 			isEditing: this.folders.editingId === item.id,
 			isOpen: item.isOpen ?? false,
-			noteCount: this.noteQueries.getNoteCountForFolder(item.id, item.profile),
+			noteCount: this.noteQueries.getNoteCountForFolder(item.id, getProfileId(item)),
 			children: visibleChildIds
 				.map((id) => this.folders.folders.get(id))
 				.filter((child): child is FolderItem => !!child)

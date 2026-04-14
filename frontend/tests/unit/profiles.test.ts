@@ -29,7 +29,7 @@ describe('Folder Profiles', () => {
 	});
 
 	it('should resolve Trash profile and its notes', () => {
-		const trashFolder = { id: 'trash', title: 'Trash', profile: 'trash' } as any;
+		const trashFolder = { id: 'trash', title: 'Trash', profile: 'deleted-notes' } as any;
 		const profile = resolveProfile(trashFolder);
 
 		const allNotes = [

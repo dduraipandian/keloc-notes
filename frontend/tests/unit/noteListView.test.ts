@@ -123,7 +123,7 @@ describe('NoteListView', () => {
 			{} as any,
 			{} as any,
 			{} as any,
-			{ getSelectedFolder: () => ({ profile: 'trash' }) } as any
+			{ getSelectedFolder: () => ({ profile: 'deleted-notes' }) } as any
 		);
 		expect(trashSelector.canCreateNote()).toBe(false);
 	});

@@ -58,7 +58,7 @@ describe('sections', () => {
 		const view = createView({
 			items: ['work'],
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				work: { id: 'work', title: 'Work', profile: 'regular' }
@@ -73,7 +73,7 @@ describe('sections', () => {
 		const view = createView({
 			items: ['work', 'deleted-notes', 'favorites', 'home'],
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				work: { id: 'work', title: 'Work', profile: 'regular' }
@@ -88,13 +88,13 @@ describe('trash profile', () => {
 	it('resolves trash kind and has emptyTrash capability', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' }
 			}
 		});
 		const trash = findViewSource(view, 'deleted-notes');
-		expect(trash?.profile).toBe('trash');
+		expect(trash?.profile).toBe('deleted-notes');
 		expect(trash?.capabilities.emptyTrash).toBe(true);
 		expect(trash?.capabilities.createFolder).toBe(false);
 	});
@@ -102,7 +102,7 @@ describe('trash profile', () => {
 	it('shows deleted folders as children from getTrashRootIds', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				'del-1': { id: 'del-1', title: 'Deleted Folder', deletedAt: 100 }
@@ -118,7 +118,7 @@ describe('trash profile', () => {
 	it('does not show sub-children of deleted folders (trash is flat)', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				'del-1': { id: 'del-1', title: 'Deleted', deletedAt: 100, items: ['sub-1'] },
@@ -134,7 +134,7 @@ describe('trash profile', () => {
 		const actions = defaultMockActions();
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' }
 			},
@@ -151,7 +151,7 @@ describe('favorites profile', () => {
 	it('resolves favorites kind with star icon', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' }
 			}
@@ -164,7 +164,7 @@ describe('favorites profile', () => {
 	it('shows favorite folders as children', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				work: { id: 'work', title: 'Work', isFavorite: true, deletedAt: null }
@@ -179,7 +179,7 @@ describe('favorites profile', () => {
 	it('hides deleted favorites', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				work: { id: 'work', title: 'Work', isFavorite: true, deletedAt: 123 }
@@ -193,7 +193,7 @@ describe('favorites profile', () => {
 	it('does not show sub-children of favorite folders', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				work: { id: 'work', title: 'Work', isFavorite: true, deletedAt: null, items: ['sub'] },
@@ -208,7 +208,7 @@ describe('favorites profile', () => {
 	it('has no capabilities and empty context menu', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' }
 			}
@@ -224,7 +224,7 @@ describe('home profile', () => {
 	it('resolves home kind for the home system folder', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' }
 			}
@@ -236,7 +236,7 @@ describe('home profile', () => {
 	it('allows creating sub-folders but not rename/delete/favorite', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' }
 			}
@@ -251,7 +251,7 @@ describe('home profile', () => {
 	it('shows sub-folders and they can expand (childrenExpandable=true)', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				sub: { id: 'sub', title: 'Sub', profile: 'regular' }
@@ -267,7 +267,7 @@ describe('home profile', () => {
 		const actions = defaultMockActions();
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' }
 			},
@@ -366,7 +366,7 @@ describe('deleted profile', () => {
 	it('resolves deleted kind for items with deletedAt', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				'del-1': { id: 'del-1', title: 'Deleted', deletedAt: 100 }
@@ -380,7 +380,7 @@ describe('deleted profile', () => {
 	it('has recover and permanentDelete capabilities only', () => {
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				'del-1': { id: 'del-1', title: 'Deleted', deletedAt: 100 }
@@ -398,7 +398,7 @@ describe('deleted profile', () => {
 		const actions = defaultMockActions();
 		const view = createView({
 			folders: {
-				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'deleted-notes' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
 				'del-1': { id: 'del-1', title: 'Deleted', deletedAt: 100 }
