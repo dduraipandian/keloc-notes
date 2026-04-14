@@ -11,9 +11,11 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
 	import { uiStore } from '$lib/stores/dialog.svelte';
+	import { ICON_REGISTRY } from '$lib/views/folderSidebarView.svelte';
 
 	let searchQuery = $state('');
 	const selectedFolderTitle = $derived(noteListView.getSelectedFolderTitle());
+	const selectedFolderIcon = $derived(ICON_REGISTRY[noteListView.getSelectedFolderProfileId()] ?? ICON_REGISTRY.regular);
 	const filteredNotes = $derived(noteListView.getFilteredNotes(searchQuery));
 	const canCreateNote = $derived(noteListView.canCreateNote());
 	const canDeleteSelectedNote = $derived(noteListView.canDeleteSelectedNote());
@@ -42,6 +44,7 @@
 	<!-- Header -->
 	<header class="flex h-[52px] shrink-0 items-center justify-between gap-2 px-6">
 		<div class="flex min-w-0 items-center gap-2 overflow-hidden">
+			<selectedFolderIcon.component size={14} {...selectedFolderIcon.props} />
 			<h2 class="truncate text-xs font-bold tracking-wider text-muted-foreground/60 uppercase">
 				{selectedFolderTitle}
 			</h2>

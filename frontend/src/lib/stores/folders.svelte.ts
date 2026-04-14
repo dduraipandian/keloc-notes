@@ -1,4 +1,4 @@
-import { resolveProfile } from './domain/profiles';
+import { resolveProfile, SYSTEM_VIEWS } from './domain/profiles';
 
 export type FolderID = string;
 
@@ -38,11 +38,25 @@ class FolderStore {
 		return deletedIds;
 	});
 
-	constructor(initialItems: FolderItem[] = []) {
+	constructor() {
 		let i = $state<string[]>([]);
 		this.items = i;
 		this.folders.clear();
-		this.loadItems(initialItems);
+
+		// Initialize system folders from central registry
+		for (const { id, title, profile } of SYSTEM_VIEWS) {
+			const folder = $state({
+				id,
+				title,
+				url: '#',
+				items: [],
+				parentId: null,
+				profile,
+				isFavorite: false,
+				deletedAt: null
+			});
+			this.folders.set(id, folder);
+		}
 	}
 
 	loadItems(initialItems: any[] = []) {
@@ -56,7 +70,9 @@ class FolderStore {
 				// Plan 8: Section Isolation
 				// Only add to root items if it's in the folders section
 				const profile = resolveProfile(i);
-				if (!item.parentId && profile.section === 'folders') {
+				const isSystemFolder = SYSTEM_VIEWS.some(v => v.id === item.id);
+				
+				if (!item.parentId && profile.section === 'folders' && !isSystemFolder) {
 					this.items.push(item.id);
 				}
 			}
@@ -276,38 +292,5 @@ class FolderStore {
 	}
 }
 
-// Initial mock data
-const systemFolders: FolderItem[] = [
-	{
-		id: 'home',
-		title: 'Home',
-		url: '#',
-		items: [],
-		parentId: null,
-		profile: 'home',
-		isFavorite: false,
-		deletedAt: null
-	},
-	{
-		id: 'deleted-notes',
-		title: 'Recently Deleted',
-		url: '#',
-		items: [],
-		parentId: null,
-		profile: 'trash',
-		isFavorite: false,
-		deletedAt: null
-	},
-	{
-		id: 'favorites',
-		title: 'Favorites',
-		url: '#',
-		items: [],
-		parentId: null,
-		profile: 'favorites',
-		isFavorite: false,
-		deletedAt: null
-	}
-];
+export const folderStore = new FolderStore();
 
-export const folderStore = new FolderStore(systemFolders);

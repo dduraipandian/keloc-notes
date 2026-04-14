@@ -6,8 +6,8 @@ import type { Component } from 'svelte';
 import Folder from '@lucide/svelte/icons/folder';
 import Star from '@lucide/svelte/icons/star';
 import Trash2 from '@lucide/svelte/icons/trash-2';
-import type { FolderIcon, FolderProfileConfig, SidebarCapabilities } from '$lib/stores/domain/profiles';
-import { resolveProfile, getProfileId } from '$lib/stores/domain/profiles';
+import type { FolderProfileConfig, SidebarCapabilities } from '$lib/stores/domain/profiles';
+import { resolveProfile, getProfileId, SYSTEM_VIEWS } from '$lib/stores/domain/profiles';
 
 const FOLDER_COLOR = '#dcb15a'; // Apple-style gold/folder color
 
@@ -53,10 +53,12 @@ type SidebarActionDeps = {
 	trashEmpty: () => void;
 };
 
-const ICON_REGISTRY: Record<FolderIcon, { component: Component<any>; props: Record<string, any> }> = {
-	folder: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } },
-	star: { component: Star as any, props: { class: 'fill-[#e0b64b] text-[#e0b64b]' } },
-	trash: { component: Trash2 as any, props: { class: 'text-destructive/70' } }
+export const ICON_REGISTRY: Record<string, { component: Component<any>; props: Record<string, any> }> = {
+	home: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } },
+	favorites: { component: Star as any, props: { class: 'fill-[#e0b64b] text-[#e0b64b]' } },
+	trash: { component: Trash2 as any, props: { class: 'text-destructive/70' } },
+	regular: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } },
+	deleted: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } }
 };
 
 const defaultSidebarActionDeps: SidebarActionDeps = {
@@ -87,8 +89,8 @@ export class FolderSidebarView {
 			{
 				id: 'views',
 				label: null,
-				sources: ['home', 'favorites', 'deleted-notes']
-					.map((id) => this.folders.folders.get(id))
+				sources: SYSTEM_VIEWS
+					.map(({ id }) => this.folders.folders.get(id))
 					.filter((item): item is FolderItem => !!item)
 					.map((item) => this.buildSource(item, 0, false))
 			},
@@ -108,7 +110,7 @@ export class FolderSidebarView {
 
 	private buildSource(item: FolderItem, depth: number, suppressChildren = false): SidebarSourceItem {
 		const profile = resolveProfile(item);
-		const iconConfig = ICON_REGISTRY[profile.iconName];
+		const iconConfig = ICON_REGISTRY[getProfileId(item)] ?? ICON_REGISTRY.regular;
 
 		const childIds = suppressChildren ? [] : profile.resolveChildFolderIds(item, this.folders);
 		const visibleChildIds = childIds.filter((id) => {

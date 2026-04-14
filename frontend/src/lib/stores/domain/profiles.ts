@@ -1,8 +1,6 @@
 import type { FolderID, FolderItem } from '../folders.svelte';
 import type { NoteItem } from '../notes.svelte';
 
-export type FolderIcon = 'folder' | 'star' | 'trash';
-
 export type SidebarCapabilities = {
 	createNote: boolean;
 	createFolder: boolean;
@@ -17,7 +15,6 @@ export type SidebarCapabilities = {
 
 export type FolderProfileConfig = {
 	// === View ===
-	iconName: FolderIcon;
 	section: 'views' | 'folders';
 	childrenExpandable: boolean;
 	showDeletedChildren: boolean;
@@ -30,11 +27,17 @@ export type FolderProfileConfig = {
 	resolveNotes: (folderId: FolderID, allNotes: NoteItem[], context?: any) => NoteItem[];
 };
 
+// Single source of truth for system view folders — order determines sidebar display order.
+export const SYSTEM_VIEWS: ReadonlyArray<{ id: string; title: string; profile: string }> = [
+	{ id: 'home', title: 'Home', profile: 'home' },
+	{ id: 'favorites', title: 'Favorites', profile: 'favorites' },
+	{ id: 'deleted-notes', title: 'Recently Deleted', profile: 'trash' }
+];
+
 export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 	home: {
-		iconName: 'folder',
 		section: 'views',
-		childrenExpandable: false,
+		childrenExpandable: true,
 		showDeletedChildren: false,
 		capabilities: {
 			createNote: true,
@@ -48,15 +51,14 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 			selectableAfterDelete: false
 		},
 		resolveChildFolderIds: (item, store) => {
-			return Array.from(store.folders.values())
-				.filter((f: FolderItem) => f.parentId == null && f.deletedAt == null && (!f.profile || f.profile === 'regular'))
-				.map((f: FolderItem) => f.id);
+			return (Array.from(store.folders.values()) as FolderItem[])
+				.filter((f) => f.parentId === item.id && f.deletedAt == null)
+				.map((f) => f.id);
 		},
 		resolveNotes: (_, allNotes) =>
 			allNotes.filter((n) => n.folderId == null && n.deletedAt == null)
 	},
 	favorites: {
-		iconName: 'star',
 		section: 'views',
 		childrenExpandable: false,
 		showDeletedChildren: false,
@@ -71,15 +73,14 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 			favorite: false,
 			selectableAfterDelete: false
 		},
-		resolveChildFolderIds: (item, store) => {
-			return Array.from(store.folders.values())
-				.filter((f: FolderItem) => f.isFavorite && f.deletedAt == null)
-				.map((f: FolderItem) => f.id);
+		resolveChildFolderIds: (_item, store) => {
+			return (Array.from(store.folders.values()) as FolderItem[])
+				.filter((f) => f.isFavorite && f.deletedAt == null)
+				.map((f) => f.id);
 		},
 		resolveNotes: (_, allNotes) => allNotes.filter((n) => n.isFavorite && n.deletedAt == null)
 	},
 	trash: {
-		iconName: 'trash',
 		section: 'views',
 		childrenExpandable: false,
 		showDeletedChildren: true,
@@ -94,20 +95,19 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 			favorite: false,
 			selectableAfterDelete: false
 		},
-		resolveChildFolderIds: (item, store) => {
-			return Array.from(store.folders.values())
-				.filter((f: FolderItem) => {
+		resolveChildFolderIds: (_item, store) => {
+			return (Array.from(store.folders.values()) as FolderItem[])
+				.filter((f) => {
 					if (f.deletedAt == null) return false;
 					if (!f.parentId) return true;
 					const parent = store.folders.get(f.parentId);
 					return !parent || parent.deletedAt == null;
 				})
-				.map((f: FolderItem) => f.id);
+				.map((f) => f.id);
 		},
 		resolveNotes: (_, allNotes) => allNotes.filter((n) => n.deletedAt != null)
 	},
 	regular: {
-		iconName: 'folder',
 		section: 'folders',
 		childrenExpandable: true,
 		showDeletedChildren: false,
@@ -127,7 +127,6 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 			allNotes.filter((n) => (n.folderId ?? 'root') === folderId && n.deletedAt == null)
 	},
 	deleted: {
-		iconName: 'folder',
 		section: 'folders', // though they don't appear in sidebar root
 		childrenExpandable: true,
 		showDeletedChildren: false,
@@ -160,7 +159,12 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 	}
 };
 
+
+
 export function getProfileId(item: FolderItem): string {
+	const systemView = SYSTEM_VIEWS.find((v) => v.id === item.id);
+	if (systemView) return systemView.profile;
+
 	if (item.deletedAt != null) return 'deleted';
 	return item.profile ?? 'regular';
 }

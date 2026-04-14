@@ -10,6 +10,16 @@ describe('Folder Profiles', () => {
 		expect(resolveProfile(deletedFolder)).toBe(PROFILE_REGISTRY.deleted);
 	});
 
+	it('should resolve system profiles by ID alone', () => {
+		const homeById = { id: 'home', title: 'Random Title' } as any;
+		const favoritesById = { id: 'favorites' } as any;
+		const trashById = { id: 'deleted-notes' } as any;
+
+		expect(resolveProfile(homeById)).toBe(PROFILE_REGISTRY.home);
+		expect(resolveProfile(favoritesById)).toBe(PROFILE_REGISTRY.favorites);
+		expect(resolveProfile(trashById)).toBe(PROFILE_REGISTRY.trash);
+	});
+
 	it('should resolve Home profile and its notes', () => {
 		const homeFolder = { id: 'home', title: 'Home', profile: 'home' } as any;
 		const profile = resolveProfile(homeFolder);

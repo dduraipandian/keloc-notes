@@ -3,7 +3,7 @@ import { folderStore, type FolderID, type FolderItem } from '$lib/stores/folders
 import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
 import { folderService, noteService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
-import { resolveProfile } from '$lib/stores/domain/profiles';
+import { resolveProfile, getProfileId } from '$lib/stores/domain/profiles';
 
 export class NoteListView {
 	constructor(
@@ -16,6 +16,11 @@ export class NoteListView {
 
 	getSelectedFolderTitle() {
 		return this.selection.getSelectedFolder()?.title ?? 'Notes';
+	}
+
+	getSelectedFolderProfileId(): string {
+		const folder = this.selection.getSelectedFolder();
+		return folder ? getProfileId(folder) : 'regular';
 	}
 
 	canCreateNote() {
