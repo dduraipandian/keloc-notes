@@ -387,7 +387,8 @@ describe('NoteService', () => {
 				{ id: '1', folderId: 'f1', deletedAt: null, updatedAt: '2025-01-01T00:00:00Z' },
 				{ id: '2', folderId: 'f1', deletedAt: null, updatedAt: '2024-01-01T00:00:00Z' },
 				{ id: '3', folderId: 'f2', deletedAt: null, updatedAt: '2023-01-01T00:00:00Z' }
-			])
+			]),
+			getNoteCount: vi.fn().mockReturnValue(2)
 		};
 
 		const count = new NoteService(folders as any, notes as any).getNoteCountForFolder('f1');
