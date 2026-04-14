@@ -1,8 +1,9 @@
-import { folderStore, type FolderID, type SidebarKind } from '../folders.svelte';
+import { folderStore, type FolderID } from '../folders.svelte';
 import { notesStore, type NoteID, type NoteItem } from '../notes.svelte';
 import { selectionStore } from '../selection.svelte';
 import type { FolderStoreLike, NotesStoreLike, SelectionStoreLike } from './types';
 import { FolderTreeHelper } from '../domain/folderTree';
+import { resolveProfile } from '../domain/profiles';
 
 export class NoteService {
 	private readonly tree: FolderTreeHelper;
@@ -19,9 +20,9 @@ export class NoteService {
 
 	create(folderId: FolderID | null) {
 		let actualFolderId = folderId;
-		const folder = folderId ? this.folders.findItemById(folderId) : null;
+		const folder = folderId ? this.folders.findItemById(folderId) : this.folders.findItemById('home');
 
-		if (!folderId || folder?.kind === 'trash' || folder?.kind === 'favorites') {
+		if (!folder || !resolveProfile(folder).capabilities.createNote) {
 			actualFolderId = this.folders.getDefaultFolderId();
 		}
 
@@ -41,7 +42,7 @@ export class NoteService {
 		const currentFolder = this.selection.getSelectedFolder();
 		const visibleNotes = this.tree.getNotesForFolder(
 			this.selection.selectedFolderID ?? null,
-			currentFolder?.kind
+			currentFolder?.profile
 		);
 		const currentIndex = visibleNotes.findIndex((note) => note.id === noteId);
 		const nextNoteId =
@@ -55,17 +56,11 @@ export class NoteService {
 		this.notes.setFavorite(noteId, isFavorite);
 	}
 
-	getNotesForFolder(folderId: FolderID | null, folderKind?: SidebarKind) {
-		if (folderId === 'favorites') {
-			return this.notes
-				.listNotes()
-				.filter((note) => note.deletedAt == null && note.isFavorite === true)
-				.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-		}
-		return this.tree.getNotesForFolder(folderId, folderKind);
+	getNotesForFolder(folderId: FolderID | null, folderProfile?: string) {
+		return this.tree.getNotesForFolder(folderId, folderProfile);
 	}
 
-	getNoteCountForFolder(folderId: FolderID | null, folderKind?: SidebarKind) {
-		return this.getNotesForFolder(folderId, folderKind).length;
+	getNoteCountForFolder(folderId: FolderID | null, folderProfile?: string) {
+		return this.getNotesForFolder(folderId, folderProfile).length;
 	}
 }

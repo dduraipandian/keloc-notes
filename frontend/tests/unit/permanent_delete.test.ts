@@ -145,7 +145,7 @@ describe('Permanent Deletion with Archival', () => {
 
 			vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockResolvedValue(true as any);
 
-			await trashService.empty();
+			await trashService.emptyTrash();
 
 			expect(trashRepository.permanentlyDeleteFolderTree).toHaveBeenCalledWith(
 				expect.arrayContaining([
@@ -166,7 +166,7 @@ describe('Permanent Deletion with Archival', () => {
 
 			vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockResolvedValue(true as any);
 
-			await trashService.empty();
+			await trashService.emptyTrash();
 
 			expect(trashRepository.permanentlyDeleteFolderTree).toHaveBeenCalledWith(
 				expect.arrayContaining([expect.objectContaining({ path: 'Orphan:root-n' })]),
@@ -184,7 +184,7 @@ describe('Permanent Deletion with Archival', () => {
 
 			vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockRejectedValue(new Error('Crash'));
 
-			await expect(trashService.empty()).rejects.toThrow('Crash');
+			await expect(trashService.emptyTrash()).rejects.toThrow('Crash');
 
 			expect(folderStore.folders.has('f1')).toBe(true);
 			expect(notesStore.notes.has('n1')).toBe(true);

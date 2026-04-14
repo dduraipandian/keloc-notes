@@ -1,4 +1,4 @@
-export type SidebarKind = 'trash' | 'favorites' | 'home' | 'regular' | 'deleted';
+import { resolveProfile } from './domain/profiles';
 
 export type FolderID = string;
 
@@ -6,7 +6,7 @@ export type FolderItem = {
 	id: FolderID;
 	title: string;
 	url: string;
-	kind?: SidebarKind;
+	profile?: string;
 	isFavorite?: boolean;
 	badge?: number;
 	items?: FolderID[];
@@ -27,7 +27,8 @@ class FolderStore {
 	trashItems = $derived.by(() => {
 		const deletedIds: string[] = [];
 		for (const [id, folder] of this.folders.entries()) {
-			if (folder.kind !== 'trash' && folder.deletedAt != null) {
+			const profile = resolveProfile(folder);
+			if (!profile.capabilities.emptyTrash && folder.deletedAt != null) {
 				const parent = folder.parentId ? this.folders.get(folder.parentId) : null;
 				if (!parent || parent.deletedAt == null) {
 					deletedIds.push(id);
@@ -51,7 +52,11 @@ class FolderStore {
 				if (item.isFavorite === undefined) item.isFavorite = false;
 				let i = $state(item);
 				this.folders.set(item.id, i);
-				if (!item.parentId) {
+
+				// Plan 8: Section Isolation
+				// Only add to root items if it's in the folders section
+				const profile = resolveProfile(i);
+				if (!item.parentId && profile.section === 'folders') {
 					this.items.push(item.id);
 				}
 			}
@@ -80,6 +85,10 @@ class FolderStore {
 
 		const folder = this.folders.get(id);
 		if (folder) {
+			// Plan 8: Don't persist view-section folders (managed locally)
+			const profile = resolveProfile(folder);
+			if (profile.section === 'views') return;
+
 			foldersRepository.save($state.snapshot(folder));
 		}
 	}
@@ -238,7 +247,8 @@ class FolderStore {
 			for (const id of ids) {
 				const folder = this.folders.get(id);
 				if (!folder) continue;
-				if (!folder.kind || folder.kind === 'regular') return folder.id;
+				const profile = resolveProfile(folder);
+				if (profile.capabilities.rename) return folder.id;
 				if (folder.items) {
 					const found = findRegular(folder.items);
 					if (found) return found;
@@ -274,7 +284,7 @@ const systemFolders: FolderItem[] = [
 		url: '#',
 		items: [],
 		parentId: null,
-		kind: 'home',
+		profile: 'home',
 		isFavorite: false,
 		deletedAt: null
 	},
@@ -284,7 +294,7 @@ const systemFolders: FolderItem[] = [
 		url: '#',
 		items: [],
 		parentId: null,
-		kind: 'trash',
+		profile: 'trash',
 		isFavorite: false,
 		deletedAt: null
 	},
@@ -294,7 +304,7 @@ const systemFolders: FolderItem[] = [
 		url: '#',
 		items: [],
 		parentId: null,
-		kind: 'favorites',
+		profile: 'favorites',
 		isFavorite: false,
 		deletedAt: null
 	}

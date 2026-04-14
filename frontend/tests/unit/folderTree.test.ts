@@ -21,6 +21,7 @@ describe('FolderTreeHelper (Flat Model)', () => {
 	});
 
 	it('should correctly filter notes for the Home view', () => {
+		folders.folders.set('home', { id: 'home', title: 'Home', profile: 'home' } as any);
 		notes.listNotes.mockReturnValue([
 			{ id: '1', folderId: null, deletedAt: null },
 			{ id: '2', folderId: 'f1', deletedAt: null }
@@ -31,12 +32,12 @@ describe('FolderTreeHelper (Flat Model)', () => {
 		expect(result[0].id).toBe('1');
 	});
 
-	it('should return top-level folders for the Home view', () => {
+	it('should return no children for the Home view (Sidebar Isolation)', () => {
 		folders.items = ['f1', 'f2'];
-		folders.folders.set('f1', { id: 'f1', title: 'F1', parentId: null, deletedAt: null });
-		folders.folders.set('f2', { id: 'f2', title: 'F2', parentId: 'f1', deletedAt: null });
+		folders.folders.set('f1', { id: 'f1', title: 'F1', parentId: null, deletedAt: null } as any);
+		folders.folders.set('f2', { id: 'f2', title: 'F2', parentId: 'f1', deletedAt: null } as any);
 
 		const result = helper.getHomeFolderChildIds();
-		expect(result).toEqual(['f1']);
+		expect(result).toEqual([]);
 	});
 });

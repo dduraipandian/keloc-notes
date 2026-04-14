@@ -1,4 +1,4 @@
-import { folderStore, type FolderID, type FolderItem, type SidebarKind } from '$lib/stores/folders.svelte';
+import { folderStore, type FolderID, type FolderItem } from '$lib/stores/folders.svelte';
 import { folderService, noteService, trashService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStore } from '$lib/stores/dialog.svelte';
@@ -6,21 +6,12 @@ import type { Component } from 'svelte';
 import Folder from '@lucide/svelte/icons/folder';
 import Star from '@lucide/svelte/icons/star';
 import Trash2 from '@lucide/svelte/icons/trash-2';
+import type { FolderIcon, FolderProfileConfig, SidebarCapabilities } from '$lib/stores/domain/profiles';
+import { resolveProfile, getProfileId } from '$lib/stores/domain/profiles';
 
 const FOLDER_COLOR = '#dcb15a'; // Apple-style gold/folder color
 
-export type FolderIcon = 'folder' | 'star' | 'trash';
 export type ContextMenuItemVariant = 'default' | 'destructive';
-
-export type SidebarCapabilities = {
-	create: boolean;
-	rename: boolean;
-	delete: boolean;
-	recover: boolean;
-	permanentDelete: boolean;
-	emptyTrash: boolean;
-	favorite: boolean;
-};
 
 export type ContextMenuItem = {
 	label: string;
@@ -32,7 +23,7 @@ export type ContextMenuItem = {
 export type SidebarSourceItem = {
 	id: FolderID;
 	item: FolderItem;
-	kind: SidebarKind;
+	profile: string;
 	icon: Component<any>;
 	iconProps: Record<string, any>;
 	title: string;
@@ -62,70 +53,10 @@ type SidebarActionDeps = {
 	trashEmpty: () => void;
 };
 
-type SidebarProfileConfig = {
-	iconName: FolderIcon;
-	capabilities: SidebarCapabilities;
-	childrenExpandable: boolean;
-	showDeletedChildren: boolean;
-};
-
 const ICON_REGISTRY: Record<FolderIcon, { component: Component<any>; props: Record<string, any> }> = {
 	folder: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } },
 	star: { component: Star as any, props: { class: 'fill-[#e0b64b] text-[#e0b64b]' } },
 	trash: { component: Trash2 as any, props: { class: 'text-destructive/70' } }
-};
-
-const PROFILE_REGISTRY: Record<SidebarKind, SidebarProfileConfig> = {
-	trash: {
-		iconName: 'trash',
-		capabilities: {
-			create: false, rename: false, delete: false,
-			recover: false, permanentDelete: false,
-			emptyTrash: true, favorite: false
-		},
-		childrenExpandable: false,
-		showDeletedChildren: true
-	},
-	favorites: {
-		iconName: 'star',
-		capabilities: {
-			create: false, rename: false, delete: false,
-			recover: false, permanentDelete: false,
-			emptyTrash: false, favorite: false
-		},
-		childrenExpandable: false,
-		showDeletedChildren: false
-	},
-	home: {
-		iconName: 'folder',
-		capabilities: {
-			create: true, rename: false, delete: false,
-			recover: false, permanentDelete: false,
-			emptyTrash: false, favorite: false
-		},
-		childrenExpandable: true,
-		showDeletedChildren: false
-	},
-	regular: {
-		iconName: 'folder',
-		capabilities: {
-			create: true, rename: true, delete: true,
-			recover: false, permanentDelete: false,
-			emptyTrash: false, favorite: true
-		},
-		childrenExpandable: true,
-		showDeletedChildren: false
-	},
-	deleted: {
-		iconName: 'folder',
-		capabilities: {
-			create: false, rename: false, delete: false,
-			recover: true, permanentDelete: true,
-			emptyTrash: false, favorite: false
-		},
-		childrenExpandable: false,
-		showDeletedChildren: false
-	}
 };
 
 const defaultSidebarActionDeps: SidebarActionDeps = {
@@ -139,7 +70,7 @@ const defaultSidebarActionDeps: SidebarActionDeps = {
 	trashRecover: (id) => trashService.recoverFolder(id),
 	trashPermanentDelete: (title, id) =>
 		uiStore.confirmFolderPermanentDelete(title, () => trashService.permanentlyDeleteFolder(id)),
-	trashEmpty: () => uiStore.confirmEmptyTrash(() => trashService.empty())
+	trashEmpty: () => uiStore.confirmEmptyTrash(() => trashService.emptyTrash())
 };
 
 export class FolderSidebarView {
@@ -166,51 +97,29 @@ export class FolderSidebarView {
 				label: 'Folders',
 				sources: (this.folders.items ?? [])
 					.map((id) => this.folders.folders.get(id))
-					.filter(
-						(item): item is FolderItem =>
-							!!item &&
-							item.deletedAt == null &&
-							(!item.kind || item.kind === 'regular')
-					)
+					.filter((item): item is FolderItem => {
+						if (!item || item.deletedAt != null) return false;
+						return resolveProfile(item).section === 'folders';
+					})
 					.map((item) => this.buildSource(item, 0, false))
 			}
 		];
 	}
 
-	private resolveKind(item: FolderItem): SidebarKind {
-		if (item.deletedAt != null) return 'deleted';
-		return item.kind ?? 'regular';
-	}
-
-	private resolveChildIds(kind: SidebarKind, item: FolderItem): FolderID[] {
-		switch (kind) {
-			case 'trash':
-				return this.folderQueries.getTrashRootIds();
-			case 'favorites':
-				return this.folderQueries.getFavoriteFolderIds();
-			case 'home':
-				return this.folderQueries.getHomeFolderChildIds();
-			case 'deleted':
-				return [];
-			default:
-				return item.items ?? [];
-		}
-	}
-
 	private buildSource(item: FolderItem, depth: number, suppressChildren = false): SidebarSourceItem {
-		const kind = this.resolveKind(item);
-		const profile = PROFILE_REGISTRY[kind];
+		const profile = resolveProfile(item);
 		const iconConfig = ICON_REGISTRY[profile.iconName];
 
-		const childIds = suppressChildren ? [] : this.resolveChildIds(kind, item);
-		const visibleChildIds = childIds.filter(
-			(id) => profile.showDeletedChildren || this.folders.folders.get(id)?.deletedAt == null
-		);
+		const childIds = suppressChildren ? [] : profile.resolveChildFolderIds(item, this.folders);
+		const visibleChildIds = childIds.filter((id) => {
+			const child = this.folders.folders.get(id);
+			return profile.showDeletedChildren || child?.deletedAt == null;
+		});
 
 		return {
 			id: item.id,
 			item,
-			kind,
+			profile: getProfileId(item),
 			icon: iconConfig.component,
 			iconProps: iconConfig.props,
 			title: item.title,
@@ -218,7 +127,7 @@ export class FolderSidebarView {
 			isSelected: this.selection.selectedFolderID === item.id,
 			isEditing: this.folders.editingId === item.id,
 			isOpen: item.isOpen ?? false,
-			noteCount: this.noteQueries.getNoteCountForFolder(item.id, item.kind),
+			noteCount: this.noteQueries.getNoteCountForFolder(item.id, item.profile),
 			children: visibleChildIds
 				.map((id) => this.folders.folders.get(id))
 				.filter((child): child is FolderItem => !!child)
@@ -228,7 +137,7 @@ export class FolderSidebarView {
 		};
 	}
 
-	private buildContextMenuItems(item: FolderItem, profile: SidebarProfileConfig): ContextMenuItem[] {
+	private buildContextMenuItems(item: FolderItem, profile: FolderProfileConfig): ContextMenuItem[] {
 		const items: ContextMenuItem[] = [];
 		const caps = profile.capabilities;
 
@@ -258,7 +167,7 @@ export class FolderSidebarView {
 			return items;
 		}
 
-		if (caps.create) {
+		if (caps.createFolder) {
 			items.push({
 				label: 'New Folder',
 				action: () => this.actions.folderCreate(),

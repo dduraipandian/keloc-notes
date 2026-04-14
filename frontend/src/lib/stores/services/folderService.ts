@@ -3,6 +3,7 @@ import { notesStore } from '../notes.svelte';
 import { selectionStore } from '../selection.svelte';
 import type { FolderStoreLike, NotesStoreLike, SelectionStoreLike } from './types';
 import { FolderTreeHelper } from '../domain/folderTree';
+import { resolveProfile } from '../domain/profiles';
 
 export class FolderService {
 	private readonly tree: FolderTreeHelper;
@@ -20,7 +21,7 @@ export class FolderService {
 	create() {
 		const selectedFolder = this.selection.getSelectedFolder();
 		const parentFolderId =
-			selectedFolder && (!selectedFolder.kind || selectedFolder.kind === 'regular')
+			selectedFolder && resolveProfile(selectedFolder).capabilities.createFolder
 				? this.selection.selectedFolderID
 				: null;
 		const newFolderId = this.folders.createFolder(parentFolderId);
@@ -100,13 +101,9 @@ export class FolderService {
 	}
 
 	private syncNoteSelectionForFolder(folderId: FolderID | null) {
-		if (folderId == null) {
-			this.notes.selectNote(null);
-			return;
-		}
-
-		const folder = this.folders.findItemById(folderId);
-		const firstNote = this.tree.getNotesForFolder(folderId, folder?.kind)[0] ?? null;
+		// Plan 7/8: Use the profile's resolveNotes logic to find the first note
+		// This works for Home, Favorites, and Regular folders alike.
+		const firstNote = this.tree.getNotesForFolder(folderId)[0] ?? null;
 		this.notes.selectNote(firstNote?.id ?? null);
 	}
 

@@ -96,7 +96,7 @@ export class TrashService {
 		}
 	}
 
-	async empty() {
+	async emptyTrash() {
 		const foldersToDelete = this.tree.getTrashRootIds().flatMap((id) => this.tree.collectFolderSubtree(id));
 		const deletedFolderIds = new Set(foldersToDelete.map((f) => f.id));
 		const folderNotes = this.collectFolderNotesWithPaths(foldersToDelete);

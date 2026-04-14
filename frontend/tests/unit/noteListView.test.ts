@@ -114,7 +114,7 @@ describe('NoteListView', () => {
 			{} as any,
 			{} as any,
 			{} as any,
-			{ getSelectedFolder: () => ({ kind: 'regular' }) } as any
+			{ getSelectedFolder: () => ({ profile: 'regular' }) } as any
 		);
 		expect(selector.canCreateNote()).toBe(true);
 
@@ -123,7 +123,7 @@ describe('NoteListView', () => {
 			{} as any,
 			{} as any,
 			{} as any,
-			{ getSelectedFolder: () => ({ kind: 'trash' }) } as any
+			{ getSelectedFolder: () => ({ profile: 'trash' }) } as any
 		);
 		expect(trashSelector.canCreateNote()).toBe(false);
 	});

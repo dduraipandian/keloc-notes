@@ -1,7 +1,8 @@
-import type { FolderID, FolderItem, SidebarKind } from '../folders.svelte';
-import type { NoteItem } from '../notes.svelte';
+import type { FolderID, FolderItem } from '../folders.svelte';
+import type { NoteID, NoteItem } from '../notes.svelte';
 import type { FolderStoreLike, NotesStoreLike } from '../services/types';
 import { snapshotFolder } from '../services/helpers';
+import { resolveProfile } from './profiles';
 
 export class FolderTreeHelper {
 	constructor(
@@ -48,27 +49,18 @@ export class FolderTreeHelper {
 	}
 
 	getHomeFolderChildIds(): FolderID[] {
-		return this.folders.items.filter((id) => {
-			const folder = this.folders.findItemById(id);
-			return (
-				folder &&
-				(!folder.kind || folder.kind === 'regular') &&
-				folder.deletedAt == null &&
-				folder.parentId == null
-			);
-		});
+		// Plan 8: Home has no children in sidebar to avoid duplication with 'folders' section
+		return [];
 	}
 
 	getFavoriteFolderIds(): FolderID[] {
 		const result: FolderID[] = [];
-		for (const [id, folder] of this.folders.folders.entries()) {
-			if (
-				folder &&
-				folder.isFavorite === true &&
-				folder.deletedAt == null &&
-				(!folder.kind || folder.kind === 'regular')
-			) {
-				result.push(id);
+		const allItems = Array.from(this.folders.folders.values());
+		for (const folder of allItems) {
+			if (folder && folder.deletedAt == null && resolveProfile(folder).capabilities.favorite) {
+				if (folder.isFavorite === true) {
+					result.push(folder.id);
+				}
 			}
 		}
 		return result;
@@ -82,33 +74,21 @@ export class FolderTreeHelper {
 		return result;
 	}
 
-	getNotesForFolder(folderId: FolderID | null, folderKind?: SidebarKind) {
+	getNotesForFolder(folderId: FolderID | null, folderKind?: string) {
 		if (!this.notes) return [];
 
-		let resultNotes: NoteItem[] = [];
-		const allNotes = this.notes.listNotes();
+		// Determine which item to use for profile resolution
+		// Default to 'home' if folderId is null
+		const targetId = folderId || 'home';
+		const item = this.folders.findItemById(targetId);
+		if (!item) return [];
 
-		if (folderKind === 'trash') {
-			resultNotes = allNotes.filter((note) => note.deletedAt != null);
-		} else if (folderKind === 'home') {
-			resultNotes = allNotes.filter((note) => note.folderId == null && note.deletedAt == null);
-		} else {
-			const currentFolder = folderId ? this.folders.findItemById(folderId) : null;
-			if (folderId != null && currentFolder && currentFolder.deletedAt != null) {
-				const subtreeIds = this.getFolderSubtreeIds(folderId);
-				resultNotes = allNotes.filter(
-					(note) =>
-						note.folderId != null &&
-						subtreeIds.has(note.folderId) &&
-						note.deletedAt === currentFolder.deletedAt
-				);
-			} else {
-				const normalizedFolderId = folderId ?? 'root';
-				resultNotes = allNotes.filter(
-					(note) => (note.folderId ?? 'root') === normalizedFolderId && note.deletedAt == null
-				);
-			}
-		}
+		const profile = resolveProfile(item);
+		const allNotes = this.notes.listNotes();
+		const resultNotes = profile.resolveNotes(item.id, allNotes, {
+			folders: this.folders,
+			tree: this
+		});
 
 		return resultNotes.sort(
 			(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
@@ -127,12 +107,10 @@ export class FolderTreeHelper {
 
 	private collectActiveFolderIds(folderId: FolderID, output: FolderID[]) {
 		const folder = this.folders.findItemById(folderId);
-		if (
-			!folder ||
-			(folder.kind && folder.kind !== 'regular') ||
-			folder.deletedAt != null
-		)
-			return;
+		if (!folder || folder.deletedAt != null) return;
+
+		const profile = resolveProfile(folder);
+		if (!profile.capabilities.selectableAfterDelete) return;
 
 		output.push(folder.id);
 
