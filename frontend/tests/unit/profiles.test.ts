@@ -23,7 +23,7 @@ describe('Folder Profiles', () => {
 	it('should resolve Home profile and its notes', () => {
 		const homeFolder = { id: 'home', title: 'Home', profile: 'home' } as any;
 		const profile = resolveProfile(homeFolder);
-		
+
 		expect(profile.section).toBe('views');
 		expect(profile.capabilities.createNote).toBe(true);
 

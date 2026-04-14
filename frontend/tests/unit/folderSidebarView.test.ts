@@ -254,7 +254,7 @@ describe('home profile', () => {
 				'deleted-notes': { id: 'deleted-notes', title: 'Trash', profile: 'trash' },
 				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
 				home: { id: 'home', title: 'Home', profile: 'home' },
-				sub: { id: 'sub', title: 'Sub', profile: 'regular' }
+				sub: { id: 'sub', title: 'Sub', profile: 'regular', parentId: 'home' }
 			},
 			homeFolderChildIds: ['sub']
 		});
