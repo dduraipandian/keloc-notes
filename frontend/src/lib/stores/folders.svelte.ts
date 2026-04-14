@@ -37,8 +37,6 @@ class FolderStore {
 	});
 
 	constructor() {
-		let i = $state<string[]>([]);
-		this.items = i;
 		this.folders.clear();
 
 		// Initialize system folders from central registry
@@ -61,17 +59,15 @@ class FolderStore {
 			if (item.id) {
 				if (item.deletedAt === undefined) item.deletedAt = null;
 				if (item.isFavorite === undefined) item.isFavorite = false;
-				let i = item;
-				this.folders.set(item.id, i);
-
-				// Plan 8: Section Isolation
-				// Only add to root items if it's in the folders section
-				const profile = resolveProfile(i);
 				const isSystemFolder = SYSTEM_VIEWS.some(v => v.id === item.id);
+				const profile = resolveProfile(item);
 				
 				if (!item.parentId && profile.section === 'folders' && !isSystemFolder) {
 					this.items.push(item.id);
 				}
+				
+				let i = $state(item);
+				this.folders.set(item.id, i);
 			}
 		});
 	}
@@ -116,14 +112,14 @@ class FolderStore {
 	}
 
 	createFolder(parentId: FolderID | null = null) {
-		const newFolder: FolderItem = {
+		const newFolder: FolderItem = $state({
 			id: crypto.randomUUID(),
 			title: 'New Folder',
 			isFavorite: false,
 			items: [],
 			parentId: null,
 			deletedAt: null
-		};
+		});
 
 		if (!parentId) {
 			this.items.unshift(newFolder.id);
@@ -140,8 +136,7 @@ class FolderStore {
 			}
 		}
 
-		let nf = newFolder;
-		this.folders.set(newFolder.id, nf);
+		this.folders.set(newFolder.id, newFolder);
 		this.persist(newFolder.id);
 		this.startRename(newFolder.id);
 		return newFolder.id;

@@ -69,3 +69,35 @@ describe('FolderStore (Flat Recovery & Validation)', () => {
 		expect(folderStore.items).toContain('f1');
 	});
 });
+
+describe('FolderStore Reactivity (Regression Test)', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		(folderStore as any).items = [];
+		(folderStore as any).folders = new SvelteMap<string, FolderItem>();
+		(folderStore as any).isInitialized = true;
+	});
+
+	it('should be reactive when folder title is updated', () => {
+		const id = folderStore.createFolder();
+		const folder = folderStore.folders.get(id!);
+		
+		let updateCount = 0;
+		const derivedTitle = $derived.by(() => {
+			updateCount++;
+			return folder?.title;
+		});
+
+		// Initial access to track
+		expect(derivedTitle).toBe('New Folder');
+		expect(updateCount).toBe(1);
+
+		// Mutate title
+		folderStore.renameFolder(id!, 'Updated Title');
+
+		// Assert update trace
+		expect(folder?.title).toBe('Updated Title');
+		expect(derivedTitle).toBe('Updated Title');
+		expect(updateCount).toBe(2); 
+	});
+});
