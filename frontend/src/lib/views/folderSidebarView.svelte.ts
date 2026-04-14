@@ -3,6 +3,7 @@ import { folderService, noteService, trashService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStore } from '$lib/stores/dialog.svelte';
 import type { Component } from 'svelte';
+import Home from '@lucide/svelte/icons/home';
 import Folder from '@lucide/svelte/icons/folder';
 import Star from '@lucide/svelte/icons/star';
 import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -53,12 +54,24 @@ type SidebarActionDeps = {
 	trashEmpty: () => void;
 };
 
-export const ICON_REGISTRY: Record<string, { component: Component<any>; props: Record<string, any> }> = {
-	home: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } },
+export const ICON_REGISTRY: Record<
+	string,
+	{ component: Component<any>; props: Record<string, any> }
+> = {
+	home: {
+		component: Home as any,
+		props: { class: 'text-green-300' }
+	},
 	favorites: { component: Star as any, props: { class: 'fill-[#e0b64b] text-[#e0b64b]' } },
 	trash: { component: Trash2 as any, props: { class: 'text-destructive/70' } },
-	regular: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } },
-	deleted: { component: Folder as any, props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' } }
+	regular: {
+		component: Folder as any,
+		props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' }
+	},
+	deleted: {
+		component: Folder as any,
+		props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' }
+	}
 };
 
 const defaultSidebarActionDeps: SidebarActionDeps = {
@@ -89,8 +102,7 @@ export class FolderSidebarView {
 			{
 				id: 'views',
 				label: null,
-				sources: SYSTEM_VIEWS
-					.map(({ id }) => this.folders.folders.get(id))
+				sources: SYSTEM_VIEWS.map(({ id }) => this.folders.folders.get(id))
 					.filter((item): item is FolderItem => !!item)
 					.map((item) => this.buildSource(item, 0, false))
 			},
@@ -112,7 +124,11 @@ export class FolderSidebarView {
 		return this.sections;
 	}
 
-	private buildSource(item: FolderItem, depth: number, suppressChildren = false): SidebarSourceItem {
+	private buildSource(
+		item: FolderItem,
+		depth: number,
+		suppressChildren = false
+	): SidebarSourceItem {
 		const profile = resolveProfile(item);
 		const iconConfig = ICON_REGISTRY[getProfileId(item)] ?? ICON_REGISTRY.regular;
 

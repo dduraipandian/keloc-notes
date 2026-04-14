@@ -29,9 +29,9 @@ export type FolderProfileConfig = {
 
 // Single source of truth for system view folders — order determines sidebar display order.
 export const SYSTEM_VIEWS: ReadonlyArray<{ id: string; title: string; profile: string }> = [
-	{ id: 'home', title: 'Home', profile: 'home' },
+	{ id: 'deleted-notes', title: 'Recently Deleted', profile: 'trash' },
 	{ id: 'favorites', title: 'Favorites', profile: 'favorites' },
-	{ id: 'deleted-notes', title: 'Recently Deleted', profile: 'trash' }
+	{ id: 'home', title: 'Home', profile: 'home' }
 ];
 
 export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
@@ -55,8 +55,7 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 				.filter((f) => f.parentId === item.id && f.deletedAt == null)
 				.map((f) => f.id);
 		},
-		resolveNotes: (_, allNotes) =>
-			allNotes.filter((n) => n.folderId == null && n.deletedAt == null)
+		resolveNotes: (_, allNotes) => allNotes.filter((n) => n.folderId == null && n.deletedAt == null)
 	},
 	favorites: {
 		section: 'views',
@@ -158,8 +157,6 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 		}
 	}
 };
-
-
 
 export function getProfileId(item: FolderItem): string {
 	const systemView = SYSTEM_VIEWS.find((v) => v.id === item.id);
