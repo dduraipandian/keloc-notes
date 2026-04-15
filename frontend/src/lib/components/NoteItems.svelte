@@ -16,7 +16,6 @@
 	let searchQuery = $state('');
 	const selectedFolderTitle = $derived(noteListView.getSelectedFolderTitle());
 	const selectedFolderIcon = $derived(ICON_REGISTRY[noteListView.getSelectedFolderProfileId()] ?? ICON_REGISTRY.regular);
-	const filteredNotes = $derived(noteListView.getFilteredNotes(searchQuery));
 	const canCreateNote = $derived(noteListView.canCreateNote());
 	const canDeleteSelectedNote = $derived(noteListView.canDeleteSelectedNote());
 	const selectedNoteDeleteContext = $derived(noteListView.getSelectedNoteDeleteContext());
@@ -25,7 +24,11 @@
 		return new Date(dateStr).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 	}
 
-	const sections = $derived(noteListView.getSections(searchQuery));
+	$effect(() => {
+		noteListView.setSearchQuery(searchQuery);
+	});
+
+	const sections = $derived(noteListView.getSections());
 
 	function handleNoteRestore(note: NoteItem) {
 		uiStore.confirmNoteRestore(note.title, () => {

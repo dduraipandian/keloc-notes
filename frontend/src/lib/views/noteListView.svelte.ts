@@ -6,6 +6,10 @@ import { selectionStore } from '$lib/stores/selection.svelte';
 import { resolveProfile, getProfileId } from '$lib/stores/domain/profiles';
 
 export class NoteListView {
+	searchQuery = $state('');
+	debouncedSearchQuery = $state('');
+	private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 	constructor(
 		private readonly folders = folderStore,
 		private readonly notes = notesStore,
@@ -52,8 +56,19 @@ export class NoteListView {
 		return this.selection.getSelectedFolder()?.id ?? null;
 	}
 
-	getFilteredNotes(searchQuery: string) {
-		const normalizedQuery = searchQuery.trim().toLowerCase();
+	setSearchQuery(searchQuery: string) {
+		this.searchQuery = searchQuery;
+		if (this.searchDebounceTimer) {
+			clearTimeout(this.searchDebounceTimer);
+		}
+		this.searchDebounceTimer = setTimeout(() => {
+			this.debouncedSearchQuery = this.searchQuery;
+			this.searchDebounceTimer = null;
+		}, 150);
+	}
+
+	getFilteredNotes() {
+		const normalizedQuery = this.debouncedSearchQuery.trim().toLowerCase();
 		const selectedFolder = this.selection.getSelectedFolder();
 		const visibleNotes = this.noteQueries.getNotesForFolder(
 			this.selection.selectedFolderID ?? null,
@@ -69,8 +84,8 @@ export class NoteListView {
 		);
 	}
 
-	getSections(searchQuery: string) {
-		return groupNotesByDate(this.getFilteredNotes(searchQuery));
+	getSections() {
+		return groupNotesByDate(this.getFilteredNotes());
 	}
 
 	getRestoreContext(note: NoteItem | null) {

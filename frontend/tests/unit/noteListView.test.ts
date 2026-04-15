@@ -1,7 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NoteListView } from '../../src/lib/views/noteListView.svelte';
 
 describe('NoteListView', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
 	it('should expose the selected folder title with a fallback', () => {
 		const selector = new NoteListView(
 			{ folders: new Map() } as any,
@@ -17,7 +25,7 @@ describe('NoteListView', () => {
 		expect(selector.getSelectedFolderTitle()).toBe('Notes');
 	});
 
-	it('should filter notes by the current query', () => {
+	it('should filter notes by the current query after debounce', async () => {
 		const selector = new NoteListView(
 			{ folders: new Map() } as any,
 			{} as any,
@@ -31,7 +39,9 @@ describe('NoteListView', () => {
 			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
 		);
 
-		const notes = selector.getFilteredNotes('alpha');
+		selector.setSearchQuery('alpha');
+		await vi.advanceTimersByTimeAsync(150);
+		const notes = selector.getFilteredNotes();
 		expect(notes).toHaveLength(1);
 		expect(notes[0].title).toBe('Alpha');
 	});
@@ -65,7 +75,7 @@ describe('NoteListView', () => {
 		expect(selector.isSelectedNote('456')).toBe(false);
 	});
 
-	it('should provide note sections grouped by date', () => {
+	it('should provide note sections grouped by date', async () => {
 		const selector = new NoteListView(
 			{} as any,
 			{} as any,
@@ -78,11 +88,42 @@ describe('NoteListView', () => {
 			} as any,
 			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
 		);
-		const sections = selector.getSections('');
+		selector.setSearchQuery('');
+		await vi.advanceTimersByTimeAsync(150);
+		const sections = selector.getSections();
 		expect(sections).toHaveLength(1);
 		const [label, notes] = sections[0];
 		expect(label).toBeDefined();
 		expect(notes).toHaveLength(2);
+	});
+
+	it('should debounce search query updates and use the latest value', async () => {
+		const selector = new NoteListView(
+			{} as any,
+			{} as any,
+			{} as any,
+			{
+				getNotesForFolder: vi.fn().mockReturnValue([
+					{ id: '1', title: 'Alpha', content: '', updatedAt: '2025-01-01T00:00:00Z' },
+					{ id: '2', title: 'Albatross', content: '', updatedAt: '2025-01-02T00:00:00Z' }
+				])
+			} as any,
+			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
+		);
+
+		selector.setSearchQuery('a');
+		selector.setSearchQuery('alb');
+
+		// Still using the previous debounced query.
+		expect(selector.getFilteredNotes()).toHaveLength(2);
+
+		await vi.advanceTimersByTimeAsync(149);
+		expect(selector.getFilteredNotes()).toHaveLength(2);
+
+		await vi.advanceTimersByTimeAsync(1);
+		const filtered = selector.getFilteredNotes();
+		expect(filtered).toHaveLength(1);
+		expect(filtered[0].title).toBe('Albatross');
 	});
 
 	it('should expose restore context for a note with target information', () => {
