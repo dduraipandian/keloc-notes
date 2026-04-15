@@ -17,6 +17,8 @@ export default defineConfig({
 			include: ['src/lib/**/*.{ts,svelte}'],
 			exclude: [
 				'src/lib/wailsjs/**',
+				'src/lib/components/ui/**',
+				'src/lib/hooks/**',
 				'src/lib/assets/**',
 				'**/*.d.ts',
 				'**/*.test.ts',

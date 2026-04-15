@@ -59,13 +59,13 @@ class FolderStore {
 			if (item.id) {
 				if (item.deletedAt === undefined) item.deletedAt = null;
 				if (item.isFavorite === undefined) item.isFavorite = false;
-				const isSystemFolder = SYSTEM_VIEWS.some(v => v.id === item.id);
+				const isSystemFolder = SYSTEM_VIEWS.some((v) => v.id === item.id);
 				const profile = resolveProfile(item);
-				
+
 				if (!item.parentId && profile.section === 'folders' && !isSystemFolder) {
 					this.items.push(item.id);
 				}
-				
+
 				let i = $state(item);
 				this.folders.set(item.id, i);
 			}
@@ -187,7 +187,7 @@ class FolderStore {
 	rootFolderIfParentMissing(id: string) {
 		const folder = this.folders.get(id);
 		if (!folder) return;
-		
+
 		const parent = folder.parentId ? this.folders.get(folder.parentId) : null;
 		const isParentInvalid = folder.parentId && (!parent || parent.deletedAt != null);
 
@@ -279,4 +279,3 @@ class FolderStore {
 }
 
 export const folderStore = new FolderStore();
-
