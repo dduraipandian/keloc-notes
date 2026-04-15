@@ -143,17 +143,23 @@ export const PROFILE_REGISTRY: Record<string, FolderProfileConfig> = {
 		resolveChildFolderIds: (item) => item.items ?? [],
 		resolveNotes: (folderId, allNotes, context) => {
 			const item = context?.folders?.findItemById(folderId);
-			if (!item || item.deletedAt == null) return [];
+			if (!item || item.deletedAt == null || item.deletedBatchId == null) return [];
 
 			// If we have a tree helper, use it to find the subtree
 			if (context?.tree) {
 				const subtreeIds = context.tree.getFolderSubtreeIds(folderId);
 				return allNotes.filter(
-					(n) => n.folderId != null && subtreeIds.has(n.folderId) && n.deletedAt === item.deletedAt
+					(n) =>
+						n.folderId != null &&
+						subtreeIds.has(n.folderId) &&
+						n.deletedBatchId != null &&
+						n.deletedBatchId === item.deletedBatchId
 				);
 			}
 
-			return allNotes.filter((n) => n.folderId === folderId && n.deletedAt === item.deletedAt);
+			return allNotes.filter(
+				(n) => n.folderId === folderId && n.deletedBatchId != null && n.deletedBatchId === item.deletedBatchId
+			);
 		}
 	}
 };

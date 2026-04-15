@@ -78,12 +78,12 @@ export class FolderService {
 		this.folders.setFavorite(folderId, isFavorite);
 	}
 
-	delete(folderId: FolderID, batchTimestamp?: number) {
-		const batch = batchTimestamp ?? Date.now();
+	delete(folderId: FolderID, deletedBatchId: string = crypto.randomUUID()) {
+		const deletedAt = Date.now();
 		const selectedFolderId = this.selection.selectedFolderID;
 		const nextFolderId = this.getNextFolderSelectionAfterDelete(folderId);
 		const deletedIds = new Set(this.collectFolderSubtree(folderId).map((folder) => folder.id));
-		this.deleteFolderTree(folderId, batch);
+		this.deleteFolderTree(folderId, deletedAt, deletedBatchId);
 		if (nextFolderId) {
 			this.select(nextFolderId);
 		} else if (selectedFolderId && deletedIds.has(selectedFolderId)) {
@@ -92,15 +92,15 @@ export class FolderService {
 		}
 	}
 
-	private deleteFolderTree(folderId: FolderID, batchTimestamp: number) {
+	private deleteFolderTree(folderId: FolderID, deletedAt: number, deletedBatchId: string) {
 		const folder = this.folders.findItemById(folderId);
 		if (!folder) return;
 
-		this.folders.deleteFolder(folderId, batchTimestamp);
-		this.notes.deleteNotesInFolder(folderId, batchTimestamp);
+		this.folders.deleteFolder(folderId, deletedAt, deletedBatchId);
+		this.notes.deleteNotesInFolder(folderId, deletedAt, deletedBatchId);
 
 		for (const childId of folder.items ?? []) {
-			this.deleteFolderTree(childId, batchTimestamp);
+			this.deleteFolderTree(childId, deletedAt, deletedBatchId);
 		}
 	}
 

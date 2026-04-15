@@ -12,7 +12,10 @@ export type NoteItem = {
 	content: string;
 	updatedAt: string;
 	isFavorite?: boolean;
+	// deletedAt is the timestamp of deletion state; do not use it to group deleted items.
+	// deletedBatchId identifies one delete operation and must drive restore/grouping logic.
 	deletedAt?: number | null;
+	deletedBatchId?: string | null;
 };
 
 class NotesStore {
@@ -57,6 +60,7 @@ class NotesStore {
 			allNotesData.forEach((note) => {
 				if (note && note.id) {
 					if (note.deletedAt === undefined) note.deletedAt = null;
+					if (note.deletedBatchId === undefined) note.deletedBatchId = null;
 					if (note.isFavorite === undefined) note.isFavorite = false;
 					let n = $state(note);
 					this.notes.set(note.id, n);
@@ -133,7 +137,8 @@ class NotesStore {
 			content: '',
 			updatedAt: new Date().toISOString(),
 			isFavorite: false,
-			deletedAt: null
+			deletedAt: null,
+			deletedBatchId: null
 		};
 		let n = $state(newNote);
 		this.notes.set(newNote.id, n);
@@ -210,14 +215,19 @@ class NotesStore {
 		}
 	}
 
-	deleteNote(id: NoteID, batchTimestamp?: number) {
+	deleteNote(
+		id: NoteID,
+		deletedAt: number = Date.now(),
+		deletedBatchId: string = crypto.randomUUID()
+	) {
 		const note = this.notes.get(id);
 		if (this.selectedNoteID === id) {
 			this.selectedNoteID = null;
 		}
 		if (note && note.deletedAt == null) {
 			const fid = note.folderId ?? 'null';
-			note.deletedAt = batchTimestamp ?? Date.now();
+			note.deletedAt = deletedAt;
+			note.deletedBatchId = deletedBatchId;
 
 			// Update counts
 			this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) - 1;
@@ -237,6 +247,7 @@ class NotesStore {
 			const newFolderId = note.folderId ?? 'null';
 			
 			note.deletedAt = null;
+			note.deletedBatchId = null;
 
 			// Update counts
 			this.trashCount--;
@@ -249,13 +260,14 @@ class NotesStore {
 		}
 	}
 
-	deleteNotesInFolder(folderId: string, batchTimestamp: number) {
+	deleteNotesInFolder(folderId: string, deletedAt: number, deletedBatchId: string) {
 		const allNotes = Array.from(this.notes.values());
 		let selectionChanged = false;
 		for (const note of allNotes) {
 			if ((note.folderId ?? 'root') === folderId && note.deletedAt == null) {
 				const fid = note.folderId ?? 'null';
-				note.deletedAt = batchTimestamp;
+				note.deletedAt = deletedAt;
+				note.deletedBatchId = deletedBatchId;
 
 				// Update counts
 				this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) - 1;
@@ -275,12 +287,13 @@ class NotesStore {
 		}
 	}
 
-	restoreNotesInFolder(folderId: string, targetBatch?: number) {
+	restoreNotesInFolder(folderId: string, targetBatchId?: string) {
 		const allNotes = Array.from(this.notes.values());
 		for (const note of allNotes) {
-			if ((note.folderId ?? 'root') === folderId && note.deletedAt != null) {
-				if (!targetBatch || note.deletedAt === targetBatch) {
+			if ((note.folderId ?? 'root') === folderId && note.deletedAt != null && note.deletedBatchId != null) {
+				if (targetBatchId && note.deletedBatchId === targetBatchId) {
 					note.deletedAt = null;
+					note.deletedBatchId = null;
 
 					// Update counts
 					this.trashCount--;
@@ -294,9 +307,12 @@ class NotesStore {
 			}
 		}
 	}
-	getNotesToArchive(folderId: string, targetBatch: number): NoteItem[] {
+	getNotesToArchive(folderId: string, targetBatchId: string): NoteItem[] {
 		return Array.from(this.notes.values()).filter(
-			(n) => (n.folderId ?? 'root') === folderId && n.deletedAt === targetBatch
+			(n) =>
+				(n.folderId ?? 'root') === folderId &&
+				n.deletedAt != null &&
+				n.deletedBatchId === targetBatchId
 		);
 	}
 

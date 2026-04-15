@@ -40,7 +40,7 @@ export class NoteService {
 		this.notes.selectNote(noteId);
 	}
 
-	delete(noteId: NoteID, batchTimestamp?: number) {
+	delete(noteId: NoteID, deletedBatchId?: string) {
 		const currentFolder = this.selection.getSelectedFolder();
 		const visibleNotes = this.tree.getNotesForFolder(
 			this.selection.selectedFolderID ?? null,
@@ -57,7 +57,7 @@ export class NoteService {
 			}
 		}
 
-		this.notes.deleteNote(noteId, batchTimestamp);
+		this.notes.deleteNote(noteId, Date.now(), deletedBatchId);
 		this.notes.selectNote(nextNoteId);
 	}
 

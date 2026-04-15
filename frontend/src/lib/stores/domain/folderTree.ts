@@ -99,9 +99,9 @@ export class FolderTreeHelper {
 		if (!parentId) return;
 
 		const parent = this.folders.findItemById(parentId);
-		if (!parent || parent.deletedAt == null) return;
+		if (!parent || parent.deletedAt == null || parent.deletedBatchId == null) return;
 
-		this.folders.restoreFolder(parentId, parent.deletedAt);
+		this.folders.restoreFolder(parentId, parent.deletedBatchId);
 		this.restoreParentPath(parent.parentId);
 	}
 

@@ -144,12 +144,12 @@ describe('FolderService', () => {
 			selectNote: vi.fn()
 		};
 
-		new FolderService(folders as any, notes as any, selection as any).delete('folder-1', 123);
+		new FolderService(folders as any, notes as any, selection as any).delete('folder-1', 'batch-1');
 
-		expect(folders.deleteFolder).toHaveBeenCalledWith('folder-1', 123);
-		expect(folders.deleteFolder).toHaveBeenCalledWith('child-1', 123);
-		expect(notes.deleteNotesInFolder).toHaveBeenCalledWith('folder-1', 123);
-		expect(notes.deleteNotesInFolder).toHaveBeenCalledWith('child-1', 123);
+		expect(folders.deleteFolder).toHaveBeenCalledWith('folder-1', expect.any(Number), 'batch-1');
+		expect(folders.deleteFolder).toHaveBeenCalledWith('child-1', expect.any(Number), 'batch-1');
+		expect(notes.deleteNotesInFolder).toHaveBeenCalledWith('folder-1', expect.any(Number), 'batch-1');
+		expect(notes.deleteNotesInFolder).toHaveBeenCalledWith('child-1', expect.any(Number), 'batch-1');
 		expect(selection.selectFolder).toHaveBeenCalledWith('folder-2');
 		expect(notes.selectNote).toHaveBeenCalledWith(null);
 	});
@@ -172,7 +172,7 @@ describe('FolderService', () => {
 			selectNote: vi.fn()
 		};
 
-		new FolderService(folders as any, notes as any, selection as any).delete('folder-1', 123);
+		new FolderService(folders as any, notes as any, selection as any).delete('folder-1', 'batch-1');
 
 		expect(selection.selectFolder).toHaveBeenCalledWith(null);
 		expect(notes.selectNote).toHaveBeenCalledWith(null);
@@ -284,9 +284,9 @@ describe('NoteService', () => {
 			selectNote: vi.fn()
 		};
 
-		new NoteService(folders as any, notes as any, selection as any).delete('note-1', 123);
+		new NoteService(folders as any, notes as any, selection as any).delete('note-1', 'batch-1');
 
-		expect(notes.deleteNote).toHaveBeenCalledWith('note-1', 123);
+		expect(notes.deleteNote).toHaveBeenCalledWith('note-1', expect.any(Number), 'batch-1');
 		expect(notes.selectNote).toHaveBeenCalledWith('note-2');
 	});
 
@@ -310,7 +310,7 @@ describe('NoteService', () => {
 			selectNote: vi.fn()
 		};
 
-		new NoteService(folders as any, notes as any, selection as any).delete('note-1', 123);
+		new NoteService(folders as any, notes as any, selection as any).delete('note-1', 'batch-1');
 
 		expect(notes.selectNote).toHaveBeenCalledWith(null);
 	});
@@ -398,8 +398,8 @@ describe('NoteService', () => {
 	});
 
 	it('should include deleted subtree notes when viewing a deleted folder', () => {
-		const deletedFolder = { id: 'A', deletedAt: 123, items: ['B'], profile: 'regular' };
-		const childFolder = { id: 'B', deletedAt: 123, items: [], profile: 'regular' };
+		const deletedFolder = { id: 'A', deletedAt: 123, deletedBatchId: 'batch-a', items: ['B'], profile: 'regular' };
+		const childFolder = { id: 'B', deletedAt: 123, deletedBatchId: 'batch-a', items: [], profile: 'regular' };
 		const folders = {
 			findItemById: vi.fn().mockImplementation((id: string) => {
 				if (id === 'A') return deletedFolder;
@@ -409,8 +409,8 @@ describe('NoteService', () => {
 		};
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([
-				{ id: 'note-x', folderId: 'B', deletedAt: 123, updatedAt: '2025-01-01T00:00:00Z' },
-				{ id: 'note-y', folderId: 'B', deletedAt: 999, updatedAt: '2024-01-01T00:00:00Z' }
+				{ id: 'note-x', folderId: 'B', deletedAt: 123, deletedBatchId: 'batch-a', updatedAt: '2025-01-01T00:00:00Z' },
+				{ id: 'note-y', folderId: 'B', deletedAt: 123, deletedBatchId: 'batch-b', updatedAt: '2024-01-01T00:00:00Z' }
 			])
 		};
 
@@ -479,7 +479,13 @@ describe('TrashService (Flat Recovery)', () => {
 
 	it('should root the folder if its parent is deleted during recovery', () => {
 		const folders = {
-			findItemById: vi.fn().mockReturnValue({ id: 'folder-1', deletedAt: 123, profile: 'regular', items: [] }),
+			findItemById: vi.fn().mockReturnValue({
+				id: 'folder-1',
+				deletedAt: 123,
+				deletedBatchId: 'batch-1',
+				profile: 'regular',
+				items: []
+			}),
 			restoreFolder: vi.fn(),
 			rootFolderIfParentMissing: vi.fn()
 		};
@@ -497,11 +503,11 @@ describe('TrashService (Flat Recovery)', () => {
 			notes as any,
 			trashRepository as any,
 			selection as any
-		).recoverFolder('folder-1', 123);
+		).recoverFolder('folder-1', 'batch-1');
 
 		// Verification: rootFolderIfParentMissing called, but NO restoreParentPath
 		expect(folders.rootFolderIfParentMissing).toHaveBeenCalledWith('folder-1');
-		expect(folders.restoreFolder).toHaveBeenCalledWith('folder-1', 123);
+		expect(folders.restoreFolder).toHaveBeenCalledWith('folder-1', 'batch-1');
 		expect(selection.selectFolder).toHaveBeenCalledWith('folder-1');
 	});
 
@@ -532,7 +538,7 @@ describe('TrashService (Flat Recovery)', () => {
 			notes as any,
 			trashRepository as any,
 			selection as any
-		).permanentlyDeleteFolder('folder-1', 123);
+		).permanentlyDeleteFolder('folder-1', 'batch-1');
 
 		expect(folders.applyPermanentDeleteState).toHaveBeenCalled();
 	});

@@ -20,14 +20,15 @@ export class TrashService {
 		this.selection = selection;
 	}
 
-	recoverFolder(folderId: FolderID, targetBatch?: number) {
+	recoverFolder(folderId: FolderID, targetBatchId?: string) {
 		const folder = this.folders.findItemById(folderId);
 		if (!folder || folder.deletedAt == null) return;
+		if (!folder.deletedBatchId) return;
 
 		this.folders.rootFolderIfParentMissing(folderId);
 
-		const batch = targetBatch ?? folder.deletedAt;
-		this.restoreFolderTree(folderId, batch);
+		const batchId = targetBatchId ?? folder.deletedBatchId;
+		this.restoreFolderTree(folderId, batchId);
 
 		const firstNote =
 			typeof this.notes.listNotes === 'function'
@@ -71,11 +72,12 @@ export class TrashService {
 		this.notes.selectNote(nextNoteId);
 	}
 
-	async permanentlyDeleteFolder(folderId: FolderID, targetBatch?: number) {
+	async permanentlyDeleteFolder(folderId: FolderID, targetBatch?: string) {
 		const folder = this.folders.findItemById(folderId);
 		if (!folder || folder.deletedAt == null) return;
 
-		const batch = targetBatch ?? folder.deletedAt;
+		const batch = targetBatch ?? folder.deletedBatchId;
+		if (!batch) return;
 		const foldersToDelete = this.tree.collectFolderSubtree(folderId);
 		const notesToDelete = this.collectFolderNotesWithPaths(foldersToDelete, batch);
 
@@ -129,27 +131,27 @@ export class TrashService {
 		}
 	}
 
-	private restoreFolderTree(folderId: FolderID, batch: number) {
+	private restoreFolderTree(folderId: FolderID, batchId: string) {
 		const folder = this.folders.findItemById(folderId);
-		if (!folder || folder.deletedAt !== batch) return;
+		if (!folder || folder.deletedBatchId !== batchId) return;
 
-		this.folders.restoreFolder(folderId, batch);
-		this.notes.restoreNotesInFolder(folderId, batch);
+		this.folders.restoreFolder(folderId, batchId);
+		this.notes.restoreNotesInFolder(folderId, batchId);
 
 		for (const childId of folder.items ?? []) {
-			this.restoreFolderTree(childId, batch);
+			this.restoreFolderTree(childId, batchId);
 		}
 	}
 
 	private collectFolderNotesWithPaths(
 		folders: FolderItem[],
-		batch?: number
+		batchId?: string
 	): { note: NoteItem; path: string }[] {
 		return folders.flatMap((folder) => {
 			const folderPath = this.tree.getFolderPath(folder.id);
 			const notes =
-				batch !== undefined
-					? this.notes.getNotesToArchive(folder.id, batch)
+				batchId !== undefined
+					? this.notes.getNotesToArchive(folder.id, batchId)
 					: this.notes.getDeletedNotes().filter((note) => note.folderId === folder.id);
 
 			return notes.map((note) => ({

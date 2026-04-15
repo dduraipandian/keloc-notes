@@ -10,7 +10,10 @@ export type FolderItem = {
 	items?: FolderID[];
 	isOpen?: boolean;
 	parentId?: FolderID | null;
+	// deletedAt is the timestamp of deletion state; do not use it to group deleted items.
+	// deletedBatchId identifies one delete operation and must drive restore/grouping logic.
 	deletedAt?: number | null;
+	deletedBatchId?: string | null;
 };
 
 import { SvelteMap } from 'svelte/reactivity';
@@ -41,24 +44,26 @@ class FolderStore {
 
 		// Initialize system folders from central registry
 		for (const { id, title, profile } of SYSTEM_VIEWS) {
-			const folder = $state({
-				id,
-				title,
-				items: [],
-				parentId: null,
-				profile,
-				isFavorite: false,
-				deletedAt: null
-			});
+				const folder = $state({
+					id,
+					title,
+					items: [],
+					parentId: null,
+					profile,
+					isFavorite: false,
+					deletedAt: null,
+					deletedBatchId: null
+				});
 			this.folders.set(id, folder);
 		}
 	}
 
 	loadItems(initialItems: any[] = []) {
-		initialItems.forEach((item) => {
-			if (item.id) {
-				if (item.deletedAt === undefined) item.deletedAt = null;
-				if (item.isFavorite === undefined) item.isFavorite = false;
+			initialItems.forEach((item) => {
+				if (item.id) {
+					if (item.deletedAt === undefined) item.deletedAt = null;
+					if (item.deletedBatchId === undefined) item.deletedBatchId = null;
+					if (item.isFavorite === undefined) item.isFavorite = false;
 				const isSystemFolder = SYSTEM_VIEWS.some((v) => v.id === item.id);
 				const profile = resolveProfile(item);
 
@@ -117,7 +122,8 @@ class FolderStore {
 			isFavorite: false,
 			items: [],
 			parentId: null,
-			deletedAt: null
+			deletedAt: null,
+			deletedBatchId: null
 		});
 
 		if (!parentId) {
@@ -141,26 +147,27 @@ class FolderStore {
 		return newFolder.id;
 	}
 
-	deleteFolder(id: string, batchTimestamp?: number) {
+	deleteFolder(id: string, deletedAt: number = Date.now(), deletedBatchId: string = crypto.randomUUID()) {
 		const folder = this.folders.get(id);
 		if (!folder) return;
 
-		const ts = batchTimestamp ?? Date.now();
-
-		folder.deletedAt = ts;
+		folder.deletedAt = deletedAt;
+		folder.deletedBatchId = deletedBatchId;
 		this.folders.set(id, folder);
 		this.persist(id);
 		this.clearEditingIfSelected(id);
 	}
 
-	restoreFolder(id: string, targetBatch?: number) {
+	restoreFolder(id: string, targetBatchId?: string) {
 		const folder = this.folders.get(id);
 		if (!folder || folder.deletedAt == null) return;
+		if (!folder.deletedBatchId) return;
 
-		const batch = targetBatch ?? folder.deletedAt;
+		const batchId = targetBatchId ?? folder.deletedBatchId;
 
-		if (folder.deletedAt === batch) {
+		if (folder.deletedBatchId === batchId) {
 			folder.deletedAt = null;
+			folder.deletedBatchId = null;
 			if (folder.parentId === null && !this.items.includes(id)) {
 				this.items.push(id);
 			}
@@ -268,7 +275,8 @@ class FolderStore {
 			title: 'Notes',
 			items: [],
 			parentId: null,
-			deletedAt: null
+			deletedAt: null,
+			deletedBatchId: null
 		};
 		let nf = newFolder;
 		this.folders.set(newFolder.id, nf);

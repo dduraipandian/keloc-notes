@@ -12,8 +12,8 @@ export type FolderStoreLike = {
 	renameFolder(id: FolderID, newTitle: string): void;
 	openFolder(id: FolderID): void;
 	setFavorite(id: FolderID, isFavorite: boolean): void;
-	deleteFolder(id: FolderID, batchTimestamp?: number): void;
-	restoreFolder(id: FolderID, targetBatch?: number): void;
+	deleteFolder(id: FolderID, deletedAt?: number, deletedBatchId?: string): void;
+	restoreFolder(id: FolderID, targetBatchId?: string): void;
 	rootFolderIfParentMissing(id: FolderID): void;
 	applyPermanentDeleteState(foldersToDelete: FolderItem[]): void;
 	trashItems: FolderID[];
@@ -33,16 +33,16 @@ export type NotesStoreLike = {
 		updates: Partial<Omit<NoteItem, 'id'>>,
 		opts?: { updatedTimestamp?: boolean }
 	): void;
-	deleteNote(id: NoteID, batchTimestamp?: number): void;
+	deleteNote(id: NoteID, deletedAt?: number, deletedBatchId?: string): void;
 	selectNote(id: NoteID | null): void;
 	setFavorite(id: NoteID, isFavorite: boolean): void;
 	getNote(id: NoteID): NoteItem | null;
 	listNotes(): NoteItem[];
 	restoreNote(id: NoteID, folderId?: FolderID | null): void;
-	restoreNotesInFolder(folderId: FolderID, targetBatch?: number): void;
-	getNotesToArchive(folderId: FolderID, targetBatch: number): NoteItem[];
+	restoreNotesInFolder(folderId: FolderID, targetBatchId?: string): void;
+	getNotesToArchive(folderId: FolderID, targetBatchId: string): NoteItem[];
 	getDeletedNotes(): NoteItem[];
-	deleteNotesInFolder(folderId: FolderID, batchTimestamp: number): void;
+	deleteNotesInFolder(folderId: FolderID, deletedAt: number, deletedBatchId: string): void;
 	removeNoteLocally(id: NoteID): void;
 	clearSelectionIfSelected(id: NoteID): void;
 	getNoteCount(folderId: FolderID | null, profileId?: string): number;

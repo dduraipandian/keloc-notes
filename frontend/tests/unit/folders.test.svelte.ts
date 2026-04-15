@@ -58,12 +58,12 @@ describe('FolderStore (Flat Recovery & Validation)', () => {
 	});
 
 	it('should add to items list during restoreFolder if recovering to root', () => {
-		const folder: FolderItem = { id: 'f1', title: 'F1', deletedAt: 123, parentId: null };
+		const folder: FolderItem = { id: 'f1', title: 'F1', deletedAt: 123, deletedBatchId: 'batch-f1', parentId: null };
 		folderStore.folders.set('f1', folder);
 		
 		expect(folderStore.items).not.toContain('f1');
 
-		folderStore.restoreFolder('f1', 123);
+		folderStore.restoreFolder('f1', 'batch-f1');
 
 		expect(folderStore.folders.get('f1')?.deletedAt).toBeNull();
 		expect(folderStore.items).toContain('f1');
