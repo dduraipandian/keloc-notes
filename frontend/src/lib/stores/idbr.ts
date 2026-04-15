@@ -1,6 +1,7 @@
 import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 import type { FolderItem } from './folders.svelte';
 import type { NoteItem } from './notes.svelte';
+import { uiStore } from './dialog.svelte';
 
 const DB_NAME = 'mdnotes-db';
 const DB_VERSION = 2;
@@ -26,23 +27,50 @@ export interface DBStore {
 
 let dbPromise: Promise<IDBPDatabase<DBStore>>;
 
+function ensureStores(db: IDBPDatabase<DBStore>) {
+	if (!db.objectStoreNames.contains('folders')) {
+		db.createObjectStore('folders', { keyPath: 'id' });
+	}
+	if (!db.objectStoreNames.contains('notes')) {
+		db.createObjectStore('notes', { keyPath: 'id' });
+	}
+	if (!db.objectStoreNames.contains('settings')) {
+		db.createObjectStore('settings');
+	}
+	if (!db.objectStoreNames.contains('backups')) {
+		db.createObjectStore('backups', { keyPath: 'id' });
+	}
+}
+
+export function handleDatabaseBlocked(currentVersion: number | undefined, blockedVersion: number | null) {
+	uiStore.confirmAppQuit(
+		'Database blocked',
+		`Another mdnotes window is open and is blocking a database upgrade (current: ${currentVersion ?? 'unknown'}, target: ${blockedVersion ?? 'unknown'}). Please close the other window and restart mdnotes.`,
+		() => {}
+	);
+}
+
 export function initDB() {
 	if (dbPromise) return dbPromise;
 
 	dbPromise = openDB<DBStore>(DB_NAME, DB_VERSION, {
 		upgrade(db, oldVersion, newVersion) {
-			if (!db.objectStoreNames.contains('folders')) {
-				db.createObjectStore('folders', { keyPath: 'id' });
+			switch (oldVersion) {
+				case 0:
+					ensureStores(db);
+					// fall through to future migrations
+				case 1:
+					// v1 -> v2 migrations go here
+					break;
+				default:
+					break;
 			}
-			if (!db.objectStoreNames.contains('notes')) {
-				db.createObjectStore('notes', { keyPath: 'id' });
-			}
-			if (!db.objectStoreNames.contains('settings')) {
-				db.createObjectStore('settings');
-			}
-			if (!db.objectStoreNames.contains('backups')) {
-				db.createObjectStore('backups', { keyPath: 'id' });
-			}
+		},
+		blocked(currentVersion, blockedVersion) {
+			handleDatabaseBlocked(currentVersion, blockedVersion);
+		},
+		blocking(currentVersion, blockedVersion) {
+			handleDatabaseBlocked(currentVersion, blockedVersion);
 		}
 	});
 

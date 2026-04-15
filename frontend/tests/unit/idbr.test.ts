@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { 
 	initDB, 
+	handleDatabaseBlocked,
 	putFolder, 
 	getFolder, 
 	deleteFolder, 
@@ -15,6 +16,7 @@ import {
 	getAllSettings,
 	permanentDeleteNoteTransactionally
 } from '../../src/lib/stores/idbr';
+import { uiStore } from '../../src/lib/stores/dialog.svelte';
 
 describe('IndexedDB Wrapper (idbr.ts)', () => {
 	beforeEach(async () => {
@@ -30,6 +32,18 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 		expect(db.objectStoreNames).toContain('notes');
 		expect(db.objectStoreNames).toContain('settings');
 		expect(db.objectStoreNames).toContain('backups');
+	});
+
+	it('should surface a user-visible dialog when the database is blocked', () => {
+		const confirmSpy = vi.spyOn(uiStore, 'confirmAppQuit').mockImplementation(() => {});
+
+		handleDatabaseBlocked(1, 2);
+
+		expect(confirmSpy).toHaveBeenCalledWith(
+			'Database blocked',
+			expect.stringContaining('Another mdnotes window is open'),
+			expect.any(Function)
+		);
 	});
 
 	describe('Folder CRUD', () => {
