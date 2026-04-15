@@ -5,6 +5,7 @@ export interface ConfirmOptions {
 	type: DialogType;
 	title: string;
 	description?: string;
+	allowHtml?: boolean;
 	canCancel?: boolean;
 	onConfirm: () => void;
 	confirmLabel?: string;
@@ -112,6 +113,7 @@ class UIStore {
 				insufficient storage permissions.
 				<br/> <br/>
 				<span class="font-mono text-xs text-destructive">${initError}</span>`,
+			allowHtml: true,
 			confirmLabel: 'Quit Application',
 			onConfirm
 		};

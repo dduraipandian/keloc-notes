@@ -8,7 +8,13 @@
 	<AlertDialog.Content>
 		<AlertDialog.Header>
 			<AlertDialog.Title>{dialog.title}</AlertDialog.Title>
-			<AlertDialog.Description>{@html dialog.description}</AlertDialog.Description>
+			<AlertDialog.Description>
+				{#if dialog.allowHtml}
+					{@html dialog.description}
+				{:else}
+					{dialog.description}
+				{/if}
+			</AlertDialog.Description>
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
 			{#if dialog.canCancel}
