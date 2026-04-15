@@ -53,14 +53,13 @@ describe('NoteItems.svelte Component', () => {
         // Setup notesStore state
         (notesStore as any).notes = new SvelteMap();
         const now = new Date().toISOString();
-        notesStore.notes.set('n1', {
-            id: 'n1',
-            title: 'Note 1',
-            content: 'Content 1',
-            updatedAt: now,
-            createdAt: now,
-            folderId: 'f1'
-        });
+	        notesStore.notes.set('n1', {
+	            id: 'n1',
+	            title: 'Note 1',
+	            content: 'Content 1',
+	            updatedAt: now,
+	            folderId: 'f1'
+	        });
         
         // Mock noteListView to return our note
         vi.spyOn(noteListView, 'getSections').mockReturnValue([

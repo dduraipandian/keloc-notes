@@ -97,7 +97,7 @@ export class FolderSidebarView {
 		private readonly actions: SidebarActionDeps = defaultSidebarActionDeps
 	) {}
 
-	sections = $derived.by(() => {
+	sections = $derived.by((): SidebarSourceSection[] => {
 		return [
 			{
 				id: 'views',

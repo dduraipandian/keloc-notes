@@ -92,12 +92,18 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 		});
 	});
 
-	describe('Transactional Operations', () => {
-		it('should archive and delete a note transactionally', async () => {
-			const note = { id: 'n1', title: 'To Delete', content: 'Some content' };
-			await putNote(note);
-			
-			const archivedAt = Date.now();
+		describe('Transactional Operations', () => {
+			it('should archive and delete a note transactionally', async () => {
+				const note = {
+					id: 'n1',
+					title: 'To Delete',
+					content: 'Some content',
+					folderId: null,
+					updatedAt: new Date().toISOString()
+				};
+				await putNote(note);
+				
+				const archivedAt = Date.now();
 			await permanentDeleteNoteTransactionally(note, 'Home / To Delete', archivedAt);
 			
 			// Verify note is gone from notes store

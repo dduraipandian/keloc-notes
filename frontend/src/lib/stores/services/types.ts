@@ -28,7 +28,11 @@ export type SelectionStoreLike = {
 
 export type NotesStoreLike = {
 	createNote(folderId: FolderID | null): void;
-	updateNote(id: NoteID, updates: Partial<Omit<NoteItem, 'id'>>): void;
+	updateNote(
+		id: NoteID,
+		updates: Partial<Omit<NoteItem, 'id'>>,
+		opts?: { updatedTimestamp?: boolean }
+	): void;
 	deleteNote(id: NoteID, batchTimestamp?: number): void;
 	selectNote(id: NoteID | null): void;
 	setFavorite(id: NoteID, isFavorite: boolean): void;
