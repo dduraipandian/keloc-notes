@@ -75,4 +75,36 @@ describe('SelectionStore', () => {
 		expect(selectionStore.selectedFolderID).toBeNull();
 		expect(settingsRepository.save).toHaveBeenCalledWith('selectedFolderID', null);
 	});
+
+	it('surfaces selection persistence errors through onPersistError', async () => {
+		const onPersistError = vi.fn();
+		(selectionStore as any).onPersistError = onPersistError;
+		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder' });
+		vi.mocked(settingsRepository.getAll).mockResolvedValue({} as any);
+		await selectionStore.init();
+		vi.clearAllMocks();
+		vi.mocked(settingsRepository.save).mockRejectedValueOnce(new Error('selection save failed') as any);
+
+		selectionStore.selectFolder('folder-1');
+		await Promise.resolve();
+
+		expect(onPersistError).toHaveBeenCalledTimes(1);
+		expect(onPersistError).toHaveBeenCalledWith(expect.any(Error), 'selectedFolderID');
+		expect(onPersistError.mock.calls[0][0].message).toBe('selection save failed');
+	});
+
+	it('does not invoke onPersistError for successful selection persistence', async () => {
+		const onPersistError = vi.fn();
+		(selectionStore as any).onPersistError = onPersistError;
+		folderStore.folders.set('folder-1', { id: 'folder-1', title: 'Folder' });
+		vi.mocked(settingsRepository.getAll).mockResolvedValue({} as any);
+		await selectionStore.init();
+		vi.clearAllMocks();
+		vi.mocked(settingsRepository.save).mockResolvedValueOnce(undefined as any);
+
+		selectionStore.selectFolder('folder-1');
+		await Promise.resolve();
+
+		expect(onPersistError).not.toHaveBeenCalled();
+	});
 });

@@ -24,6 +24,7 @@ class NotesStore {
 	selectedNoteID = $state<NoteID | null>(null);
 	onPersistError = $state<((err: unknown, noteId: string) => void) | null>(null);
 	private debouncer = new KeyedDebouncer();
+	private inFlightWrites = new Set<Promise<unknown>>();
 
 	folderNoteCounts = $state<Record<string, number>>({ null: 0 });
 	folderDeletedNoteCounts = $state<Record<string, number>>({ null: 0 });
@@ -103,19 +104,28 @@ class NotesStore {
 		this.debouncer.cancel(id);
 		const note = this.notes.get(id);
 		if (note) {
-			void Promise.resolve(notesRepository.save($state.snapshot(note))).catch((err) => {
+			const write = Promise.resolve(notesRepository.save($state.snapshot(note)));
+			this.trackWrite(
+				write.catch((err) => {
 				this.onPersistError?.(err, id);
-			});
+				})
+			);
 		}
 	}
 
 	persistSelection() {
 		if (!this.isInitialized) return;
-		void Promise.resolve(settingsRepository.save('selectedNoteID', this.selectedNoteID)).catch(
-			(err) => {
+		const write = Promise.resolve(settingsRepository.save('selectedNoteID', this.selectedNoteID));
+		this.trackWrite(
+			write.catch((err) => {
 			this.onPersistError?.(err, '__selection__');
-			}
+			})
 		);
+	}
+
+	async flushAllPendingWrites(): Promise<void> {
+		this.debouncer.flushAll();
+		await Promise.allSettled(Array.from(this.inFlightWrites));
 	}
 
 	get selectedNote(): NoteItem | null {
@@ -387,6 +397,13 @@ class NotesStore {
 		
 		// Regular folder or home
 		return this.folderNoteCounts[normId] ?? 0;
+	}
+
+	private trackWrite<T>(write: Promise<T>) {
+		this.inFlightWrites.add(write);
+		void write.finally(() => {
+			this.inFlightWrites.delete(write);
+		});
 	}
 }
 

@@ -24,6 +24,7 @@ class FolderStore {
 	editingId = $state<string | null>(null);
 	folders = new SvelteMap<string, FolderItem>();
 	private isInitialized = false;
+	onPersistError = $state<((err: unknown, folderId: string) => void) | null>(null);
 
 	trashItems = $derived.by(() => {
 		const deletedIds: string[] = [];
@@ -44,26 +45,26 @@ class FolderStore {
 
 		// Initialize system folders from central registry
 		for (const { id, title, profile } of SYSTEM_VIEWS) {
-				const folder = $state({
-					id,
-					title,
-					items: [],
-					parentId: null,
-					profile,
-					isFavorite: false,
-					deletedAt: null,
-					deletedBatchId: null
-				});
+			const folder = $state({
+				id,
+				title,
+				items: [],
+				parentId: null,
+				profile,
+				isFavorite: false,
+				deletedAt: null,
+				deletedBatchId: null
+			});
 			this.folders.set(id, folder);
 		}
 	}
 
 	loadItems(initialItems: any[] = []) {
-			initialItems.forEach((item) => {
-				if (item.id) {
-					if (item.deletedAt === undefined) item.deletedAt = null;
-					if (item.deletedBatchId === undefined) item.deletedBatchId = null;
-					if (item.isFavorite === undefined) item.isFavorite = false;
+		initialItems.forEach((item) => {
+			if (item.id) {
+				if (item.deletedAt === undefined) item.deletedAt = null;
+				if (item.deletedBatchId === undefined) item.deletedBatchId = null;
+				if (item.isFavorite === undefined) item.isFavorite = false;
 				const isSystemFolder = SYSTEM_VIEWS.some((v) => v.id === item.id);
 				const profile = resolveProfile(item);
 
@@ -100,7 +101,9 @@ class FolderStore {
 			const profile = resolveProfile(folder);
 			if (profile.section === 'views') return;
 
-			foldersRepository.save($state.snapshot(folder));
+			void Promise.resolve(foldersRepository.save($state.snapshot(folder))).catch((err) => {
+				this.onPersistError?.(err, id);
+			});
 		}
 	}
 
@@ -147,7 +150,11 @@ class FolderStore {
 		return newFolder.id;
 	}
 
-	deleteFolder(id: string, deletedAt: number = Date.now(), deletedBatchId: string = crypto.randomUUID()) {
+	deleteFolder(
+		id: string,
+		deletedAt: number = Date.now(),
+		deletedBatchId: string = crypto.randomUUID()
+	) {
 		const folder = this.folders.get(id);
 		if (!folder) return;
 

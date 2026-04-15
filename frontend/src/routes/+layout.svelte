@@ -8,25 +8,48 @@
 	import Alert from './alert.svelte';
 	import Folders from '$lib/components/Folders.svelte';
 	import NoteItems from '$lib/components/NoteItems.svelte';
-	import { Quit } from '$lib/wailsjs/runtime/runtime';
+	import { EventsEmit, EventsOn, Quit } from '$lib/wailsjs/runtime/runtime';
 	import { uiStore } from '$lib/stores/dialog.svelte';
 
 	let { children } = $props();
 
 	let initError = $state<string | null>(null);
 
-	onMount(async () => {
-		try {
-			await folderStore.init();
-			await selectionStore.init();
-			await notesStore.init();
-			notesStore.onPersistError = (err) => {
-				uiStore.confirmAppQuit('Save failed', String(err), () => {});
-			};
-		} catch (err) {
-			initError = err instanceof Error ? err.message : 'An unexpected error occurred.';
-			uiStore.confirmAppQuit('Failed to Start', initError, Quit);
-		}
+	onMount(() => {
+		const offBeforeClose = EventsOn('app:before-close', async () => {
+			try {
+				await notesStore.flushAllPendingWrites();
+			} finally {
+				EventsEmit('app:flush-complete');
+			}
+		});
+
+		void (async () => {
+			try {
+				await folderStore.init();
+				await selectionStore.init();
+				await notesStore.init();
+				folderStore.onPersistError = (err) => {
+					uiStore.confirmAppQuit('Save failed', String(err), () => {});
+				};
+				selectionStore.onPersistError = (err) => {
+					uiStore.confirmAppQuit('Save failed', String(err), () => {});
+				};
+				notesStore.onPersistError = (err) => {
+					uiStore.confirmAppQuit('Save failed', String(err), () => {});
+				};
+			} catch (err) {
+				initError = err instanceof Error ? err.message : 'An unexpected error occurred.';
+				uiStore.confirmAppQuit('Failed to Start', initError, Quit);
+			}
+		})();
+
+		return () => {
+			offBeforeClose?.();
+			folderStore.onPersistError = null;
+			selectionStore.onPersistError = null;
+			notesStore.onPersistError = null;
+		};
 	});
 </script>
 

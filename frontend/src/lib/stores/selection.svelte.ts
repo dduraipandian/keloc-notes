@@ -4,6 +4,7 @@ import { folderStore, type FolderID, type FolderItem } from './folders.svelte';
 class SelectionStore {
 	selectedFolderID = $state<FolderID | null>(null);
 	private isInitialized = false;
+	onPersistError = $state<((err: unknown, key: string) => void) | null>(null);
 
 	async init() {
 		if (this.isInitialized) return;
@@ -14,7 +15,9 @@ class SelectionStore {
 			this.selectFolder(persistedSelection, false);
 			this.isInitialized = true;
 			if (persistedSelection != null && this.selectedFolderID == null) {
-				settingsRepository.save('selectedFolderID', null);
+				void Promise.resolve(settingsRepository.save('selectedFolderID', null)).catch((err) => {
+					this.onPersistError?.(err, 'selectedFolderID');
+				});
 			}
 		} catch (error) {
 			console.error('Failed to load selected folder from storage:', error);
@@ -27,7 +30,11 @@ class SelectionStore {
 		this.selectedFolderID = resolvedId;
 
 		if (persist && this.isInitialized) {
-			settingsRepository.save('selectedFolderID', this.selectedFolderID);
+			void Promise.resolve(settingsRepository.save('selectedFolderID', this.selectedFolderID)).catch(
+				(err) => {
+					this.onPersistError?.(err, 'selectedFolderID');
+				}
+			);
 		}
 	}
 
@@ -45,6 +52,7 @@ class SelectionStore {
 	__resetForTest() {
 		this.selectedFolderID = null;
 		this.isInitialized = false;
+		this.onPersistError = null;
 	}
 
 	private resolveFolderId(id: FolderID | null) {

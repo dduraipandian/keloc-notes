@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { folderStore, type FolderItem } from '../../src/lib/stores/folders.svelte';
 import { SvelteMap } from 'svelte/reactivity';
+import { foldersRepository } from '../../src/lib/stores/repositories';
 
 // Mock repositories to avoid IndexedDB errors
 vi.mock('../../src/lib/stores/repositories', () => ({
@@ -27,6 +28,7 @@ describe('FolderStore (Flat Recovery & Validation)', () => {
 		(folderStore as any).items = [];
 		(folderStore as any).folders = new SvelteMap<string, FolderItem>();
 		(folderStore as any).isInitialized = true;
+		(folderStore as any).onPersistError = null;
 	});
 
 	it('should root a folder and add to items list if its parent is deleted', () => {
@@ -67,6 +69,32 @@ describe('FolderStore (Flat Recovery & Validation)', () => {
 
 		expect(folderStore.folders.get('f1')?.deletedAt).toBeNull();
 		expect(folderStore.items).toContain('f1');
+	});
+
+	it('surfaces folder persistence errors through onPersistError', async () => {
+		const onPersistError = vi.fn();
+		(folderStore as any).onPersistError = onPersistError;
+		(foldersRepository.save as any).mockRejectedValueOnce(new Error('folder save failed'));
+
+		folderStore.folders.set('f1', { id: 'f1', title: 'Folder', deletedAt: null, deletedBatchId: null });
+		folderStore.renameFolder('f1', 'Renamed');
+		await Promise.resolve();
+
+		expect(onPersistError).toHaveBeenCalledTimes(1);
+		expect(onPersistError).toHaveBeenCalledWith(expect.any(Error), 'f1');
+		expect(onPersistError.mock.calls[0][0].message).toBe('folder save failed');
+	});
+
+	it('does not invoke onPersistError for successful folder persistence', async () => {
+		const onPersistError = vi.fn();
+		(folderStore as any).onPersistError = onPersistError;
+		(foldersRepository.save as any).mockResolvedValueOnce(undefined);
+
+		folderStore.folders.set('f1', { id: 'f1', title: 'Folder', deletedAt: null, deletedBatchId: null });
+		folderStore.renameFolder('f1', 'Renamed');
+		await Promise.resolve();
+
+		expect(onPersistError).not.toHaveBeenCalled();
 	});
 });
 
