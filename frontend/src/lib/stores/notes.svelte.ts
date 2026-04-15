@@ -19,6 +19,7 @@ class NotesStore {
 	notes = new SvelteMap<NoteID, NoteItem>();
 	private isInitialized = false;
 	selectedNoteID = $state<NoteID | null>(null);
+	onPersistError = $state<((err: unknown, noteId: string) => void) | null>(null);
 	private debouncer = new KeyedDebouncer();
 
 	folderNoteCounts = $state<Record<string, number>>({ null: 0 });
@@ -98,13 +99,19 @@ class NotesStore {
 		this.debouncer.cancel(id);
 		const note = this.notes.get(id);
 		if (note) {
-			notesRepository.save($state.snapshot(note));
+			void Promise.resolve(notesRepository.save($state.snapshot(note))).catch((err) => {
+				this.onPersistError?.(err, id);
+			});
 		}
 	}
 
 	persistSelection() {
 		if (!this.isInitialized) return;
-		settingsRepository.save('selectedNoteID', this.selectedNoteID);
+		void Promise.resolve(settingsRepository.save('selectedNoteID', this.selectedNoteID)).catch(
+			(err) => {
+			this.onPersistError?.(err, '__selection__');
+			}
+		);
 	}
 
 	get selectedNote(): NoteItem | null {

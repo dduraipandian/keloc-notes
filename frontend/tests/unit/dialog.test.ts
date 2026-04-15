@@ -5,6 +5,7 @@ describe('UIStore', () => {
 	beforeEach(() => {
 		uiStore.noteDialog.open = false;
 		uiStore.folderDialog.open = false;
+		uiStore.appDialog.open = false;
 	});
 
 	it('should configure note delete dialog correctly', () => {
@@ -34,5 +35,14 @@ describe('UIStore', () => {
 		expect(uiStore.folderDialog.open).toBe(true);
 		expect(uiStore.folderDialog.type).toBe('destroy');
 		expect(uiStore.folderDialog.title).toBe('Delete Folder');
+	});
+
+	it('should configure app dialog correctly for app-level failures', () => {
+		uiStore.confirmAppQuit('Save failed', 'quota exceeded', () => {});
+
+		expect(uiStore.appDialog.open).toBe(true);
+		expect(uiStore.appDialog.title).toBe('Save failed');
+		expect(uiStore.appDialog.allowHtml).toBe(true);
+		expect(uiStore.appDialog.description).toContain('quota exceeded');
 	});
 });

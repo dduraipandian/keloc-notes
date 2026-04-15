@@ -20,6 +20,9 @@
 			await folderStore.init();
 			await selectionStore.init();
 			await notesStore.init();
+			notesStore.onPersistError = (err) => {
+				uiStore.confirmAppQuit('Save failed', String(err), () => {});
+			};
 		} catch (err) {
 			initError = err instanceof Error ? err.message : 'An unexpected error occurred.';
 			uiStore.confirmAppQuit('Failed to Start', initError, Quit);

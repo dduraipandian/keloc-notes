@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { notesStore, type NoteItem } from '../../src/lib/stores/notes.svelte';
 import { folderStore, type FolderItem } from '../../src/lib/stores/folders.svelte';
 import { noteService, trashService } from '../../src/lib/stores/services';
@@ -23,6 +23,7 @@ describe('NotesStore (Flat Recovery)', () => {
 		vi.clearAllMocks();
 		(notesStore as any).notes = new SvelteMap();
 		(notesStore as any).selectedNoteID = null;
+		(notesStore as any).onPersistError = null;
 		(notesStore as any).isInitialized = true;
 		(folderStore as any).items = [];
 		(folderStore as any).folders = new SvelteMap();
@@ -85,5 +86,55 @@ describe('NotesStore (Flat Recovery)', () => {
 		notesStore.selectNote(null);
 		expect(notesStore.selectedNoteID).toBeNull();
 		expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', null);
+	});
+
+	describe('persistNote error handling', () => {
+		beforeEach(() => {
+			vi.useFakeTimers();
+			addNoteToStore({ id: 'n1', content: 'Original content' });
+		});
+
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it('surfaces save errors through onPersistError', async () => {
+			const onPersistError = vi.fn();
+			(notesStore as any).onPersistError = onPersistError;
+			(notesRepository.save as any).mockRejectedValueOnce(new Error('quota'));
+
+			notesStore.updateNote('n1', { content: 'Updated content' });
+			vi.advanceTimersByTime(400);
+			await Promise.resolve();
+
+			expect(onPersistError).toHaveBeenCalledTimes(1);
+			expect(onPersistError).toHaveBeenCalledWith(expect.any(Error), 'n1');
+			expect(onPersistError.mock.calls[0][0].message).toBe('quota');
+		});
+
+		it('does not invoke onPersistError for successful saves', async () => {
+			const onPersistError = vi.fn();
+			(notesStore as any).onPersistError = onPersistError;
+			(notesRepository.save as any).mockResolvedValueOnce(undefined);
+
+			notesStore.updateNote('n1', { content: 'Updated content' });
+			vi.advanceTimersByTime(400);
+			await Promise.resolve();
+
+			expect(onPersistError).not.toHaveBeenCalled();
+		});
+
+		it('surfaces selection persistence errors with the selection sentinel id', async () => {
+			const onPersistError = vi.fn();
+			(notesStore as any).onPersistError = onPersistError;
+			(settingsRepository.save as any).mockRejectedValueOnce(new Error('settings failed'));
+
+			notesStore.selectNote('n1');
+			await Promise.resolve();
+
+			expect(onPersistError).toHaveBeenCalledTimes(1);
+			expect(onPersistError).toHaveBeenCalledWith(expect.any(Error), '__selection__');
+			expect(onPersistError.mock.calls[0][0].message).toBe('settings failed');
+		});
 	});
 });

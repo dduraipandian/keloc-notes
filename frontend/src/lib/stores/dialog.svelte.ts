@@ -104,7 +104,7 @@ class UIStore {
 		};
 	}
 	confirmAppQuit(title: string, initError: string, onConfirm: () => void) {
-		this.folderDialog = {
+		this.appDialog = {
 			open: true,
 			canCancel: false,
 			type: 'destroy',
