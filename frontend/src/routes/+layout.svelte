@@ -225,7 +225,7 @@
 				initError = err instanceof Error ? err.message : 'An unexpected error occurred.';
 				uiStore.confirmAppQuit('Failed to Start', initError, Quit);
 			} finally {
-				isInitializing = false;
+				// isInitializing = false;
 			}
 		})();
 
