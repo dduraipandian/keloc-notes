@@ -29,6 +29,9 @@ describe('FolderStore (Flat Recovery & Validation)', () => {
 		(folderStore as any).folders = new SvelteMap<string, FolderItem>();
 		(folderStore as any).isInitialized = true;
 		(folderStore as any).onPersistError = null;
+		(folderStore as any).editingId = null;
+		(folderStore as any).editingTitle = '';
+		(folderStore as any).rejectedRename = null;
 	});
 
 	it('should root a folder and add to items list if its parent is deleted', () => {
@@ -95,6 +98,22 @@ describe('FolderStore (Flat Recovery & Validation)', () => {
 		await Promise.resolve();
 
 		expect(onPersistError).not.toHaveBeenCalled();
+	});
+
+	it('rejects empty folder renames without mutating the stored title', () => {
+		folderStore.folders.set('f1', { id: 'f1', title: 'Folder', deletedAt: null, deletedBatchId: null });
+		(folderStore as any).editingId = 'f1';
+		(folderStore as any).editingTitle = '';
+
+		folderStore.renameFolder('f1', '   ');
+
+		expect(folderStore.folders.get('f1')?.title).toBe('Folder');
+		expect((folderStore as any).editingId).toBeNull();
+		expect((folderStore as any).editingTitle).toBe('Folder');
+		expect((folderStore as any).rejectedRename).toEqual(
+			expect.objectContaining({ id: 'f1' })
+		);
+		expect(foldersRepository.save).not.toHaveBeenCalled();
 	});
 });
 

@@ -4,7 +4,7 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
-	import type { FolderItem } from '$lib/stores/folders.svelte';
+	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 	import { folderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte';
 	import { folderService } from '$lib/stores/services';
 
@@ -12,7 +12,7 @@
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
-			folderService.rename(item.id, item.title);
+			folderService.rename(item.id, folderStore.editingTitle);
 		} else if (e.key === 'Escape') {
 			folderService.cancelRename();
 		}
@@ -115,9 +115,11 @@
 
 {#snippet FolderButtonSnippet(source: SidebarSourceItem, props = {})}
 	{@const item = source.item}
+	{@const isRenameRejected = folderStore.rejectedRename?.id === item.id}
 	<Sidebar.MenuButton
 		class={[
 			menuButtonStyle,
+			isRenameRejected && 'folder-rename-rejected',
 			source.isSelected
 				? 'bg-accent text-foreground shadow-sm'
 				: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
@@ -147,15 +149,22 @@
 
 		{#if source.isEditing}
 			<input
-				bind:value={item.title}
-				class="ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none"
+				bind:value={folderStore.editingTitle}
+				class={[
+					'ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none',
+					isRenameRejected && 'ring-destructive/60'
+				]}
 				use:focusAndSelect
 				onkeydown={(e) => handleRenameKeyDown(e, item)}
-				onblur={() => folderService.rename(item.id, item.title)}
+				onblur={() => folderService.rename(item.id, folderStore.editingTitle)}
 				onclick={(e) => e.stopPropagation()}
 			/>
 		{:else}
-			<span class="notes-folder-label ml-2 truncate text-left text-[13px] font-medium"
+			<span
+				class={[
+					'notes-folder-label ml-2 truncate text-left text-[13px] font-medium',
+					isRenameRejected && 'text-destructive'
+				]}
 				>{item.title}</span
 			>
 		{/if}
@@ -180,3 +189,29 @@
 		{/each}
 	</ContextMenu.Content>
 {/snippet}
+
+<style>
+	:global(.folder-rename-rejected) {
+		animation: folder-rename-rejected 0.42s ease;
+		box-shadow: inset 0 0 0 1px hsl(var(--destructive) / 0.45);
+	}
+
+	@keyframes folder-rename-rejected {
+		0%,
+		100% {
+			transform: translateX(0);
+		}
+		20% {
+			transform: translateX(-3px);
+		}
+		40% {
+			transform: translateX(4px);
+		}
+		60% {
+			transform: translateX(-2px);
+		}
+		80% {
+			transform: translateX(2px);
+		}
+	}
+</style>

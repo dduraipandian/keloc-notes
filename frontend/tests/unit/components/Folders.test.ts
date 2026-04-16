@@ -40,6 +40,8 @@ describe('Folders.svelte Component', () => {
         // Setup folderStore state
         (folderStore as any).folders = new SvelteMap();
         (folderStore as any).items = ['f1'];
+        (folderStore as any).editingTitle = '';
+        (folderStore as any).rejectedRename = null;
         folderStore.folders.set('f1', {
             id: 'f1',
             title: 'My Notes',
@@ -81,6 +83,7 @@ describe('Folders.svelte Component', () => {
     it('should render an input field when a folder is in editing mode', () => {
         // Set editing mode in store
         (folderStore as any).editingId = 'f1';
+        (folderStore as any).editingTitle = 'My Notes';
         
         render(Folders);
         

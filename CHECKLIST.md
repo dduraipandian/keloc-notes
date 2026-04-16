@@ -520,7 +520,7 @@ This is the original pre-release checklist. **Do not start these items until all
   - Make sure the loading state doesn't block Wails' window from painting — the user should see _something_ within the first frame.
 - **Done when:** user always sees a loading indicator until the stores are initialized. There is no visual flash of "empty app" state after stores load.
 
-### 5.3 Rename visual feedback on rejection
+### [x] 5.3 Rename visual feedback on rejection
 
 - **Files:** [`Folders.svelte:13-20`](frontend/src/lib/components/Folders.svelte#L13) and [`folderService.rename`](frontend/src/lib/stores/services/folderService.ts) → `folderStore.renameFolder`.
 - **Investigate:**
@@ -539,7 +539,7 @@ This is the original pre-release checklist. **Do not start these items until all
   - Collapse behavior: should the folder sidebar be collapsible entirely? Apple Notes allows this.
 - **Done when:** drag handles between panes work, widths persist, min/max are enforced, and the layout doesn't break at extreme widths.
 
-### 5.5 Window title reflects context
+### [x] 5.5 Window title reflects context
 
 - **File:** [`runtime.d.ts`](frontend/src/lib/wailsjs/runtime/runtime.d.ts) — `WindowSetTitle` is available but not called anywhere.
 - **Investigate:**

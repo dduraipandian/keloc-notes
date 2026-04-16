@@ -22,9 +22,12 @@ import { foldersRepository } from './repositories';
 class FolderStore {
 	items = $state<string[]>([]);
 	editingId = $state<string | null>(null);
+	editingTitle = $state('');
+	rejectedRename = $state<{ id: string; token: number } | null>(null);
 	folders = new SvelteMap<string, FolderItem>();
 	private isInitialized = false;
 	onPersistError = $state<((err: unknown, folderId: string) => void) | null>(null);
+	private rejectedRenameTimer: ReturnType<typeof setTimeout> | null = null;
 
 	trashItems = $derived.by(() => {
 		const deletedIds: string[] = [];
@@ -110,11 +113,15 @@ class FolderStore {
 	startRename(id: string) {
 		// Use setTimeout to ensure focus-return logic from menus is finished
 		setTimeout(() => {
+			const folder = this.folders.get(id);
+			if (!folder) return;
+			this.editingTitle = folder.title;
 			this.editingId = id;
 		}, 0);
 	}
 
 	cancelRename() {
+		this.editingTitle = '';
 		this.editingId = null;
 	}
 
@@ -217,6 +224,7 @@ class FolderStore {
 
 	clearEditingIfSelected(id: string) {
 		if (this.editingId === id) {
+			this.editingTitle = '';
 			this.editingId = null;
 		}
 	}
@@ -234,13 +242,24 @@ class FolderStore {
 	}
 
 	renameFolder(id: FolderID, newTitle: string) {
-		this.editingId = null;
 		const folder = this.folders.get(id);
+		this.editingId = null;
 
-		if (folder && newTitle.trim() !== '') {
-			folder.title = newTitle;
-			this.persist(id);
+		if (!folder) {
+			this.editingTitle = '';
+			return;
 		}
+
+		const normalizedTitle = newTitle.trim();
+		if (normalizedTitle === '') {
+			this.editingTitle = folder.title;
+			this.triggerRejectedRename(id);
+			return;
+		}
+
+		folder.title = normalizedTitle;
+		this.editingTitle = '';
+		this.persist(id);
 	}
 
 	openFolder(id: FolderID) {
@@ -257,6 +276,20 @@ class FolderStore {
 		folder.isFavorite = isFavorite;
 		this.folders.set(id, folder);
 		this.persist(id);
+	}
+
+	private triggerRejectedRename(id: FolderID) {
+		const token = Date.now();
+		this.rejectedRename = { id, token };
+		if (this.rejectedRenameTimer) {
+			clearTimeout(this.rejectedRenameTimer);
+		}
+		this.rejectedRenameTimer = setTimeout(() => {
+			if (this.rejectedRename?.token === token) {
+				this.rejectedRename = null;
+			}
+			this.rejectedRenameTimer = null;
+		}, 650);
 	}
 
 	getDefaultFolderId(): string {

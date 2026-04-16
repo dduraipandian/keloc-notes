@@ -9,13 +9,37 @@
 	import Alert from './alert.svelte';
 	import Folders from '$lib/components/Folders.svelte';
 	import NoteItems from '$lib/components/NoteItems.svelte';
-	import { EventsEmit, EventsOn, Quit } from '$lib/wailsjs/runtime/runtime';
+	import { EventsEmit, EventsOn, Quit, WindowSetTitle } from '$lib/wailsjs/runtime/runtime';
 	import { uiStore } from '$lib/stores/dialog.svelte';
 
 	let { children } = $props();
 
 	let isInitializing = $state(true);
 	let initError = $state<string | null>(null);
+
+	$effect(() => {
+		const selectedNote = notesStore.selectedNote;
+		const selectedNoteTitle = selectedNote?.title.trim();
+		const selectedFolderId = selectionStore.selectedFolderID;
+		const selectedFolderTitle = selectedFolderId ? selectionStore.getSelectedFolder()?.title : null;
+
+		if (isInitializing) {
+			WindowSetTitle('mdnotes');
+			return;
+		}
+
+		if (selectedNoteTitle) {
+			WindowSetTitle(`${selectedNoteTitle}`);
+			return;
+		}
+
+		if (selectedFolderTitle) {
+			WindowSetTitle(`${selectedFolderTitle}`);
+			return;
+		}
+
+		WindowSetTitle('mdnotes');
+	});
 
 	onMount(() => {
 		const offBeforeClose = EventsOn('app:before-close', async () => {
