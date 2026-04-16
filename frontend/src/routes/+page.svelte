@@ -52,7 +52,7 @@
 			</div>
 		{/if}
 		<div class="custom-scrollbar flex-1 overflow-x-hidden overflow-y-auto">
-			<div class="mx-auto flex min-h-full w-full max-w-4xl flex-col px-12 pb-5">
+			<div class="flex min-h-full w-full flex-col px-12 pb-5">
 				<!-- Editor Header/Title -->
 				<div class="flex shrink-0 flex-col pt-10 pb-6">
 					<div
@@ -62,8 +62,7 @@
 					</div>
 					<textarea
 						bind:value={selectedNote.title}
-						oninput={() =>
-							noteService.update(selectedNote!.id, { title: selectedNote!.title })}
+						oninput={() => noteService.update(selectedNote!.id, { title: selectedNote!.title })}
 						placeholder="Note Title"
 						readonly={selectedNote.deletedAt != null}
 						onclick={() => {
@@ -87,11 +86,7 @@
 						onclick={() => {
 							if (selectedNote.deletedAt != null) handleRestoreInit();
 						}}
-						oninput={() =>
-							noteService.update(
-								selectedNote!.id,
-								{ content: selectedNote!.content }
-							)}
+						oninput={() => noteService.update(selectedNote!.id, { content: selectedNote!.content })}
 						placeholder="Start writing..."
 						class="w-full flex-1 resize-none bg-transparent leading-relaxed text-foreground/90 outline-none placeholder:text-muted-foreground/10"
 						spellcheck="false"
