@@ -1,10 +1,14 @@
 <script lang="ts">
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import FolderPlus from '@lucide/svelte/icons/folder-plus';
+	import Sun from '@lucide/svelte/icons/sun';
+	import Moon from '@lucide/svelte/icons/moon';
+	import Monitor from '@lucide/svelte/icons/monitor';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
+	import { themeStore } from '$lib/stores/theme.svelte';
 	import { folderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte';
 	import { folderService } from '$lib/stores/services';
 
@@ -55,20 +59,61 @@
 		{/each}
 	</Sidebar.Content>
 
-	<Sidebar.Footer class="mt-auto border-t-0 pb-6 pl-6">
-		<Sidebar.Menu>
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton
-					class="group gap-2 px-2 text-[13px] font-medium text-foreground/80 transition-none hover:bg-transparent hover:text-foreground"
-					onclick={() => {
-						folderService.create();
-					}}
+	<Sidebar.Footer class="mt-auto border-t-0 p-4">
+		<div class="flex items-center justify-between gap-1 px-2">
+			<Sidebar.Menu class="flex-1">
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton
+						class="group gap-2 px-2 text-[13px] font-medium text-foreground/80 transition-none hover:bg-transparent hover:text-foreground"
+						onclick={() => {
+							folderService.create();
+						}}
+					>
+						<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
+						<span>New Folder</span>
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+			</Sidebar.Menu>
+
+			<div class="flex items-center gap-0.5 rounded-md bg-accent/20 p-1">
+				<button
+					class={[
+						'rounded-sm p-1.5 transition-colors',
+						themeStore.theme === 'light'
+							? 'bg-accent text-foreground shadow-sm'
+							: 'text-foreground/40 hover:bg-accent/40 hover:text-foreground/70'
+					]}
+					onclick={() => themeStore.setTheme('light')}
+					title="Light Mode"
 				>
-					<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
-					<span>New Folder</span>
-				</Sidebar.MenuButton>
-			</Sidebar.MenuItem>
-		</Sidebar.Menu>
+					<Sun size={14} />
+				</button>
+				<button
+					class={[
+						'rounded-sm p-1.5 transition-colors',
+						themeStore.theme === 'dark'
+							? 'bg-accent text-foreground shadow-sm'
+							: 'text-foreground/40 hover:bg-accent/40 hover:text-foreground/70'
+					]}
+					onclick={() => themeStore.setTheme('dark')}
+					title="Dark Mode"
+				>
+					<Moon size={14} />
+				</button>
+				<button
+					class={[
+						'rounded-sm p-1.5 transition-colors',
+						themeStore.theme === 'system'
+							? 'bg-accent text-foreground shadow-sm'
+							: 'text-foreground/40 hover:bg-accent/40 hover:text-foreground/70'
+					]}
+					onclick={() => themeStore.setTheme('system')}
+					title="System Theme"
+				>
+					<Monitor size={14} />
+				</button>
+			</div>
+		</div>
 	</Sidebar.Footer>
 </Sidebar.Root>
 

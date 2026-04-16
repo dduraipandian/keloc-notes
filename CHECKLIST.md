@@ -408,7 +408,7 @@ This is the original pre-release checklist. **Do not start these items until all
   - Wails does support native menu bar shortcuts (see item 2.3) — decide whether global JS listeners, native menus, or both are the source of truth.
 - **Done when:** the three shortcuts work on Mac and Linux; text editing inside a note is not affected; shortcuts are discoverable (tooltips, menu accelerators, or a help sheet).
 
-### 2.2 Light mode / theme toggle
+### [x] 2.2 Light mode / theme toggle
 
 - **Files:**
   - [`frontend/src/app.html:2`](frontend/src/app.html#L2) — `<html lang="en" class="dark">`.

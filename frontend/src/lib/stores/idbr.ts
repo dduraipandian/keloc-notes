@@ -174,6 +174,7 @@ export type SettingsState = {
 	selectedNoteID: string | null;
 	sidebarWidth: number | null;
 	noteListWidth: number | null;
+	applicationTheme: 'light' | 'dark' | 'system' | null;
 };
 
 type SettingsKey = keyof SettingsState;
@@ -202,6 +203,8 @@ export async function getAllSettings(): Promise<SettingsState> {
 		let selectedNoteID: string | null = null;
 		let sidebarWidth: number | null = null;
 		let noteListWidth: number | null = null;
+		let applicationTheme: 'light' | 'dark' | 'system' | null = null;
+
 		keys.forEach((key, index) => {
 			switch (key) {
 				case 'selectedFolderID':
@@ -216,6 +219,9 @@ export async function getAllSettings(): Promise<SettingsState> {
 				case 'noteListWidth':
 					noteListWidth = (values[index] as number | null) ?? null;
 					break;
+				case 'applicationTheme':
+					applicationTheme = (values[index] as 'light' | 'dark' | 'system' | null) ?? null;
+					break;
 				default:
 					break;
 			}
@@ -224,7 +230,8 @@ export async function getAllSettings(): Promise<SettingsState> {
 			selectedFolderID,
 			selectedNoteID,
 			sidebarWidth,
-			noteListWidth
+			noteListWidth,
+			applicationTheme
 		};
 	});
 }

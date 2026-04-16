@@ -5,6 +5,7 @@
 	import { notesStore } from '$lib/stores/notes.svelte';
 	import { selectionStore } from '$lib/stores/selection.svelte';
 	import { settingsRepository } from '$lib/stores/repositories';
+	import { themeStore } from '$lib/stores/theme.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import Alert from './alert.svelte';
 	import Folders from '$lib/components/Folders.svelte';
@@ -177,6 +178,15 @@
 
 		WindowSetTitle('mdnotes');
 	});
+	
+	$effect(() => {
+		const resolved = themeStore.resolvedTheme;
+		if (resolved === 'dark') {
+			document.documentElement.classList.add('dark');
+		} else {
+			document.documentElement.classList.remove('dark');
+		}
+	});
 
 	onMount(() => {
 		const handleWindowResize = () => {
@@ -204,6 +214,7 @@
 		void (async () => {
 			try {
 				const settings = await settingsRepository.getAll();
+				themeStore.init(settings.applicationTheme);
 				applyPaneWidths(
 					settings.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH,
 					settings.noteListWidth ?? DEFAULT_NOTE_LIST_WIDTH,
@@ -246,7 +257,7 @@
 	});
 </script>
 
-<div class="dark h-screen overflow-hidden bg-background text-foreground">
+<div class="h-screen overflow-hidden bg-background text-foreground">
 	<div
 		class="h-full w-full"
 		style={`--app-sidebar-width: ${sidebarWidth}px; --app-note-list-width: ${noteListWidth}px;`}

@@ -1,19 +1,57 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
 		<meta name="theme-color" content="#171717" />
 		<style>
+			:root {
+				--shell-bg: oklch(1 0 0);
+				--shell-fg: oklch(0.145 0 0);
+				--shell-border: oklch(0.922 0 0);
+				--shell-pane-sidebar: oklch(0.205 0 0 / 0.04);
+				--shell-pane-editor: oklch(0.985 0 0);
+				--shell-list-search: oklch(0.205 0 0 / 0.05);
+				--shell-eyebrow: oklch(0.145 0 0 / 0.6);
+				--shell-item-bg: oklch(0.145 0 0 / 0.02);
+				--shell-item-line: oklch(0.145 0 0 / 0.08);
+				--shell-grip: oklch(0.145 0 0 / 0.1);
+				--shell-shimmer: linear-gradient(
+					90deg,
+					transparent 0%,
+					oklch(0.145 0 0 / 0.03) 50%,
+					transparent 100%
+				);
+			}
+
+			.dark {
+				--shell-bg: oklch(0.145 0 0);
+				--shell-fg: oklch(0.985 0 0);
+				--shell-border: oklch(1 0 0 / 0.1);
+				--shell-pane-sidebar: oklch(0.205 0 0 / 0.4);
+				--shell-pane-editor: oklch(0.205 0 0);
+				--shell-list-search: oklch(0.269 0 0 / 0.25);
+				--shell-eyebrow: oklch(0.708 0 0 / 0.7);
+				--shell-item-bg: oklch(1 0 0 / 0.02);
+				--shell-item-line: oklch(1 0 0 / 0.08);
+				--shell-grip: oklch(1 0 0 / 0.1);
+				--shell-shimmer: linear-gradient(
+					90deg,
+					transparent 0%,
+					oklch(1 0 0 / 0.04) 50%,
+					transparent 100%
+				);
+			}
+
 			html,
 			body {
 				margin: 0;
 				width: 100%;
 				height: 100%;
 				overflow: hidden;
-				background: oklch(0.145 0 0); /* dark theme background */
-				color: oklch(0.985 0 0); /* dark theme foreground */
+				background: var(--shell-bg);
+				color: var(--shell-fg);
 			}
 
 			body {
@@ -30,7 +68,7 @@
 			#startup-shell {
 				position: fixed;
 				inset: 0;
-				background: oklch(0.145 0 0);
+				background: var(--shell-bg);
 				opacity: 1;
 				visibility: visible;
 				transition:
@@ -62,7 +100,7 @@
 					display: flex;
 					width: 10px;
 					flex-shrink: 0;
-					background: oklch(0.145 0 0);
+					background: var(--shell-bg);
 					align-items: center;
 					justify-content: center;
 				}
@@ -70,7 +108,7 @@
 					height: 68px;
 					width: 2px;
 					border-radius: 9999px;
-					background: oklch(1 0 0 / 0.1);
+					background: var(--shell-grip);
 				}
 			}
 
@@ -79,20 +117,20 @@
 			}
 
 			.startup-shell__pane--sidebar {
-				background: oklch(0.205 0 0 / 0.4);
+				background: var(--shell-pane-sidebar);
 				padding: 24px 0;
 			}
 
 			.startup-shell__pane--list {
-				border-left: 1px solid oklch(1 0 0 / 0.1);
-				background: oklch(0.145 0 0);
+				border-left: 1px solid var(--shell-border);
+				background: var(--shell-bg);
 				display: flex;
 				flex-direction: column;
 			}
 
 			.startup-shell__pane--editor {
-				border-left: 1px solid oklch(1 0 0 / 0.1);
-				background: oklch(0.205 0 0);
+				border-left: 1px solid var(--shell-border);
+				background: var(--shell-pane-editor);
 				padding: 40px;
 			}
 
@@ -103,7 +141,7 @@
 				font-weight: 700;
 				letter-spacing: 0.15em;
 				text-transform: uppercase;
-				color: oklch(0.708 0 0 / 0.7);
+				color: var(--shell-eyebrow);
 			}
 
 			.startup-shell__folder-tree {
@@ -134,7 +172,7 @@
 				width: 16px;
 				height: 16px;
 				border-radius: 3px;
-				background: oklch(1 0 0 / 0.08);
+				background: var(--shell-item-line);
 				flex: 0 0 auto;
 			}
 
@@ -142,7 +180,7 @@
 				flex: 0 0 auto;
 				height: 12px;
 				border-radius: 9999px;
-				background: oklch(1 0 0 / 0.055);
+				background: var(--shell-item-bg);
 				position: relative;
 				overflow: hidden;
 			}
@@ -159,7 +197,7 @@
 				height: 34px;
 				margin: 0 12px 16px 12px;
 				border-radius: 6px;
-				background: oklch(0.269 0 0 / 0.25);
+				background: var(--shell-list-search);
 				flex-shrink: 0;
 				position: relative;
 				overflow: hidden;
@@ -172,7 +210,8 @@
 				font-weight: 700;
 				letter-spacing: 0.15em;
 				text-transform: uppercase;
-				color: oklch(0.708 0 0 / 0.4);
+				color: var(--shell-eyebrow);
+				opacity: 0.6;
 				margin-bottom: 12px;
 			}
 
@@ -186,7 +225,7 @@
 				height: 72px;
 				margin: 0 16px 4px 16px;
 				border-radius: 6px;
-				background: oklch(1 0 0 / 0.02);
+				background: var(--shell-item-bg);
 				overflow: hidden;
 			}
 
@@ -194,7 +233,7 @@
 			.startup-shell__note-item-meta {
 				position: absolute;
 				border-radius: 9999px;
-				background: oklch(1 0 0 / 0.08);
+				background: var(--shell-item-line);
 				z-index: 1;
 			}
 
@@ -220,7 +259,7 @@
 				position: relative;
 				overflow: hidden;
 				border-radius: 10px;
-				background: oklch(1 0 0 / 0.055);
+				background: var(--shell-item-bg);
 			}
 
 			.startup-shell__folder-label::after,
@@ -230,12 +269,7 @@
 				content: '';
 				position: absolute;
 				inset: 0;
-				background: linear-gradient(
-					90deg,
-					transparent 0%,
-					oklch(1 0 0 / 0.04) 50%,
-					transparent 100%
-				);
+				background: var(--shell-shimmer);
 				transform: translateX(-100%);
 				animation: startup-shell-shimmer 1.5s infinite;
 			}
@@ -283,24 +317,33 @@
 
 						var sidebarReq = store.get('sidebarWidth');
 						var noteListReq = store.get('noteListWidth');
+						var themeReq = store.get('applicationTheme');
 
 						tx.oncomplete = function () {
+							// Apply theme before revealing body to prevent FOUC
+							var savedTheme = themeReq.result || 'system';
+							var isDark =
+								savedTheme === 'dark' ||
+								(savedTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+							if (isDark) {
+								document.documentElement.classList.add('dark');
+							} else {
+								document.documentElement.classList.remove('dark');
+							}
+
 							var sidebarWidth = typeof sidebarReq.result === 'number' ? sidebarReq.result : 256;
 							var noteListWidth = typeof noteListReq.result === 'number' ? noteListReq.result : 350;
 
-							if (sidebarWidth !== 256 || noteListWidth !== 350) {
-								var style = document.createElement('style');
-								style.textContent =
-									'.startup-shell__body { grid-template-columns: ' +
-									sidebarWidth +
-									'px 10px ' +
-									noteListWidth +
-									'px 10px minmax(0, 1fr) !important; opacity: 1 !important; }';
-								document.head.appendChild(style);
-								bodyRevealed = true;
-							} else {
-								revealBody();
-							}
+							var style = document.createElement('style');
+							style.textContent =
+								'.startup-shell__body { grid-template-columns: ' +
+								sidebarWidth +
+								'px 10px ' +
+								noteListWidth +
+								'px 10px minmax(0, 1fr) !important; opacity: 1 !important; }';
+							document.head.appendChild(style);
+							bodyRevealed = true;
 						};
 						tx.onerror = revealBody;
 						tx.onabort = revealBody;

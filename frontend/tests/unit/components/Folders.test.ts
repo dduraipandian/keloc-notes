@@ -13,6 +13,24 @@ vi.mock('@lucide/svelte/icons/home', () => ({ default: vi.fn() }));
 vi.mock('@lucide/svelte/icons/folder', () => ({ default: vi.fn() }));
 vi.mock('@lucide/svelte/icons/star', () => ({ default: vi.fn() }));
 vi.mock('@lucide/svelte/icons/trash-2', () => ({ default: vi.fn() }));
+vi.mock('@lucide/svelte/icons/sun', () => ({ default: vi.fn() }));
+vi.mock('@lucide/svelte/icons/moon', () => ({ default: vi.fn() }));
+vi.mock('@lucide/svelte/icons/monitor', () => ({ default: vi.fn() }));
+
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation(query => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(), // deprecated
+        removeListener: vi.fn(), // deprecated
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+    })),
+});
 
 // Mock services
 vi.mock('$lib/stores/services', () => ({
