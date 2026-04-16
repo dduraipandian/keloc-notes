@@ -6,6 +6,7 @@ import { noteListView } from '$lib/views/noteListView.svelte';
 import { noteService, trashService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStore } from '$lib/stores/dialog.svelte';
+import { uiStateStore } from '$lib/stores/uiState.svelte';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock Lucide icons
@@ -49,6 +50,7 @@ vi.mock('$lib/stores/services', () => ({
 describe('NoteItems.svelte Component', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        uiStateStore.__resetForTest();
         
         // Setup notesStore state
         (notesStore as any).notes = new SvelteMap();
@@ -87,6 +89,20 @@ describe('NoteItems.svelte Component', () => {
         await fireEvent.click(noteItem);
         
         expect(noteService.select).toHaveBeenCalledWith('n1');
+        expect(uiStateStore.activePane).toBe('notes');
+    });
+
+    it('activates the notes pane when empty space is clicked without changing note selection', async () => {
+        render(NoteItems);
+        uiStateStore.setActivePane('folders');
+
+        const pane = screen.getByTestId('notes-pane');
+        expect(pane.getAttribute('data-pane-active')).toBe('false');
+        await fireEvent.click(pane);
+
+        expect(uiStateStore.activePane).toBe('notes');
+        expect(pane.getAttribute('data-pane-active')).toBe('true');
+        expect(noteService.select).not.toHaveBeenCalled();
     });
 
     it('should call noteService.create when the "New Note" button is clicked', async () => {

@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
+import { tick } from 'svelte';
 import Folders from '$lib/components/Folders.svelte';
 import { folderStore } from '$lib/stores/folders.svelte';
 import { folderSidebarView } from '$lib/views/folderSidebarView.svelte';
 import { folderService } from '$lib/stores/services';
+import { uiStateStore } from '$lib/stores/uiState.svelte';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock Lucide icons to avoid rendering complexities in unit tests
@@ -54,6 +56,7 @@ vi.mock('$lib/stores/services', () => ({
 describe('Folders.svelte Component', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        uiStateStore.__resetForTest();
         
         // Setup folderStore state
         (folderStore as any).folders = new SvelteMap();
@@ -87,6 +90,21 @@ describe('Folders.svelte Component', () => {
         await fireEvent.click(folderItem);
         
         expect(folderService.select).toHaveBeenCalledWith('f1');
+        expect(uiStateStore.activePane).toBe('folders');
+    });
+
+    it('activates the folders pane when empty space is clicked without changing selection', async () => {
+        render(Folders);
+        uiStateStore.setActivePane('notes');
+        await tick();
+
+        const pane = screen.getByTestId('folders-pane');
+        expect(pane.getAttribute('data-pane-active')).toBe('false');
+        await fireEvent.click(pane);
+
+        expect(uiStateStore.activePane).toBe('folders');
+        expect(pane.getAttribute('data-pane-active')).toBe('true');
+        expect(folderService.select).not.toHaveBeenCalled();
     });
 
     it('should call folderService.create when "New Folder" is clicked', async () => {

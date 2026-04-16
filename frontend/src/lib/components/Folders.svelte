@@ -7,8 +7,10 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
+	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 	import { themeStore } from '$lib/stores/theme.svelte';
+	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import { folderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte';
 	import { folderService } from '$lib/stores/services';
 
@@ -28,94 +30,104 @@
 	}
 </script>
 
-<Sidebar.Root collapsible="none" class="h-full w-full select-none border-r-0 bg-sidebar">
-	{@const sections = folderSidebarView.sections}
-	<Sidebar.Header>
-		{#if sections.find((section) => section.id === 'views')?.sources.length}
-			<Sidebar.Menu class="pt-6">
-				{#each sections.find((section) => section.id === 'views')!.sources as source}
-					{@render FolderItemSnippet(source)}
-				{/each}
-			</Sidebar.Menu>
-		{/if}
-	</Sidebar.Header>
-	<Sidebar.Content class="pt-0">
-		{#each sections.filter((section) => section.id !== 'views') as section}
-			<Sidebar.Group>
-				{#if section.label}
-					<Sidebar.GroupLabel
-						class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-muted-foreground/70 uppercase"
-						>{section.label}</Sidebar.GroupLabel
-					>
-				{/if}
-				<Sidebar.GroupContent>
-					<Sidebar.Menu>
-						{#each section.sources as source}
-							{@render FolderItemSnippet(source)}
-						{/each}
-					</Sidebar.Menu>
-				</Sidebar.GroupContent>
-			</Sidebar.Group>
-		{/each}
-	</Sidebar.Content>
+<div
+	class={[
+		'h-full w-full transition-shadow',
+		uiStateStore.activePane === 'folders' && 'shadow-[inset_-2px_0_0_hsl(var(--ring)/0.22)]'
+	]}
+	data-testid="folders-pane"
+	data-pane-active={uiStateStore.activePane === 'folders' ? 'true' : 'false'}
+	use:activatePaneOnClick={'folders'}
+>
+	<Sidebar.Root collapsible="none" class="h-full w-full select-none border-r-0 bg-sidebar">
+		{@const sections = folderSidebarView.sections}
+		<Sidebar.Header>
+			{#if sections.find((section) => section.id === 'views')?.sources.length}
+				<Sidebar.Menu class="pt-6">
+					{#each sections.find((section) => section.id === 'views')!.sources as source}
+						{@render FolderItemSnippet(source)}
+					{/each}
+				</Sidebar.Menu>
+			{/if}
+		</Sidebar.Header>
+		<Sidebar.Content class="pt-0">
+			{#each sections.filter((section) => section.id !== 'views') as section}
+				<Sidebar.Group>
+					{#if section.label}
+						<Sidebar.GroupLabel
+							class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-muted-foreground/70 uppercase"
+							>{section.label}</Sidebar.GroupLabel
+						>
+					{/if}
+					<Sidebar.GroupContent>
+						<Sidebar.Menu>
+							{#each section.sources as source}
+								{@render FolderItemSnippet(source)}
+							{/each}
+						</Sidebar.Menu>
+					</Sidebar.GroupContent>
+				</Sidebar.Group>
+			{/each}
+		</Sidebar.Content>
 
-	<Sidebar.Footer class="mt-auto border-t-0 p-4">
-		<div class="flex items-center justify-between gap-1 px-2">
-			<Sidebar.Menu class="flex-1">
-				<Sidebar.MenuItem>
-					<Sidebar.MenuButton
-						class="group gap-2 px-2 text-[13px] font-medium text-foreground/80 transition-none hover:bg-transparent hover:text-foreground"
-						onclick={() => {
-							folderService.create();
-						}}
-					>
-						<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
-						<span>New Folder</span>
-					</Sidebar.MenuButton>
-				</Sidebar.MenuItem>
-			</Sidebar.Menu>
+		<Sidebar.Footer class="mt-auto border-t-0 p-4">
+			<div class="flex items-center justify-between gap-1 px-2">
+				<Sidebar.Menu class="flex-1">
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton
+							class="group gap-2 px-2 text-[13px] font-medium text-foreground/80 transition-none hover:bg-transparent hover:text-foreground"
+							onclick={() => {
+								folderService.create();
+							}}
+						>
+							<FolderPlus size={18} class="text-[#f5d04e] transition-transform active:scale-95" />
+							<span>New Folder</span>
+						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
+				</Sidebar.Menu>
 
-			<div class="flex items-center gap-0.5 rounded-md bg-accent/20 p-1">
-				<button
-					class={[
-						'rounded-sm p-1.5 transition-colors',
-						themeStore.theme === 'light'
-							? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-							: 'text-sidebar-foreground/40 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70'
-					]}
-					onclick={() => themeStore.setTheme('light')}
-					title="Light Mode"
-				>
-					<Sun size={14} />
-				</button>
-				<button
-					class={[
-						'rounded-sm p-1.5 transition-colors',
-						themeStore.theme === 'dark'
-							? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-							: 'text-sidebar-foreground/40 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70'
-					]}
-					onclick={() => themeStore.setTheme('dark')}
-					title="Dark Mode"
-				>
-					<Moon size={14} />
-				</button>
-				<button
-					class={[
-						'rounded-sm p-1.5 transition-colors',
-						themeStore.theme === 'system'
-							? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
-							: 'text-sidebar-foreground/40 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70'
-					]}
-					onclick={() => themeStore.setTheme('system')}
-					title="System Theme"
-				>
-					<Monitor size={14} />
-				</button>
+				<div class="flex items-center gap-0.5 rounded-md bg-accent/20 p-1">
+					<button
+						class={[
+							'rounded-sm p-1.5 transition-colors',
+							themeStore.theme === 'light'
+								? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+								: 'text-sidebar-foreground/40 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70'
+						]}
+						onclick={() => themeStore.setTheme('light')}
+						title="Light Mode"
+					>
+						<Sun size={14} />
+					</button>
+					<button
+						class={[
+							'rounded-sm p-1.5 transition-colors',
+							themeStore.theme === 'dark'
+								? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+								: 'text-sidebar-foreground/40 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70'
+						]}
+						onclick={() => themeStore.setTheme('dark')}
+						title="Dark Mode"
+					>
+						<Moon size={14} />
+					</button>
+					<button
+						class={[
+							'rounded-sm p-1.5 transition-colors',
+							themeStore.theme === 'system'
+								? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+								: 'text-sidebar-foreground/40 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70'
+						]}
+						onclick={() => themeStore.setTheme('system')}
+						title="System Theme"
+					>
+						<Monitor size={14} />
+					</button>
+				</div>
 			</div>
-		</div>
-	</Sidebar.Footer>
-</Sidebar.Root>
+		</Sidebar.Footer>
+	</Sidebar.Root>
+</div>
 
 {#snippet FolderItemSnippet(source: SidebarSourceItem)}
 	{@const hasChildren = source.children.length > 0}

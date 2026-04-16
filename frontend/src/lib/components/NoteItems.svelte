@@ -3,6 +3,7 @@
 	import Star from '@lucide/svelte/icons/star';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
+	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import type { NoteItem } from '$lib/stores/notes.svelte';
 	import { noteService, trashService } from '$lib/stores/services';
@@ -11,6 +12,7 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
 	import { uiStore } from '$lib/stores/dialog.svelte';
+	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import { ICON_REGISTRY } from '$lib/views/folderSidebarView.svelte';
 
 	let searchQuery = $state('');
@@ -43,7 +45,15 @@
 	}
 </script>
 
-<aside class="relative z-0 flex h-full w-full select-none flex-col">
+<aside
+	class={[
+		'relative z-0 flex h-full w-full select-none flex-col transition-shadow',
+		uiStateStore.activePane === 'notes' && 'shadow-[inset_-2px_0_0_hsl(var(--ring)/0.22)]'
+	]}
+	data-testid="notes-pane"
+	data-pane-active={uiStateStore.activePane === 'notes' ? 'true' : 'false'}
+	use:activatePaneOnClick={'notes'}
+>
 	<!-- Header -->
 	<header class="flex h-[52px] shrink-0 items-center justify-between gap-2 px-6">
 		<div class="flex min-w-0 items-center gap-2 overflow-hidden">

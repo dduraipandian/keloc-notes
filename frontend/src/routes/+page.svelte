@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { notesStore } from '$lib/stores/notes.svelte';
+	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Info from '@lucide/svelte/icons/info';
 	import { uiStore } from '$lib/stores/dialog.svelte';
 	import { noteService, trashService } from '$lib/stores/services';
 	import { noteListView } from '$lib/views/noteListView.svelte';
+	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);
@@ -32,7 +34,15 @@
 </script>
 
 {#if selectedNote}
-	<div class="flex h-full animate-in flex-col bg-card duration-500 fade-in">
+	<div
+		class={[
+			'flex h-full animate-in flex-col bg-card duration-500 fade-in transition-shadow',
+			uiStateStore.activePane === 'editor' && 'shadow-[inset_2px_0_0_hsl(var(--ring)/0.22)]'
+		]}
+		data-testid="editor-pane"
+		data-pane-active={uiStateStore.activePane === 'editor' ? 'true' : 'false'}
+		use:activatePaneOnClick={'editor'}
+	>
 		{#if selectedNote.deletedAt != null}
 			<div
 				class="flex shrink-0 items-center justify-between border-b border-destructive/10 bg-destructive/5 px-12 py-3 text-destructive"
@@ -97,7 +107,13 @@
 	</div>
 {:else}
 	<div
-		class="flex h-full animate-in flex-col items-center justify-center bg-card/50 text-muted-foreground/20 duration-1000 zoom-in-95"
+		class={[
+			'flex h-full animate-in flex-col items-center justify-center bg-card/50 text-muted-foreground/20 duration-1000 zoom-in-95 transition-shadow',
+			uiStateStore.activePane === 'editor' && 'shadow-[inset_2px_0_0_hsl(var(--ring)/0.22)]'
+		]}
+		data-testid="editor-pane"
+		data-pane-active={uiStateStore.activePane === 'editor' ? 'true' : 'false'}
+		use:activatePaneOnClick={'editor'}
 	>
 		<div class="relative mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-accent/5">
 			<svg
