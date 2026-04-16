@@ -50,6 +50,7 @@
 				grid-template-columns: 256px 10px 350px 10px minmax(0, 1fr);
 				height: 100%;
 				min-height: 0;
+				opacity: 0;
 			}
 
 			.startup-shell__pane-resize-handle {
@@ -261,11 +262,21 @@
 		</style>
 		<script>
 			(function () {
+				var bodyRevealed = false;
+				function revealBody() {
+					if (bodyRevealed) return;
+					bodyRevealed = true;
+					var s = document.createElement('style');
+					s.textContent = '.startup-shell__body { opacity: 1 !important; }';
+					document.head.appendChild(s);
+				}
+
 				try {
 					var request = window.indexedDB.open('mdnotes-db');
+					request.onerror = revealBody;
 					request.onsuccess = function (event) {
 						var db = event.target.result;
-						if (!db.objectStoreNames.contains('settings')) return;
+						if (!db.objectStoreNames.contains('settings')) return revealBody();
 
 						var tx = db.transaction('settings', 'readonly');
 						var store = tx.objectStore('settings');
@@ -284,12 +295,22 @@
 									sidebarWidth +
 									'px 10px ' +
 									noteListWidth +
-									'px 10px minmax(0, 1fr) !important; }';
+									'px 10px minmax(0, 1fr) !important; opacity: 1 !important; }';
 								document.head.appendChild(style);
+								bodyRevealed = true;
+							} else {
+								revealBody();
 							}
 						};
+						tx.onerror = revealBody;
+						tx.onabort = revealBody;
 					};
-				} catch (e) {}
+				} catch (e) {
+					revealBody();
+				}
+
+				// Fallback to avoid eternal blank if IDB hangs
+				setTimeout(revealBody, 150);
 			})();
 		</script>
 		%sveltekit.head%
