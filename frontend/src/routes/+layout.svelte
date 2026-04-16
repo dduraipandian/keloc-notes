@@ -34,6 +34,9 @@
 	let paneLayoutRef = $state<HTMLDivElement | null>(null);
 	let liveSidebarWidth = DEFAULT_SIDEBAR_WIDTH;
 	let liveNoteListWidth = DEFAULT_NOTE_LIST_WIDTH;
+	let resizeStartPointerX: number | null = null;
+	let resizeStartSidebarWidth = DEFAULT_SIDEBAR_WIDTH;
+	let resizeStartNoteListWidth = DEFAULT_NOTE_LIST_WIDTH;
 
 	$effect(() => {
 		document.documentElement.dataset.appReady = isInitializing ? 'false' : 'true';
@@ -97,16 +100,16 @@
 	}
 
 	function flushResizeFrame() {
-		if (!activeResizeHandle || pendingPointerX == null) return;
+		if (!activeResizeHandle || pendingPointerX == null || resizeStartPointerX == null) return;
+
+		const pointerDelta = pendingPointerX - resizeStartPointerX;
 
 		if (activeResizeHandle === 'sidebar') {
-			applyPaneWidths(pendingPointerX, liveNoteListWidth);
+			applyPaneWidths(resizeStartSidebarWidth + pointerDelta, resizeStartNoteListWidth);
 			return;
 		}
 
-		const noteListStartX = liveSidebarWidth + RESIZE_HANDLE_WIDTH;
-		const nextNoteListWidth = pendingPointerX - noteListStartX;
-		applyPaneWidths(liveSidebarWidth, nextNoteListWidth);
+		applyPaneWidths(resizeStartSidebarWidth, resizeStartNoteListWidth + pointerDelta);
 	}
 
 	function scheduleResizeFrame() {
@@ -138,6 +141,7 @@
 		}
 		flushResizeFrame();
 		pendingPointerX = null;
+		resizeStartPointerX = null;
 		activeResizeHandle = null;
 		sidebarWidth = liveSidebarWidth;
 		noteListWidth = liveNoteListWidth;
@@ -149,10 +153,12 @@
 	function startResize(event: PointerEvent, handle: 'sidebar' | 'note-list') {
 		event.preventDefault();
 		activeResizeHandle = handle;
+		resizeStartPointerX = event.clientX;
+		resizeStartSidebarWidth = liveSidebarWidth;
+		resizeStartNoteListWidth = liveNoteListWidth;
 		pendingPointerX = event.clientX;
 		document.body.style.cursor = 'col-resize';
 		document.body.style.userSelect = 'none';
-		scheduleResizeFrame();
 	}
 
 	$effect(() => {
