@@ -178,7 +178,7 @@
 
 		WindowSetTitle('mdnotes');
 	});
-	
+
 	$effect(() => {
 		const resolved = themeStore.resolvedTheme;
 		if (resolved === 'dark') {
@@ -266,7 +266,7 @@
 		<Sidebar.Provider class="flex h-full w-full">
 			<div
 				class={[
-					'h-full shrink-0 overflow-hidden',
+					'h-full shrink-0 overflow-hidden border-r border-sidebar-border/10',
 					activeResizeHandle && 'pointer-events-none select-none'
 				]}
 				style="width: var(--app-sidebar-width);"
@@ -282,13 +282,14 @@
 				aria-valuemax={Math.max(MIN_SIDEBAR_WIDTH, getLayoutMetrics().maxSidebarWidth)}
 				aria-valuenow={Math.round(sidebarWidth)}
 				data-active={activeResizeHandle === 'sidebar' ? 'true' : undefined}
+				data-handle="sidebar"
 				onpointerdown={(event) => startResize(event, 'sidebar')}
 			>
 				<span class="pane-resize-grip" aria-hidden="true"></span>
 			</div>
 			<div
 				class={[
-					'h-full shrink-0 overflow-hidden border-l border-sidebar-border/10',
+					'h-full shrink-0 overflow-hidden',
 					activeResizeHandle && 'pointer-events-none select-none'
 				]}
 				style="width: var(--app-note-list-width);"
@@ -304,6 +305,7 @@
 				aria-valuemax={Math.max(MIN_NOTE_LIST_WIDTH, getLayoutMetrics().maxNoteListWidth)}
 				aria-valuenow={Math.round(noteListWidth)}
 				data-active={activeResizeHandle === 'note-list' ? 'true' : undefined}
+				data-handle="note-list"
 				onpointerdown={(event) => startResize(event, 'note-list')}
 			>
 				<span class="pane-resize-grip" aria-hidden="true"></span>
@@ -324,72 +326,77 @@
 
 <style>
 	.pane-resize-handle {
-		width: 10px;
+		width: 0;
+		overflow: visible;
+		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: hsl(var(--background));
 		cursor: col-resize;
 		position: relative;
-		transition:
-			background-color 150ms ease,
-			box-shadow 150ms ease;
+		z-index: 10;
+		transition: background-color 150ms ease;
 	}
 
 	.pane-resize-handle::before {
 		content: '';
 		position: absolute;
-		inset: 0;
-		background: linear-gradient(
-			180deg,
-			transparent 0%,
-			hsl(var(--accent) / 0.16) 20%,
-			hsl(var(--accent) / 0.28) 50%,
-			hsl(var(--accent) / 0.16) 80%,
-			transparent 100%
-		);
-		opacity: 0;
-		transition: opacity 150ms ease;
-	}
-
-	.pane-resize-handle:hover,
-	.pane-resize-handle:focus-visible,
-	.pane-resize-handle[data-active='true'] {
-		background: hsl(var(--accent) / 0.45);
-		box-shadow:
-			inset 1px 0 0 hsl(var(--accent-foreground) / 0.12),
-			inset -1px 0 0 hsl(var(--accent-foreground) / 0.12);
-		outline: none;
+		inset: 0 -5px;
+		background: transparent;
+		z-index: -1;
+		transition: background-color 150ms ease;
 	}
 
 	.pane-resize-handle:hover::before,
-	.pane-resize-handle:focus-visible::before,
 	.pane-resize-handle[data-active='true']::before {
-		opacity: 1;
+		background: var(--accent);
+		opacity: 0.15;
+	}
+
+	.pane-resize-handle[data-handle='sidebar']::before {
+		transform: translateX(-2px);
 	}
 
 	.pane-resize-grip {
-		height: 68px;
-		width: 2px;
+		height: 36px;
+		width: 4px;
 		border-radius: 9999px;
-		background: hsl(var(--border));
-		box-shadow:
-			0 -10px 0 hsl(var(--border)),
-			0 10px 0 hsl(var(--border));
-		position: relative;
+		background: oklch(1 0 0 / 0.12);
+		box-shadow: 0 0 0 1px oklch(0 0 0 / 0.05);
+		position: absolute;
+		left: 0;
+		margin-left: -4px;
+		top: 50%;
+		transform: translateY(-50%);
 		z-index: 1;
 		transition:
 			background-color 150ms ease,
-			box-shadow 150ms ease,
 			transform 150ms ease;
 	}
 
+	.pane-resize-handle[data-handle='sidebar'] .pane-resize-grip {
+		transform: translate(2px, -50%);
+	}
+
+	.pane-resize-handle[data-handle='note-list'] .pane-resize-grip {
+		transform: translate(2px, -50%);
+	}
+
+	:global(.dark) .pane-resize-grip {
+		background: oklch(1 0 0 / 0.12);
+	}
+
+	:root:not(.dark) .pane-resize-grip {
+		background: oklch(0 0 0 / 0.08);
+	}
+
 	.pane-resize-handle:hover .pane-resize-grip,
-	.pane-resize-handle:focus-visible .pane-resize-grip,
 	.pane-resize-handle[data-active='true'] .pane-resize-grip {
-		background: hsl(var(--accent-foreground) / 0.75);
-		box-shadow:
-			0 -10px 0 hsl(var(--accent-foreground) / 0.75),
-			0 10px 0 hsl(var(--accent-foreground) / 0.75);
-		transform: scaleY(1.08);
+		background: oklch(1 0 0 / 0.25);
+		transform: translateY(-50%) scaleX(1.5);
+	}
+
+	.pane-resize-handle[data-handle='note-list']:hover .pane-resize-grip,
+	.pane-resize-handle[data-handle='note-list'][data-active='true'] .pane-resize-grip {
+		transform: translate(2px, -50%) scaleX(1.5);
 	}
 </style>

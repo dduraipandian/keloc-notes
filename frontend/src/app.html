@@ -85,7 +85,7 @@
 
 			.startup-shell__body {
 				display: grid;
-				grid-template-columns: 256px 10px 350px 10px minmax(0, 1fr);
+				grid-template-columns: 256px 0px 350px 0px minmax(0, 1fr);
 				height: 100%;
 				min-height: 0;
 				opacity: 0;
@@ -98,17 +98,30 @@
 			@media (min-width: 768px) {
 				.startup-shell__pane-resize-handle {
 					display: flex;
-					width: 10px;
+					width: 0px;
 					flex-shrink: 0;
-					background: var(--shell-bg);
+					background: grey;
 					align-items: center;
 					justify-content: center;
+					position: relative;
+					overflow: visible;
 				}
+
 				.startup-shell__pane-resize-grip {
-					height: 68px;
-					width: 2px;
+					height: 48px;
+					width: 3px;
 					border-radius: 9999px;
 					background: var(--shell-grip);
+					position: absolute;
+					left: 0;
+					margin-left: -1px;
+					top: 50%;
+					transform: translateY(-50%);
+				}
+
+				.startup-shell__pane-resize-handle[data-handle='note-list']
+					.startup-shell__pane-resize-grip {
+					transform: translate(10px, -50%);
 				}
 			}
 
@@ -122,14 +135,12 @@
 			}
 
 			.startup-shell__pane--list {
-				border-left: 1px solid var(--shell-border);
 				background: var(--shell-bg);
 				display: flex;
 				flex-direction: column;
 			}
 
 			.startup-shell__pane--editor {
-				border-left: 1px solid var(--shell-border);
 				background: var(--shell-pane-editor);
 				padding: 40px;
 			}
@@ -324,7 +335,8 @@
 							var savedTheme = themeReq.result || 'system';
 							var isDark =
 								savedTheme === 'dark' ||
-								(savedTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+								(savedTheme === 'system' &&
+									window.matchMedia('(prefers-color-scheme: dark)').matches);
 
 							if (isDark) {
 								document.documentElement.classList.add('dark');
@@ -378,7 +390,7 @@
 						</div>
 					</div>
 					<div class="startup-shell__spacer"></div>
-					<div class="startup-shell__eyebrow" style="opacity: 0.5;">Tags</div>
+					<div class="startup-shell__eyebrow" style="opacity: 0.5">Tags</div>
 					<div class="startup-shell__folder-tree">
 						<div class="startup-shell__folder-row">
 							<div class="startup-shell__folder-icon"></div>
@@ -395,38 +407,56 @@
 					</div>
 				</section>
 
-				<div class="startup-shell__pane-resize-handle">
+				<div class="startup-shell__pane-resize-handle" data-handle="sidebar">
 					<span class="startup-shell__pane-resize-grip" aria-hidden="true"></span>
 				</div>
 
 				<section class="startup-shell__pane startup-shell__pane--list">
 					<div class="startup-shell__note-list-header">
 						<div class="startup-shell__folder-icon"></div>
-						<div class="startup-shell__folder-label" style="width: 80px; margin-left: 8px;"></div>
+						<div class="startup-shell__folder-label" style="width: 80px; margin-left: 8px"></div>
 					</div>
 					<div class="startup-shell__note-list-search"></div>
-					
+
 					<div class="startup-shell__note-list-eyebrow">Notes</div>
 					<div class="startup-shell__note-list">
 						<div class="startup-shell__note-item">
-							<div class="startup-shell__note-item-line startup-shell__note-item-line--title" style="width: 152px"></div>
-							<div class="startup-shell__note-item-line startup-shell__note-item-line--body" style="width: 228px"></div>
+							<div
+								class="startup-shell__note-item-line startup-shell__note-item-line--title"
+								style="width: 152px"
+							></div>
+							<div
+								class="startup-shell__note-item-line startup-shell__note-item-line--body"
+								style="width: 228px"
+							></div>
 							<div class="startup-shell__note-item-meta" style="width: 42px"></div>
 						</div>
 						<div class="startup-shell__note-item">
-							<div class="startup-shell__note-item-line startup-shell__note-item-line--title" style="width: 124px"></div>
-							<div class="startup-shell__note-item-line startup-shell__note-item-line--body" style="width: 186px"></div>
+							<div
+								class="startup-shell__note-item-line startup-shell__note-item-line--title"
+								style="width: 124px"
+							></div>
+							<div
+								class="startup-shell__note-item-line startup-shell__note-item-line--body"
+								style="width: 186px"
+							></div>
 							<div class="startup-shell__note-item-meta" style="width: 36px"></div>
 						</div>
 						<div class="startup-shell__note-item">
-							<div class="startup-shell__note-item-line startup-shell__note-item-line--title" style="width: 168px"></div>
-							<div class="startup-shell__note-item-line startup-shell__note-item-line--body" style="width: 258px"></div>
+							<div
+								class="startup-shell__note-item-line startup-shell__note-item-line--title"
+								style="width: 168px"
+							></div>
+							<div
+								class="startup-shell__note-item-line startup-shell__note-item-line--body"
+								style="width: 258px"
+							></div>
 							<div class="startup-shell__note-item-meta" style="width: 48px"></div>
 						</div>
 					</div>
 				</section>
-				
-				<div class="startup-shell__pane-resize-handle">
+
+				<div class="startup-shell__pane-resize-handle" data-handle="note-list">
 					<span class="startup-shell__pane-resize-grip" aria-hidden="true"></span>
 				</div>
 
