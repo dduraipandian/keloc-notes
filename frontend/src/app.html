@@ -12,8 +12,8 @@
 				width: 100%;
 				height: 100%;
 				overflow: hidden;
-				background: #171717;
-				color: #f5f5f5;
+				background: oklch(0.145 0 0); /* dark theme background */
+				color: oklch(0.985 0 0); /* dark theme foreground */
 			}
 
 			body {
@@ -30,9 +30,7 @@
 			#startup-shell {
 				position: fixed;
 				inset: 0;
-				display: grid;
-				grid-template-rows: 36px minmax(0, 1fr);
-				background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 18%), #171717;
+				background: oklch(0.145 0 0);
 				opacity: 1;
 				visibility: visible;
 				transition:
@@ -47,189 +45,198 @@
 				visibility: hidden;
 			}
 
-			.startup-shell__titlebar {
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-				background: rgba(255, 255, 255, 0.02);
-			}
-
-			.startup-shell__title {
-				font-size: 11px;
-				font-weight: 700;
-				letter-spacing: 0.18em;
-				text-transform: uppercase;
-				color: rgba(255, 255, 255, 0.72);
-			}
-
 			.startup-shell__body {
 				display: grid;
-				grid-template-columns: 256px 350px minmax(0, 1fr);
+				grid-template-columns: 256px 10px 350px 10px minmax(0, 1fr);
+				height: 100%;
 				min-height: 0;
+			}
+
+			.startup-shell__pane-resize-handle {
+				display: none;
+			}
+
+			@media (min-width: 768px) {
+				.startup-shell__pane-resize-handle {
+					display: flex;
+					width: 10px;
+					flex-shrink: 0;
+					background: oklch(0.145 0 0);
+					align-items: center;
+					justify-content: center;
+				}
+				.startup-shell__pane-resize-grip {
+					height: 68px;
+					width: 2px;
+					border-radius: 9999px;
+					background: oklch(1 0 0 / 0.1);
+				}
 			}
 
 			.startup-shell__pane {
 				min-width: 0;
-				padding: 40px 28px 28px;
-				border-right: 1px solid rgba(255, 255, 255, 0.08);
 			}
 
-			.startup-shell__pane:last-child {
-				border-right: none;
+			.startup-shell__pane--sidebar {
+				background: oklch(0.205 0 0 / 0.4);
+				padding: 24px 0;
+			}
+
+			.startup-shell__pane--list {
+				border-left: 1px solid oklch(1 0 0 / 0.1);
+				background: oklch(0.145 0 0);
+				display: flex;
+				flex-direction: column;
+			}
+
+			.startup-shell__pane--editor {
+				border-left: 1px solid oklch(1 0 0 / 0.1);
+				background: oklch(0.205 0 0);
+				padding: 40px;
 			}
 
 			.startup-shell__eyebrow {
-				margin-bottom: 28px;
-				font-size: 11px;
+				margin-bottom: 8px;
+				padding: 0 16px;
+				font-size: 10px;
 				font-weight: 700;
-				letter-spacing: 0.28em;
+				letter-spacing: 0.15em;
 				text-transform: uppercase;
-				color: rgba(255, 255, 255, 0.3);
-			}
-
-			.startup-shell__spacer {
-				height: 22px;
+				color: oklch(0.708 0 0 / 0.7);
 			}
 
 			.startup-shell__folder-tree {
 				display: flex;
 				flex-direction: column;
-				gap: 10px;
+				gap: 2px;
+				padding: 0 8px;
 			}
 
 			.startup-shell__folder-row {
 				display: flex;
 				align-items: center;
-				gap: 10px;
-				height: 18px;
+				gap: 8px;
+				height: 32px;
+				padding: 0 12px;
+				border-radius: 6px;
 			}
 
 			.startup-shell__folder-row--nested-1 {
-				padding-left: 18px;
+				padding-left: 24px;
 			}
 
 			.startup-shell__folder-row--nested-2 {
 				padding-left: 36px;
 			}
 
-			.startup-shell__folder-caret {
-				width: 8px;
-				height: 8px;
-				border-radius: 2px;
-				background: rgba(255, 255, 255, 0.12);
-				flex: 0 0 auto;
-			}
-
 			.startup-shell__folder-icon {
-				width: 14px;
-				height: 12px;
+				width: 16px;
+				height: 16px;
 				border-radius: 3px;
-				background: rgba(255, 255, 255, 0.08);
+				background: oklch(1 0 0 / 0.08);
 				flex: 0 0 auto;
 			}
 
 			.startup-shell__folder-label {
 				flex: 0 0 auto;
-				height: 10px;
+				height: 12px;
 				border-radius: 9999px;
-				background: rgba(255, 255, 255, 0.055);
+				background: oklch(1 0 0 / 0.055);
 				position: relative;
 				overflow: hidden;
 			}
 
-			.startup-shell__folder-label::after {
-				content: '';
-				position: absolute;
-				inset: 0;
-				background: linear-gradient(
-					90deg,
-					transparent 0%,
-					rgba(255, 255, 255, 0.05) 50%,
-					transparent 100%
-				);
-				transform: translateX(-100%);
-				animation: startup-shell-shimmer 1.35s ease-in-out infinite;
+			.startup-shell__note-list-header {
+				height: 52px;
+				padding: 0 24px;
+				display: flex;
+				align-items: center;
+				flex-shrink: 0;
+			}
+
+			.startup-shell__note-list-search {
+				height: 34px;
+				margin: 0 12px 16px 12px;
+				border-radius: 6px;
+				background: oklch(0.269 0 0 / 0.25);
+				flex-shrink: 0;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.startup-shell__note-list-eyebrow {
+				margin-top: 24px;
+				padding: 0 28px;
+				font-size: 10px;
+				font-weight: 700;
+				letter-spacing: 0.15em;
+				text-transform: uppercase;
+				color: oklch(0.708 0 0 / 0.4);
+				margin-bottom: 12px;
 			}
 
 			.startup-shell__note-list {
 				display: flex;
 				flex-direction: column;
-				gap: 14px;
 			}
 
 			.startup-shell__note-item {
 				position: relative;
-				height: 96px;
-				border-radius: 14px;
-				background: rgba(255, 255, 255, 0.065);
+				height: 72px;
+				margin: 0 16px 4px 16px;
+				border-radius: 6px;
+				background: oklch(1 0 0 / 0.02);
 				overflow: hidden;
-			}
-
-			.startup-shell__note-item::after {
-				content: '';
-				position: absolute;
-				inset: 0;
-				background: linear-gradient(
-					90deg,
-					transparent 0%,
-					rgba(255, 255, 255, 0.05) 50%,
-					transparent 100%
-				);
-				transform: translateX(-100%);
-				animation: startup-shell-shimmer 1.35s ease-in-out infinite;
 			}
 
 			.startup-shell__note-item-line,
 			.startup-shell__note-item-meta {
 				position: absolute;
-				left: 18px;
-				height: 10px;
 				border-radius: 9999px;
-				background: rgba(255, 255, 255, 0.16);
+				background: oklch(1 0 0 / 0.08);
 				z-index: 1;
 			}
 
 			.startup-shell__note-item-line--title {
-				top: 22px;
-				width: 152px;
+				top: 16px;
+				left: 12px;
 				height: 12px;
 			}
 
 			.startup-shell__note-item-line--body {
-				top: 52px;
-				width: 128px;
+				top: 40px;
+				left: 12px;
+				height: 10px;
 			}
 
 			.startup-shell__note-item-meta {
-				left: auto;
-				right: 18px;
-				top: 24px;
-				width: 42px;
+				right: 12px;
+				top: 18px;
 				height: 8px;
 			}
 
-			.startup-shell__line,
-			.startup-shell__card {
+			.startup-shell__line {
 				position: relative;
 				overflow: hidden;
 				border-radius: 10px;
-				background: rgba(255, 255, 255, 0.055);
+				background: oklch(1 0 0 / 0.055);
 			}
 
-			.startup-shell__line::after,
-			.startup-shell__card::after {
+			.startup-shell__folder-label::after,
+			.startup-shell__note-list-search::after,
+			.startup-shell__note-item::after,
+			.startup-shell__line::after {
 				content: '';
 				position: absolute;
 				inset: 0;
 				background: linear-gradient(
 					90deg,
 					transparent 0%,
-					rgba(255, 255, 255, 0.05) 50%,
+					oklch(1 0 0 / 0.04) 50%,
 					transparent 100%
 				);
 				transform: translateX(-100%);
-				animation: startup-shell-shimmer 1.35s ease-in-out infinite;
+				animation: startup-shell-shimmer 1.5s infinite;
 			}
 
 			.startup-shell__line {
@@ -238,17 +245,12 @@
 			}
 
 			.startup-shell__line--lg {
-				height: 18px;
-				margin-bottom: 18px;
+				height: 24px;
+				margin-bottom: 24px;
 			}
 
-			.startup-shell__line--sm {
-				height: 10px;
-			}
-
-			.startup-shell__card {
-				height: 128px;
-				margin-bottom: 22px;
+			.startup-shell__spacer {
+				height: 24px;
 			}
 
 			@keyframes startup-shell-shimmer {
@@ -266,12 +268,10 @@
 					<div class="startup-shell__eyebrow">Folders</div>
 					<div class="startup-shell__folder-tree">
 						<div class="startup-shell__folder-row">
-							<div class="startup-shell__folder-caret"></div>
 							<div class="startup-shell__folder-icon"></div>
 							<div class="startup-shell__folder-label" style="width: 118px"></div>
 						</div>
 						<div class="startup-shell__folder-row startup-shell__folder-row--nested-1">
-							<div class="startup-shell__folder-caret"></div>
 							<div class="startup-shell__folder-icon"></div>
 							<div class="startup-shell__folder-label" style="width: 102px"></div>
 						</div>
@@ -281,10 +281,9 @@
 						</div>
 					</div>
 					<div class="startup-shell__spacer"></div>
-					<div class="startup-shell__line startup-shell__line--sm" style="width: 34%"></div>
+					<div class="startup-shell__eyebrow" style="opacity: 0.5;">Tags</div>
 					<div class="startup-shell__folder-tree">
 						<div class="startup-shell__folder-row">
-							<div class="startup-shell__folder-caret"></div>
 							<div class="startup-shell__folder-icon"></div>
 							<div class="startup-shell__folder-label" style="width: 138px"></div>
 						</div>
@@ -293,55 +292,57 @@
 							<div class="startup-shell__folder-label" style="width: 120px"></div>
 						</div>
 						<div class="startup-shell__folder-row">
-							<div class="startup-shell__folder-caret"></div>
 							<div class="startup-shell__folder-icon"></div>
 							<div class="startup-shell__folder-label" style="width: 126px"></div>
 						</div>
 					</div>
 				</section>
+
+				<div class="startup-shell__pane-resize-handle">
+					<span class="startup-shell__pane-resize-grip" aria-hidden="true"></span>
+				</div>
+
 				<section class="startup-shell__pane startup-shell__pane--list">
-					<div class="startup-shell__eyebrow">Notes</div>
-					<div class="startup-shell__line startup-shell__line--lg" style="width: 100%"></div>
-					<div class="startup-shell__spacer"></div>
-					<div class="startup-shell__line startup-shell__line--sm" style="width: 24%"></div>
+					<div class="startup-shell__note-list-header">
+						<div class="startup-shell__folder-icon"></div>
+						<div class="startup-shell__folder-label" style="width: 80px; margin-left: 8px;"></div>
+					</div>
+					<div class="startup-shell__note-list-search"></div>
+					
+					<div class="startup-shell__note-list-eyebrow">Notes</div>
 					<div class="startup-shell__note-list">
 						<div class="startup-shell__note-item">
-							<div class="startup-shell__note-item-line startup-shell__note-item-line--title"></div>
-							<div class="startup-shell__note-item-line startup-shell__note-item-line--body"></div>
-							<div class="startup-shell__note-item-meta"></div>
+							<div class="startup-shell__note-item-line startup-shell__note-item-line--title" style="width: 152px"></div>
+							<div class="startup-shell__note-item-line startup-shell__note-item-line--body" style="width: 228px"></div>
+							<div class="startup-shell__note-item-meta" style="width: 42px"></div>
 						</div>
 						<div class="startup-shell__note-item">
-							<div
-								class="startup-shell__note-item-line startup-shell__note-item-line--title"
-								style="width: 134px"
-							></div>
-							<div
-								class="startup-shell__note-item-line startup-shell__note-item-line--body"
-								style="width: 146px"
-							></div>
+							<div class="startup-shell__note-item-line startup-shell__note-item-line--title" style="width: 124px"></div>
+							<div class="startup-shell__note-item-line startup-shell__note-item-line--body" style="width: 186px"></div>
 							<div class="startup-shell__note-item-meta" style="width: 36px"></div>
 						</div>
 						<div class="startup-shell__note-item">
-							<div
-								class="startup-shell__note-item-line startup-shell__note-item-line--title"
-								style="width: 118px"
-							></div>
-							<div
-								class="startup-shell__note-item-line startup-shell__note-item-line--body"
-								style="width: 158px"
-							></div>
+							<div class="startup-shell__note-item-line startup-shell__note-item-line--title" style="width: 168px"></div>
+							<div class="startup-shell__note-item-line startup-shell__note-item-line--body" style="width: 258px"></div>
 							<div class="startup-shell__note-item-meta" style="width: 48px"></div>
 						</div>
 					</div>
 				</section>
+				
+				<div class="startup-shell__pane-resize-handle">
+					<span class="startup-shell__pane-resize-grip" aria-hidden="true"></span>
+				</div>
+
 				<section class="startup-shell__pane startup-shell__pane--editor">
-					<div class="startup-shell__eyebrow">Preparing workspace</div>
-					<div class="startup-shell__line startup-shell__line--lg" style="width: 36%"></div>
-					<div class="startup-shell__line" style="width: 22%"></div>
+					<div class="startup-shell__line startup-shell__line--lg" style="width: 56%"></div>
 					<div class="startup-shell__spacer"></div>
 					<div class="startup-shell__line" style="width: 100%"></div>
 					<div class="startup-shell__line" style="width: 92%"></div>
+					<div class="startup-shell__line" style="width: 98%"></div>
 					<div class="startup-shell__line" style="width: 84%"></div>
+					<div class="startup-shell__spacer"></div>
+					<div class="startup-shell__line" style="width: 100%"></div>
+					<div class="startup-shell__line" style="width: 72%"></div>
 				</section>
 			</div>
 		</div>
