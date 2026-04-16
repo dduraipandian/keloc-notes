@@ -10,11 +10,11 @@
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 	import { themeStore } from '$lib/stores/theme.svelte';
-	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import { folderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte';
 	import { folderService } from '$lib/stores/services';
 
-	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none focus-visible:ring-0';
+	const menuButtonStyle =
+		'h-8 rounded-sm px-3 pr-10 shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
@@ -33,7 +33,6 @@
 <div
 	class="h-full w-full"
 	data-testid="folders-pane"
-	data-pane-active={uiStateStore.activePane === 'folders' ? 'true' : 'false'}
 	use:activatePaneOnClick={'folders'}
 >
 	<Sidebar.Root collapsible="none" class="h-full w-full select-none border-r-0 bg-sidebar">
@@ -133,7 +132,7 @@
 			<Sidebar.MenuItem>
 				{#if hasChildren}
 					<Collapsible.Root
-						class="group/collapsible"
+						class="group/collapsible outline-none"
 						open={source.isOpen}
 						onOpenChange={() => folderService.toggle(source.id)}
 					>
@@ -175,7 +174,7 @@
 			menuButtonStyle,
 			isRenameRejected && 'folder-rename-rejected',
 			source.isSelected
-				? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+				? 'bg-sidebar-accent text-sidebar-accent-foreground'
 				: 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
 		]}
 		{...props}
@@ -245,6 +244,35 @@
 {/snippet}
 
 <style>
+	:global([data-testid='folders-pane'] [data-slot='collapsible-trigger']) {
+		outline: none;
+		box-shadow: none;
+	}
+
+	:global([data-testid='folders-pane'] [data-slot='collapsible-trigger']:focus) {
+		outline: none;
+		box-shadow: none;
+	}
+
+	:global([data-testid='folders-pane'] [data-slot='collapsible-trigger']:focus-visible) {
+		outline: none;
+		box-shadow: none;
+	}
+
+	:global([data-testid='folders-pane'] [data-slot='sidebar-menu-button']) {
+		outline: none;
+	}
+
+	:global([data-testid='folders-pane'] [data-slot='sidebar-menu-button']:focus) {
+		outline: none;
+		box-shadow: none;
+	}
+
+	:global([data-testid='folders-pane'] [data-slot='sidebar-menu-button']:focus-visible) {
+		outline: none;
+		box-shadow: none;
+	}
+
 	:global(.folder-rename-rejected) {
 		animation: folder-rename-rejected 0.42s ease;
 		box-shadow: inset 0 0 0 1px hsl(var(--destructive) / 0.45);

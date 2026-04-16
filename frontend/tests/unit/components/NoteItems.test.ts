@@ -97,11 +97,9 @@ describe('NoteItems.svelte Component', () => {
         uiStateStore.setActivePane('folders');
 
         const pane = screen.getByTestId('notes-pane');
-        expect(pane.getAttribute('data-pane-active')).toBe('false');
         await fireEvent.click(pane);
 
         expect(uiStateStore.activePane).toBe('notes');
-        expect(pane.getAttribute('data-pane-active')).toBe('true');
         expect(noteService.select).not.toHaveBeenCalled();
     });
 

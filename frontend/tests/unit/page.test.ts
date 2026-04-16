@@ -74,10 +74,8 @@ describe('+page.svelte', () => {
 		uiStateStore.setActivePane('folders');
 
 		const pane = screen.getByTestId('editor-pane');
-		expect(pane.getAttribute('data-pane-active')).toBe('false');
 		await fireEvent.click(pane);
 
 		expect(uiStateStore.activePane).toBe('editor');
-		expect(pane.getAttribute('data-pane-active')).toBe('true');
 	});
 });

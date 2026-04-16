@@ -6,7 +6,6 @@
 	import { uiStore } from '$lib/stores/dialog.svelte';
 	import { noteService, trashService } from '$lib/stores/services';
 	import { noteListView } from '$lib/views/noteListView.svelte';
-	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);
@@ -37,7 +36,6 @@
 	<div
 		class="flex h-full animate-in flex-col bg-card duration-500 fade-in"
 		data-testid="editor-pane"
-		data-pane-active={uiStateStore.activePane === 'editor' ? 'true' : 'false'}
 		use:activatePaneOnClick={'editor'}
 	>
 		{#if selectedNote.deletedAt != null}
@@ -106,7 +104,6 @@
 	<div
 		class="flex h-full animate-in flex-col items-center justify-center bg-card/50 text-muted-foreground/20 duration-1000 zoom-in-95"
 		data-testid="editor-pane"
-		data-pane-active={uiStateStore.activePane === 'editor' ? 'true' : 'false'}
 		use:activatePaneOnClick={'editor'}
 	>
 		<div class="relative mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-accent/5">

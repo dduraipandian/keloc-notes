@@ -413,7 +413,7 @@ This is the current high-level backlog after the Part A release blockers. The re
 
 ### Phase C: Desktop Polish & UX
 
-- [ ] **Keyboard shortcuts** — Implementation of `Cmd+N`, `Cmd+Delete`, and `Escape`.
+- [x] **Keyboard shortcuts (partial)** — `Cmd+N` (new note), `Cmd+Shift+N` (new folder), `Escape` (close dialogs / cancel rename), and arrow-key folder navigation are implemented. Remaining: `Cmd+Delete` (trash selected note).
 - [x] **Window title context** — Update OS window title to reflect active note/folder.
 - [ ] **Menu bar integration** — Native OS menu bar actions (Wails options).
 - [x] **Resizable panes** — Drag handles between sidebar, list, and editor.
@@ -431,9 +431,16 @@ This is the current high-level backlog after the Part A release blockers. The re
 
 ### Phase F: Release Readiness
 
-- [ ] **README updates** — Fix tech stack details, add documentation and screenshots.
+- [ ] **README updates** — Fix tech stack details, add documentation and screenshots. Note: Go version is listed as "1.26+" but `go.mod` specifies 1.23.
 - [ ] **Screenshots for the repo** — Add polished app screenshots under `docs/screenshots/` and reference them from `README.md`.
 - [ ] **Rich text editor** — Final replacement of `<textarea>` with TipTap (TipTap/Markdown).
+- [ ] **Fix LICENSE copyright** — `LICENSE` still has placeholder `[yyyy] [name of copyright owner]` in the appendix boilerplate. Fill in actual values before public release.
+- [ ] **Remove local path from `go.mod`** — Line 38 has a commented-out `replace` directive leaking `/Users/dduraipandian/...`. Remove before open-sourcing.
+- [ ] **Clean `.gitignore`** — Add `.claude/` to root `.gitignore` (contains local filesystem paths in `settings.local.json`). Add `*.DS_Store` at root level.
+- [ ] **Add `CONTRIBUTING.md`** — Dev setup, code style, PR process, test requirements for outside contributors.
+- [ ] **Add `SECURITY.md`** — Vulnerability disclosure policy (standard for public repos).
+- [ ] **CI/CD workflow** — GitHub Actions for `npm run test`, `npm run check`, `npm run lint`, and `wails build` on macOS.
+- [ ] **Issue & PR templates** — Add `.github/ISSUE_TEMPLATE/` and `PULL_REQUEST_TEMPLATE.md`.
 
 ---
 
@@ -449,6 +456,7 @@ This is the current high-level backlog after the Part A release blockers. The re
 - [ ] **Mobile Responsive Mode** — Currently focused on Desktop (Wails).
 - [ ] **Cloud Sync** — Multi-device synchronization.
 - [ ] **Release artifacts & signing** — Document the Wails release process and platform signing/notarization before 1.0.
+- [ ] **CHANGELOG** — Add `CHANGELOG.md` (keep-a-changelog format or automated via CI).
 
 ---
 
@@ -462,3 +470,6 @@ Before cutting a public release, confirm:
 4. `wails build` produces a runnable binary on at least macOS and one of (Linux, Windows).
 5. The README renders correctly on GitHub with working image links.
 6. Manual smoke test: fresh install → create folder → create note → type → ⌘Q mid-type → reopen → the typed content is intact.
+7. Secret scan: no local filesystem paths, PII, or credentials in tracked files (`go.mod` replace directives, `.claude/` settings, etc.).
+8. `.gitignore` covers `.claude/`, `*.DS_Store`, and build artifacts.
+9. `LICENSE` copyright boilerplate is filled in with actual year and holder name.

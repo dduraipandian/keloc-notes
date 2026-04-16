@@ -99,11 +99,9 @@ describe('Folders.svelte Component', () => {
         await tick();
 
         const pane = screen.getByTestId('folders-pane');
-        expect(pane.getAttribute('data-pane-active')).toBe('false');
         await fireEvent.click(pane);
 
         expect(uiStateStore.activePane).toBe('folders');
-        expect(pane.getAttribute('data-pane-active')).toBe('true');
         expect(folderService.select).not.toHaveBeenCalled();
     });
 

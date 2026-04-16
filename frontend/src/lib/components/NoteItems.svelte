@@ -12,7 +12,6 @@
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
 	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import { ICON_REGISTRY } from '$lib/views/folderSidebarView.svelte';
 
 	let searchQuery = $state('');
@@ -48,7 +47,6 @@
 <aside
 	class="relative z-0 flex h-full w-full select-none flex-col"
 	data-testid="notes-pane"
-	data-pane-active={uiStateStore.activePane === 'notes' ? 'true' : 'false'}
 	use:activatePaneOnClick={'notes'}
 >
 	<!-- Header -->
@@ -113,7 +111,7 @@
 							<ContextMenu.Trigger>
 								<Item.Root
 									class={[
-										'mx-1 mb-0.5 rounded-lg border-none transition-none',
+										'mx-1 mb-0.5 rounded-lg border-none outline-none shadow-none transition-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:shadow-none',
 										isSelected ? 'bg-accent/80' : 'bg-transparent hover:bg-accent/30'
 									]}
 									onclick={() => noteService.select(note.id)}
