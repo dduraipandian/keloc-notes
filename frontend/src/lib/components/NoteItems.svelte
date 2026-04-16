@@ -43,7 +43,7 @@
 	}
 </script>
 
-<aside class="relative z-0 flex h-full w-[350px] flex-col">
+<aside class="relative z-0 flex h-full w-full flex-col">
 	<!-- Header -->
 	<header class="flex h-[52px] shrink-0 items-center justify-between gap-2 px-6">
 		<div class="flex min-w-0 items-center gap-2 overflow-hidden">

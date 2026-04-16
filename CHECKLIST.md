@@ -529,7 +529,7 @@ This is the original pre-release checklist. **Do not start these items until all
   - Same check for notes rename if we add it later.
 - **Done when:** rejected renames visibly snap back to the previous title with a cue that something happened (border flash, toast, or similar).
 
-### 5.4 Resizable panes
+### [x] 5.4 Resizable panes
 
 - **File:** [`+layout.svelte:30-38`](frontend/src/routes/+layout.svelte#L30) — three panes with fixed widths (`w-64`, `w-[350px]`).
 - **Investigate:**

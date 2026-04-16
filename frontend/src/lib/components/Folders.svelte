@@ -24,7 +24,7 @@
 	}
 </script>
 
-<Sidebar.Root collapsible="none" class="h-full w-64 border-r-0 bg-sidebar/40">
+<Sidebar.Root collapsible="none" class="h-full w-full border-r-0 bg-sidebar/40">
 	{@const sections = folderSidebarView.sections}
 	<Sidebar.Header>
 		{#if sections.find((section) => section.id === 'views')?.sources.length}

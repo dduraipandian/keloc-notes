@@ -172,13 +172,11 @@ export async function getAllNotes(): Promise<any[]> {
 export type SettingsState = {
 	selectedFolderID: string | null;
 	selectedNoteID: string | null;
+	sidebarWidth: number | null;
+	noteListWidth: number | null;
 };
 
 type SettingsKey = keyof SettingsState;
-
-function isSettingsKey(key: IDBValidKey): key is SettingsKey {
-	return key === 'selectedFolderID' || key === 'selectedNoteID';
-}
 
 export async function putSetting(property: string, value: any) {
 	const db = await getDB();
@@ -200,15 +198,33 @@ export async function getAllSettings(): Promise<SettingsState> {
 		const store = tx.objectStore('settings');
 		const keys = await store.getAllKeys();
 		const values = await store.getAll();
-		const settings: Partial<SettingsState> = {};
+		let selectedFolderID: string | null = null;
+		let selectedNoteID: string | null = null;
+		let sidebarWidth: number | null = null;
+		let noteListWidth: number | null = null;
 		keys.forEach((key, index) => {
-			if (isSettingsKey(key)) {
-				settings[key] = values[index] as SettingsState[typeof key];
+			switch (key) {
+				case 'selectedFolderID':
+					selectedFolderID = (values[index] as string | null) ?? null;
+					break;
+				case 'selectedNoteID':
+					selectedNoteID = (values[index] as string | null) ?? null;
+					break;
+				case 'sidebarWidth':
+					sidebarWidth = (values[index] as number | null) ?? null;
+					break;
+				case 'noteListWidth':
+					noteListWidth = (values[index] as number | null) ?? null;
+					break;
+				default:
+					break;
 			}
 		});
 		return {
-			selectedFolderID: settings.selectedFolderID ?? null,
-			selectedNoteID: settings.selectedNoteID ?? null
+			selectedFolderID,
+			selectedNoteID,
+			sidebarWidth,
+			noteListWidth
 		};
 	});
 }
