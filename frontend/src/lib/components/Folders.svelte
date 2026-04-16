@@ -44,7 +44,7 @@
 			<Sidebar.Group>
 				{#if section.label}
 					<Sidebar.GroupLabel
-						class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-sidebar-foreground/50 uppercase"
+						class="mb-2 px-4 text-[10px] font-bold tracking-[0.15em] text-muted-foreground/70 uppercase"
 						>{section.label}</Sidebar.GroupLabel
 					>
 				{/if}
@@ -64,7 +64,7 @@
 			<Sidebar.Menu class="flex-1">
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton
-						class="group gap-2 px-2 text-[13px] font-medium text-sidebar-foreground/80 transition-none hover:bg-transparent hover:text-sidebar-foreground"
+						class="group gap-2 px-2 text-[13px] font-medium text-foreground/80 transition-none hover:bg-transparent hover:text-foreground"
 						onclick={() => {
 							folderService.create();
 						}}
@@ -80,8 +80,8 @@
 					class={[
 						'rounded-sm p-1.5 transition-colors',
 						themeStore.theme === 'light'
-							? 'bg-accent text-accent-foreground shadow-sm'
-							: 'text-sidebar-foreground/40 hover:bg-accent/20 hover:text-sidebar-foreground/70'
+							? 'bg-accent text-foreground shadow-sm'
+							: 'text-foreground/40 hover:bg-accent/40 hover:text-foreground/70'
 					]}
 					onclick={() => themeStore.setTheme('light')}
 					title="Light Mode"
@@ -92,8 +92,8 @@
 					class={[
 						'rounded-sm p-1.5 transition-colors',
 						themeStore.theme === 'dark'
-							? 'bg-accent text-accent-foreground shadow-sm'
-							: 'text-sidebar-foreground/40 hover:bg-accent/20 hover:text-sidebar-foreground/70'
+							? 'bg-accent text-foreground shadow-sm'
+							: 'text-foreground/40 hover:bg-accent/40 hover:text-foreground/70'
 					]}
 					onclick={() => themeStore.setTheme('dark')}
 					title="Dark Mode"
@@ -104,8 +104,8 @@
 					class={[
 						'rounded-sm p-1.5 transition-colors',
 						themeStore.theme === 'system'
-							? 'bg-accent text-accent-foreground shadow-sm'
-							: 'text-sidebar-foreground/40 hover:bg-accent/20 hover:text-sidebar-foreground/70'
+							? 'bg-accent text-foreground shadow-sm'
+							: 'text-foreground/40 hover:bg-accent/40 hover:text-foreground/70'
 					]}
 					onclick={() => themeStore.setTheme('system')}
 					title="System Theme"
@@ -134,7 +134,7 @@
 							{/snippet}
 						</Collapsible.Trigger>
 						<Sidebar.MenuBadge
-							class="text-[11px] font-normal text-sidebar-foreground/30 tabular-nums"
+							class="text-[11px] font-normal text-muted-foreground/40 tabular-nums"
 						>
 							{source.noteCount}
 						</Sidebar.MenuBadge>
@@ -148,7 +148,7 @@
 					</Collapsible.Root>
 				{:else}
 					{@render FolderButtonSnippet(source)}
-					<Sidebar.MenuBadge class="text-[11px] font-normal text-sidebar-foreground/30 tabular-nums">
+					<Sidebar.MenuBadge class="text-[11px] font-normal text-muted-foreground/40 tabular-nums">
 						{source.noteCount}
 					</Sidebar.MenuBadge>
 				{/if}
@@ -166,8 +166,8 @@
 			menuButtonStyle,
 			isRenameRejected && 'folder-rename-rejected',
 			source.isSelected
-				? 'bg-accent text-accent-foreground shadow-sm'
-				: 'text-sidebar-foreground/70 hover:bg-accent/20 hover:text-sidebar-foreground'
+				? 'bg-accent text-foreground shadow-sm'
+				: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
 		]}
 		{...props}
 		isActive={source.isSelected}
@@ -182,7 +182,7 @@
 			<ChevronRight
 				size={14}
 				class={[
-					'shrink-0 text-sidebar-foreground/30 transition-transform duration-200',
+					'shrink-0 text-muted-foreground/40 transition-transform duration-200',
 					source.isOpen ? 'rotate-90' : ''
 				]}
 			/>
