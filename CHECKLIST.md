@@ -35,15 +35,15 @@ wails dev                                      # full-stack dev
 
 ## A.1 Items table
 
-| ID  | Title                                              | Category       | Priority | Effort    | Depends on |
-| --- | -------------------------------------------------- | -------------- | -------- | --------- | ---------- |
-| R1  | Fix pre-existing `npm run check` type errors       | Quality gate   | P0       | 30–60 min | —          |
-| R2  | Sanitise `AlertDialog` description (XSS fix)       | Security       | P0       | 30–60 min | R1         |
-| R3  | Surface errors from debounced IndexedDB writes     | Data safety    | P0       | 1 h       | R1         |
-| R4  | Replace `Date.now()` batch key with a unique token | Data safety    | P0       | 1 h       | R1         |
-| R5  | Flush pending writes before window close           | Data safety    | P0       | 2–3 h     | R3, R4     |
-| R6  | IndexedDB `upgrade()` skeleton + blocked handlers  | Forward-compat | P1       | 1 h       | R1         |
-| R7  | Debounce search input in the note list             | UX / perf      | P1       | 45 min    | R1         |
+| ID  | Title                                              | Category       | Priority | Effort    | Depends on | Status |
+| --- | -------------------------------------------------- | -------------- | -------- | --------- | ---------- | ------ |
+| R1  | Fix pre-existing `npm run check` type errors       | Quality gate   | P0       | 30–60 min | —          | `[x]`  |
+| R2  | Sanitise `AlertDialog` description (XSS fix)       | Security       | P0       | 30–60 min | R1         | `[x]`  |
+| R3  | Surface errors from debounced IndexedDB writes     | Data safety    | P0       | 1 h       | R1         | `[x]`  |
+| R4  | Replace `Date.now()` batch key with a unique token | Data safety    | P0       | 1 h       | R1         | `[x]`  |
+| R5  | Flush pending writes before window close           | Data safety    | P0       | 2–3 h     | R3, R4     | `[x]`  |
+| R6  | IndexedDB `upgrade()` skeleton + blocked handlers  | Forward-compat | P1       | 1 h       | R1         | `[x]`  |
+| R7  | Debounce search input in the note list             | UX / perf      | P1       | 45 min    | R1         | `[x]`  |
 
 ---
 
@@ -385,7 +385,7 @@ This is the original pre-release checklist. **Do not start these items until all
   - Is `folderType` (profile id) being threaded through all call sites?
 - **Done when:** the three view badges and every regular-folder badge show the same count as the note list that appears when you click into the folder. Add a unit test under `frontend/tests/unit/` that covers all three system views plus a regular folder plus an empty trash.
 
-### 1.2 `selectNote(null)` calls `persist(null!)`
+### [x] 1.2 `selectNote(null)` calls `persist(null!)`
 
 - **File:** [`notes.svelte.ts:197-200`](frontend/src/lib/stores/notes.svelte.ts#L197).
 - **Investigate:** The non-null assertion `this.persist(id!)` hides that `persist` gets called with `null` when deselecting. Trace what `persist(null!)` actually does — `this.notes.get(null)` returns undefined, so no note is saved, but `settingsRepository.save('selectedNoteID', ...)` still fires. Is that the intended behavior, or should selection-only writes go through a dedicated path?
@@ -469,7 +469,7 @@ This is the original pre-release checklist. **Do not start these items until all
 
 ## 4. Performance
 
-### 4.1 Debounce note updates to IndexedDB
+### [x] 4.1 Debounce note updates to IndexedDB
 
 - **Files:** [`+page.svelte:65, 89`](frontend/src/routes/+page.svelte#L65) — `oninput` handlers call `noteService.update` synchronously, which persists to IndexedDB on every keystroke.
 - **Investigate:**
@@ -479,7 +479,7 @@ This is the original pre-release checklist. **Do not start these items until all
   - Think about app-exit: Wails exposes a `beforeClose` hook. Does the pending debounced write get flushed before the DB connection closes?
 - **Done when:** typing into a 10-word note produces one IndexedDB write, not ten. Verify with the browser devtools IndexedDB tab. No data is lost when you switch notes mid-type or close the app.
 
-### 4.2 Separate note persistence from selection persistence
+### [x] 4.2 Separate note persistence from selection persistence
 
 - **File:** [`notes.svelte.ts:66-73`](frontend/src/lib/stores/notes.svelte.ts#L66) — `persist()` writes both the note itself and `selectedNoteID` on every save.
 - **Investigate:**
@@ -511,7 +511,7 @@ This is the original pre-release checklist. **Do not start these items until all
   - What if the deleted note was the only note in the folder? Fall back to null selection.
 - **Done when:** deleting the active note auto-selects the next note in the list. If the folder empties, the content pane shows the empty state.
 
-### 5.2 Loading state on startup
+### [x] 5.2 Loading state on startup
 
 - **File:** [`+layout.svelte`](frontend/src/routes/+layout.svelte) — `onMount` does a sequence of awaits.
 - **Investigate:**
