@@ -6,12 +6,14 @@
 	import { selectionStore } from '$lib/stores/selection.svelte';
 	import { settingsRepository } from '$lib/stores/repositories';
 	import { themeStore } from '$lib/stores/theme.svelte';
+	import { handleGlobalShortcut } from '$lib/keyboard/shortcuts';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import Alert from './alert.svelte';
 	import Folders from '$lib/components/Folders.svelte';
 	import NoteItems from '$lib/components/NoteItems.svelte';
 	import { EventsEmit, EventsOn, Quit, WindowSetTitle } from '$lib/wailsjs/runtime/runtime';
 	import { uiStore } from '$lib/stores/dialog.svelte';
+	import { folderService, noteService } from '$lib/stores/services';
 
 	let { children } = $props();
 
@@ -161,6 +163,13 @@
 		document.body.style.userSelect = 'none';
 	}
 
+	function handleWindowKeyDown(event: KeyboardEvent) {
+		handleGlobalShortcut(event, {
+			createNote: () => noteService.create(selectionStore.selectedFolderID ?? null),
+			createFolder: () => folderService.create()
+		});
+	}
+
 	$effect(() => {
 		const selectedNote = notesStore.selectedNote;
 		const selectedNoteTitle = selectedNote?.title.trim();
@@ -208,6 +217,7 @@
 		window.addEventListener('resize', handleWindowResize);
 		window.addEventListener('pointermove', handleWindowPointerMove);
 		window.addEventListener('pointerup', handleWindowPointerUp);
+		window.addEventListener('keydown', handleWindowKeyDown);
 
 		const offBeforeClose = EventsOn('app:before-close', async () => {
 			try {
@@ -256,6 +266,7 @@
 			window.removeEventListener('resize', handleWindowResize);
 			window.removeEventListener('pointermove', handleWindowPointerMove);
 			window.removeEventListener('pointerup', handleWindowPointerUp);
+			window.removeEventListener('keydown', handleWindowKeyDown);
 			folderStore.onPersistError = null;
 			selectionStore.onPersistError = null;
 			notesStore.onPersistError = null;
