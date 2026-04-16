@@ -410,10 +410,11 @@ This is the original pre-release checklist. **Do not start these items until all
 
 ### [x] 2.2 Light mode / theme toggle
 
-- **Files:**
-  - [`frontend/src/app.html:2`](frontend/src/app.html#L2) — `<html lang="en" class="dark">`.
-  - [`+layout.svelte:30`](frontend/src/routes/+layout.svelte#L30) — `<div class="dark ...">`.
-  - [`frontend/src/routes/layout.css:9-42`](frontend/src/routes/layout.css) — light-mode CSS variables already defined.
+- **Implementation:**
+  - `theme.svelte.ts` — centralized `light | dark | system` store with OS media query awareness.
+  - `idbr.ts` — `applicationTheme` persisted in IndexedDB under `settings` store.
+  - `app.html` — Zero-FOUC pre-hydration script added to `<head>` to apply correct theme classes and CSS variables before first paint.
+  - `layout.css` — Redesigned for exact Apple Notes replicate: Utility gray sidebar (`oklch(0.965 0 0)`), white list/editor, and solid pill selections.
 - **Investigate:**
   - Why is `dark` applied in two places? One should be the source of truth.
   - Should we default to `prefers-color-scheme` and let the user override, or force a default and respect user choice? Look at how Apple Notes / Obsidian handle this for desktop apps.
