@@ -4,9 +4,347 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<meta name="theme-color" content="#171717" />
+		<style>
+			html,
+			body {
+				margin: 0;
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+				background: #171717;
+				color: #f5f5f5;
+			}
+
+			body {
+				font-family:
+					'Inter Variable',
+					Inter,
+					system-ui,
+					-apple-system,
+					BlinkMacSystemFont,
+					'SF Pro Display',
+					sans-serif;
+			}
+
+			#startup-shell {
+				position: fixed;
+				inset: 0;
+				display: grid;
+				grid-template-rows: 36px minmax(0, 1fr);
+				background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 18%), #171717;
+				opacity: 1;
+				visibility: visible;
+				transition:
+					opacity 180ms ease,
+					visibility 180ms ease;
+				z-index: 9999;
+				pointer-events: none;
+			}
+
+			html[data-app-ready='true'] #startup-shell {
+				opacity: 0;
+				visibility: hidden;
+			}
+
+			.startup-shell__titlebar {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+				background: rgba(255, 255, 255, 0.02);
+			}
+
+			.startup-shell__title {
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: 0.18em;
+				text-transform: uppercase;
+				color: rgba(255, 255, 255, 0.72);
+			}
+
+			.startup-shell__body {
+				display: grid;
+				grid-template-columns: 256px 350px minmax(0, 1fr);
+				min-height: 0;
+			}
+
+			.startup-shell__pane {
+				min-width: 0;
+				padding: 40px 28px 28px;
+				border-right: 1px solid rgba(255, 255, 255, 0.08);
+			}
+
+			.startup-shell__pane:last-child {
+				border-right: none;
+			}
+
+			.startup-shell__eyebrow {
+				margin-bottom: 28px;
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: 0.28em;
+				text-transform: uppercase;
+				color: rgba(255, 255, 255, 0.3);
+			}
+
+			.startup-shell__spacer {
+				height: 22px;
+			}
+
+			.startup-shell__folder-tree {
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+			}
+
+			.startup-shell__folder-row {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				height: 18px;
+			}
+
+			.startup-shell__folder-row--nested-1 {
+				padding-left: 18px;
+			}
+
+			.startup-shell__folder-row--nested-2 {
+				padding-left: 36px;
+			}
+
+			.startup-shell__folder-caret {
+				width: 8px;
+				height: 8px;
+				border-radius: 2px;
+				background: rgba(255, 255, 255, 0.12);
+				flex: 0 0 auto;
+			}
+
+			.startup-shell__folder-icon {
+				width: 14px;
+				height: 12px;
+				border-radius: 3px;
+				background: rgba(255, 255, 255, 0.08);
+				flex: 0 0 auto;
+			}
+
+			.startup-shell__folder-label {
+				flex: 0 0 auto;
+				height: 10px;
+				border-radius: 9999px;
+				background: rgba(255, 255, 255, 0.055);
+				position: relative;
+				overflow: hidden;
+			}
+
+			.startup-shell__folder-label::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				background: linear-gradient(
+					90deg,
+					transparent 0%,
+					rgba(255, 255, 255, 0.05) 50%,
+					transparent 100%
+				);
+				transform: translateX(-100%);
+				animation: startup-shell-shimmer 1.35s ease-in-out infinite;
+			}
+
+			.startup-shell__note-list {
+				display: flex;
+				flex-direction: column;
+				gap: 14px;
+			}
+
+			.startup-shell__note-item {
+				position: relative;
+				height: 96px;
+				border-radius: 14px;
+				background: rgba(255, 255, 255, 0.065);
+				overflow: hidden;
+			}
+
+			.startup-shell__note-item::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				background: linear-gradient(
+					90deg,
+					transparent 0%,
+					rgba(255, 255, 255, 0.05) 50%,
+					transparent 100%
+				);
+				transform: translateX(-100%);
+				animation: startup-shell-shimmer 1.35s ease-in-out infinite;
+			}
+
+			.startup-shell__note-item-line,
+			.startup-shell__note-item-meta {
+				position: absolute;
+				left: 18px;
+				height: 10px;
+				border-radius: 9999px;
+				background: rgba(255, 255, 255, 0.16);
+				z-index: 1;
+			}
+
+			.startup-shell__note-item-line--title {
+				top: 22px;
+				width: 152px;
+				height: 12px;
+			}
+
+			.startup-shell__note-item-line--body {
+				top: 52px;
+				width: 128px;
+			}
+
+			.startup-shell__note-item-meta {
+				left: auto;
+				right: 18px;
+				top: 24px;
+				width: 42px;
+				height: 8px;
+			}
+
+			.startup-shell__line,
+			.startup-shell__card {
+				position: relative;
+				overflow: hidden;
+				border-radius: 10px;
+				background: rgba(255, 255, 255, 0.055);
+			}
+
+			.startup-shell__line::after,
+			.startup-shell__card::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				background: linear-gradient(
+					90deg,
+					transparent 0%,
+					rgba(255, 255, 255, 0.05) 50%,
+					transparent 100%
+				);
+				transform: translateX(-100%);
+				animation: startup-shell-shimmer 1.35s ease-in-out infinite;
+			}
+
+			.startup-shell__line {
+				height: 12px;
+				margin-bottom: 12px;
+			}
+
+			.startup-shell__line--lg {
+				height: 18px;
+				margin-bottom: 18px;
+			}
+
+			.startup-shell__line--sm {
+				height: 10px;
+			}
+
+			.startup-shell__card {
+				height: 128px;
+				margin-bottom: 22px;
+			}
+
+			@keyframes startup-shell-shimmer {
+				100% {
+					transform: translateX(100%);
+				}
+			}
+		</style>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<div id="startup-shell" aria-hidden="true">
+			<div class="startup-shell__body">
+				<section class="startup-shell__pane startup-shell__pane--sidebar">
+					<div class="startup-shell__eyebrow">Folders</div>
+					<div class="startup-shell__folder-tree">
+						<div class="startup-shell__folder-row">
+							<div class="startup-shell__folder-caret"></div>
+							<div class="startup-shell__folder-icon"></div>
+							<div class="startup-shell__folder-label" style="width: 118px"></div>
+						</div>
+						<div class="startup-shell__folder-row startup-shell__folder-row--nested-1">
+							<div class="startup-shell__folder-caret"></div>
+							<div class="startup-shell__folder-icon"></div>
+							<div class="startup-shell__folder-label" style="width: 102px"></div>
+						</div>
+						<div class="startup-shell__folder-row startup-shell__folder-row--nested-2">
+							<div class="startup-shell__folder-icon"></div>
+							<div class="startup-shell__folder-label" style="width: 88px"></div>
+						</div>
+					</div>
+					<div class="startup-shell__spacer"></div>
+					<div class="startup-shell__line startup-shell__line--sm" style="width: 34%"></div>
+					<div class="startup-shell__folder-tree">
+						<div class="startup-shell__folder-row">
+							<div class="startup-shell__folder-caret"></div>
+							<div class="startup-shell__folder-icon"></div>
+							<div class="startup-shell__folder-label" style="width: 138px"></div>
+						</div>
+						<div class="startup-shell__folder-row startup-shell__folder-row--nested-1">
+							<div class="startup-shell__folder-icon"></div>
+							<div class="startup-shell__folder-label" style="width: 120px"></div>
+						</div>
+						<div class="startup-shell__folder-row">
+							<div class="startup-shell__folder-caret"></div>
+							<div class="startup-shell__folder-icon"></div>
+							<div class="startup-shell__folder-label" style="width: 126px"></div>
+						</div>
+					</div>
+				</section>
+				<section class="startup-shell__pane startup-shell__pane--list">
+					<div class="startup-shell__eyebrow">Notes</div>
+					<div class="startup-shell__line startup-shell__line--lg" style="width: 100%"></div>
+					<div class="startup-shell__spacer"></div>
+					<div class="startup-shell__line startup-shell__line--sm" style="width: 24%"></div>
+					<div class="startup-shell__note-list">
+						<div class="startup-shell__note-item">
+							<div class="startup-shell__note-item-line startup-shell__note-item-line--title"></div>
+							<div class="startup-shell__note-item-line startup-shell__note-item-line--body"></div>
+							<div class="startup-shell__note-item-meta"></div>
+						</div>
+						<div class="startup-shell__note-item">
+							<div
+								class="startup-shell__note-item-line startup-shell__note-item-line--title"
+								style="width: 134px"
+							></div>
+							<div
+								class="startup-shell__note-item-line startup-shell__note-item-line--body"
+								style="width: 146px"
+							></div>
+							<div class="startup-shell__note-item-meta" style="width: 36px"></div>
+						</div>
+						<div class="startup-shell__note-item">
+							<div
+								class="startup-shell__note-item-line startup-shell__note-item-line--title"
+								style="width: 118px"
+							></div>
+							<div
+								class="startup-shell__note-item-line startup-shell__note-item-line--body"
+								style="width: 158px"
+							></div>
+							<div class="startup-shell__note-item-meta" style="width: 48px"></div>
+						</div>
+					</div>
+				</section>
+				<section class="startup-shell__pane startup-shell__pane--editor">
+					<div class="startup-shell__eyebrow">Preparing workspace</div>
+					<div class="startup-shell__line startup-shell__line--lg" style="width: 36%"></div>
+					<div class="startup-shell__line" style="width: 22%"></div>
+					<div class="startup-shell__spacer"></div>
+					<div class="startup-shell__line" style="width: 100%"></div>
+					<div class="startup-shell__line" style="width: 92%"></div>
+					<div class="startup-shell__line" style="width: 84%"></div>
+				</section>
+			</div>
+		</div>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

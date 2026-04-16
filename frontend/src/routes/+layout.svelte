@@ -6,7 +6,6 @@
 	import { selectionStore } from '$lib/stores/selection.svelte';
 	import { settingsRepository } from '$lib/stores/repositories';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import Alert from './alert.svelte';
 	import Folders from '$lib/components/Folders.svelte';
 	import NoteItems from '$lib/components/NoteItems.svelte';
@@ -31,6 +30,13 @@
 	let activeResizeHandle = $state<'sidebar' | 'note-list' | null>(null);
 	let pendingPointerX = $state<number | null>(null);
 	let resizeFrame = $state<number | null>(null);
+	let paneLayoutRef = $state<HTMLDivElement | null>(null);
+	let liveSidebarWidth = DEFAULT_SIDEBAR_WIDTH;
+	let liveNoteListWidth = DEFAULT_NOTE_LIST_WIDTH;
+
+	$effect(() => {
+		document.documentElement.dataset.appReady = isInitializing ? 'false' : 'true';
+	});
 
 	function clamp(value: number, min: number, max: number) {
 		return Math.min(Math.max(value, min), max);
@@ -45,12 +51,15 @@
 			),
 			maxNoteListWidth: Math.min(
 				MAX_NOTE_LIST_WIDTH,
-				window.innerWidth - sidebarWidth - MIN_EDITOR_WIDTH - RESIZE_HANDLE_WIDTH * 2
+				window.innerWidth - liveSidebarWidth - MIN_EDITOR_WIDTH - RESIZE_HANDLE_WIDTH * 2
 			)
 		};
 	}
 
-	function normalizePaneWidths(nextSidebarWidth = sidebarWidth, nextNoteListWidth = noteListWidth) {
+	function resolvePaneWidths(
+		nextSidebarWidth = liveSidebarWidth,
+		nextNoteListWidth = liveNoteListWidth
+	) {
 		const maxSidebarWidth = Math.max(
 			MIN_SIDEBAR_WIDTH,
 			window.innerWidth - MIN_NOTE_LIST_WIDTH - MIN_EDITOR_WIDTH - RESIZE_HANDLE_WIDTH * 2
@@ -61,21 +70,42 @@
 			window.innerWidth - normalizedSidebarWidth - MIN_EDITOR_WIDTH - RESIZE_HANDLE_WIDTH * 2
 		);
 
-		sidebarWidth = normalizedSidebarWidth;
-		noteListWidth = clamp(nextNoteListWidth, MIN_NOTE_LIST_WIDTH, maxNoteListWidth);
+		return {
+			sidebarWidth: normalizedSidebarWidth,
+			noteListWidth: clamp(nextNoteListWidth, MIN_NOTE_LIST_WIDTH, maxNoteListWidth)
+		};
+	}
+
+	function applyPaneWidths(
+		nextSidebarWidth = liveSidebarWidth,
+		nextNoteListWidth = liveNoteListWidth,
+		commit = false
+	) {
+		const resolved = resolvePaneWidths(nextSidebarWidth, nextNoteListWidth);
+		liveSidebarWidth = resolved.sidebarWidth;
+		liveNoteListWidth = resolved.noteListWidth;
+		paneLayoutRef?.style.setProperty('--app-sidebar-width', `${resolved.sidebarWidth}px`);
+		paneLayoutRef?.style.setProperty('--app-note-list-width', `${resolved.noteListWidth}px`);
+
+		if (commit) {
+			sidebarWidth = resolved.sidebarWidth;
+			noteListWidth = resolved.noteListWidth;
+		}
+
+		return resolved;
 	}
 
 	function flushResizeFrame() {
 		if (!activeResizeHandle || pendingPointerX == null) return;
 
 		if (activeResizeHandle === 'sidebar') {
-			normalizePaneWidths(pendingPointerX, noteListWidth);
+			applyPaneWidths(pendingPointerX, liveNoteListWidth);
 			return;
 		}
 
-		const noteListStartX = sidebarWidth + RESIZE_HANDLE_WIDTH;
+		const noteListStartX = liveSidebarWidth + RESIZE_HANDLE_WIDTH;
 		const nextNoteListWidth = pendingPointerX - noteListStartX;
-		normalizePaneWidths(sidebarWidth, nextNoteListWidth);
+		applyPaneWidths(liveSidebarWidth, nextNoteListWidth);
 	}
 
 	function scheduleResizeFrame() {
@@ -94,8 +124,8 @@
 
 	function persistPaneWidths() {
 		void Promise.allSettled([
-			settingsRepository.save('sidebarWidth', sidebarWidth),
-			settingsRepository.save('noteListWidth', noteListWidth)
+			settingsRepository.save('sidebarWidth', liveSidebarWidth),
+			settingsRepository.save('noteListWidth', liveNoteListWidth)
 		]);
 	}
 
@@ -108,6 +138,8 @@
 		flushResizeFrame();
 		pendingPointerX = null;
 		activeResizeHandle = null;
+		sidebarWidth = liveSidebarWidth;
+		noteListWidth = liveNoteListWidth;
 		document.body.style.cursor = '';
 		document.body.style.userSelect = '';
 		persistPaneWidths();
@@ -148,7 +180,7 @@
 
 	onMount(() => {
 		const handleWindowResize = () => {
-			normalizePaneWidths();
+			applyPaneWidths(liveSidebarWidth, liveNoteListWidth, true);
 		};
 		const handleWindowPointerMove = (event: PointerEvent) => {
 			handlePointerMove(event);
@@ -172,9 +204,10 @@
 		void (async () => {
 			try {
 				const settings = await settingsRepository.getAll();
-				normalizePaneWidths(
+				applyPaneWidths(
 					settings.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH,
-					settings.noteListWidth ?? DEFAULT_NOTE_LIST_WIDTH
+					settings.noteListWidth ?? DEFAULT_NOTE_LIST_WIDTH,
+					true
 				);
 				await folderStore.init();
 				await selectionStore.init();
@@ -202,6 +235,7 @@
 			if (resizeFrame != null) {
 				cancelAnimationFrame(resizeFrame);
 			}
+			delete document.documentElement.dataset.appReady;
 			window.removeEventListener('resize', handleWindowResize);
 			window.removeEventListener('pointermove', handleWindowPointerMove);
 			window.removeEventListener('pointerup', handleWindowPointerUp);
@@ -213,81 +247,18 @@
 </script>
 
 <div class="dark h-screen overflow-hidden bg-background text-foreground">
-	{#if isInitializing}
-		<div
-			class="grid h-full grid-cols-[16rem_22rem_minmax(0,1fr)]"
-			aria-live="polite"
-			aria-busy="true"
-			data-testid="startup-loading"
-		>
-			<section class="flex h-full flex-col bg-sidebar/40 px-4 pt-6 pb-6">
-				<div class="mb-6 space-y-2">
-					<Skeleton class="h-4 w-20 rounded-sm bg-muted/40" />
-					<Skeleton class="h-8 w-full rounded-sm bg-muted/35" />
-					<Skeleton class="h-8 w-[85%] rounded-sm bg-muted/30" />
-					<Skeleton class="h-8 w-[90%] rounded-sm bg-muted/30" />
-				</div>
-				<div class="space-y-2">
-					<Skeleton class="h-4 w-24 rounded-sm bg-muted/35" />
-					<Skeleton class="h-8 w-full rounded-sm bg-muted/30" />
-					<Skeleton class="h-8 w-[88%] rounded-sm bg-muted/30" />
-					<Skeleton class="h-8 w-[76%] rounded-sm bg-muted/30" />
-				</div>
-				<div class="mt-auto">
-					<Skeleton class="h-8 w-32 rounded-sm bg-muted/35" />
-				</div>
-			</section>
-
-			<section class="flex h-full flex-col border-l border-sidebar-border/10 px-4 pt-4 pb-8">
-				<div class="mb-4 flex items-center justify-between px-2">
-					<Skeleton class="h-3 w-24 rounded-sm bg-muted/35" />
-					<div class="flex gap-2">
-						<Skeleton class="size-8 rounded-sm bg-muted/35" />
-						<Skeleton class="size-8 rounded-sm bg-muted/30" />
-					</div>
-				</div>
-				<Skeleton class="mx-2 mb-4 h-[34px] rounded-sm bg-muted/30" />
-				<div class="space-y-5 px-2">
-					<div class="space-y-2">
-						<Skeleton class="h-3 w-16 rounded-sm bg-muted/25" />
-						<Skeleton class="h-16 w-full rounded-xl bg-muted/35" />
-						<Skeleton class="h-16 w-full rounded-xl bg-muted/30" />
-					</div>
-					<div class="space-y-2">
-						<Skeleton class="h-3 w-20 rounded-sm bg-muted/25" />
-						<Skeleton class="h-16 w-full rounded-xl bg-muted/30" />
-						<Skeleton class="h-16 w-[92%] rounded-xl bg-muted/25" />
-					</div>
-				</div>
-			</section>
-
-			<section
-				class="flex h-full flex-col border-l border-sidebar-border/10 bg-card px-12 pt-10 pb-8"
-			>
-				<div class="mb-8 space-y-4">
-					<p class="text-[10px] font-bold tracking-[0.3em] text-muted-foreground/50 uppercase">
-						Loading your notes...
-					</p>
-					<Skeleton class="h-12 w-[48%] rounded-sm bg-muted/30" />
-					<Skeleton class="h-5 w-[30%] rounded-sm bg-muted/20" />
-				</div>
-				<div class="space-y-4">
-					<Skeleton class="h-5 w-full rounded-sm bg-muted/20" />
-					<Skeleton class="h-5 w-[96%] rounded-sm bg-muted/20" />
-					<Skeleton class="h-5 w-[88%] rounded-sm bg-muted/20" />
-					<Skeleton class="h-5 w-[92%] rounded-sm bg-muted/20" />
-					<Skeleton class="h-5 w-[84%] rounded-sm bg-muted/20" />
-				</div>
-			</section>
-		</div>
-	{:else}
-		<Sidebar.Provider class="flex h-full">
+	<div
+		class="h-full w-full"
+		style={`--app-sidebar-width: ${sidebarWidth}px; --app-note-list-width: ${noteListWidth}px;`}
+		bind:this={paneLayoutRef}
+	>
+		<Sidebar.Provider class="flex h-full w-full">
 			<div
 				class={[
 					'h-full shrink-0 overflow-hidden',
 					activeResizeHandle && 'pointer-events-none select-none'
 				]}
-				style={`width: ${sidebarWidth}px;`}
+				style="width: var(--app-sidebar-width);"
 			>
 				<Folders />
 			</div>
@@ -309,7 +280,7 @@
 					'h-full shrink-0 overflow-hidden border-l border-sidebar-border/10',
 					activeResizeHandle && 'pointer-events-none select-none'
 				]}
-				style={`width: ${noteListWidth}px;`}
+				style="width: var(--app-note-list-width);"
 			>
 				<NoteItems />
 			</div>
@@ -335,7 +306,7 @@
 				{@render children?.()}
 			</main>
 		</Sidebar.Provider>
-	{/if}
+	</div>
 </div>
 
 <Alert dialog={uiStore.appDialog} />
@@ -347,14 +318,42 @@
 		justify-content: center;
 		background: hsl(var(--background));
 		cursor: col-resize;
-		transition: background-color 150ms ease;
+		position: relative;
+		transition:
+			background-color 150ms ease,
+			box-shadow 150ms ease;
+	}
+
+	.pane-resize-handle::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			180deg,
+			transparent 0%,
+			hsl(var(--accent) / 0.16) 20%,
+			hsl(var(--accent) / 0.28) 50%,
+			hsl(var(--accent) / 0.16) 80%,
+			transparent 100%
+		);
+		opacity: 0;
+		transition: opacity 150ms ease;
 	}
 
 	.pane-resize-handle:hover,
 	.pane-resize-handle:focus-visible,
 	.pane-resize-handle[data-active='true'] {
 		background: hsl(var(--accent) / 0.45);
+		box-shadow:
+			inset 1px 0 0 hsl(var(--accent-foreground) / 0.12),
+			inset -1px 0 0 hsl(var(--accent-foreground) / 0.12);
 		outline: none;
+	}
+
+	.pane-resize-handle:hover::before,
+	.pane-resize-handle:focus-visible::before,
+	.pane-resize-handle[data-active='true']::before {
+		opacity: 1;
 	}
 
 	.pane-resize-grip {
@@ -362,6 +361,24 @@
 		width: 2px;
 		border-radius: 9999px;
 		background: hsl(var(--border));
-		box-shadow: 0 -10px 0 hsl(var(--border)), 0 10px 0 hsl(var(--border));
+		box-shadow:
+			0 -10px 0 hsl(var(--border)),
+			0 10px 0 hsl(var(--border));
+		position: relative;
+		z-index: 1;
+		transition:
+			background-color 150ms ease,
+			box-shadow 150ms ease,
+			transform 150ms ease;
+	}
+
+	.pane-resize-handle:hover .pane-resize-grip,
+	.pane-resize-handle:focus-visible .pane-resize-grip,
+	.pane-resize-handle[data-active='true'] .pane-resize-grip {
+		background: hsl(var(--accent-foreground) / 0.75);
+		box-shadow:
+			0 -10px 0 hsl(var(--accent-foreground) / 0.75),
+			0 10px 0 hsl(var(--accent-foreground) / 0.75);
+		transform: scaleY(1.08);
 	}
 </style>

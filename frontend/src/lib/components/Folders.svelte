@@ -24,7 +24,7 @@
 	}
 </script>
 
-<Sidebar.Root collapsible="none" class="h-full w-full border-r-0 bg-sidebar/40">
+<Sidebar.Root collapsible="none" class="h-full w-full select-none border-r-0 bg-sidebar/40">
 	{@const sections = folderSidebarView.sections}
 	<Sidebar.Header>
 		{#if sections.find((section) => section.id === 'views')?.sources.length}
@@ -151,7 +151,7 @@
 			<input
 				bind:value={folderStore.editingTitle}
 				class={[
-					'ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none',
+					'ml-2 h-6 min-w-0 flex-1 select-text rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none',
 					isRenameRejected && 'ring-destructive/60'
 				]}
 				use:focusAndSelect

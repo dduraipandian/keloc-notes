@@ -43,7 +43,7 @@
 	}
 </script>
 
-<aside class="relative z-0 flex h-full w-full flex-col">
+<aside class="relative z-0 flex h-full w-full select-none flex-col">
 	<!-- Header -->
 	<header class="flex h-[52px] shrink-0 items-center justify-between gap-2 px-6">
 		<div class="flex min-w-0 items-center gap-2 overflow-hidden">
@@ -86,7 +86,7 @@
 				<Input
 					bind:value={searchQuery}
 					placeholder="Search notes..."
-					class="h-[34px] rounded-sm border-none bg-accent/25 pl-10 text-sm placeholder:text-muted-foreground/40 focus-visible:ring-0"
+					class="h-[34px] select-text rounded-sm border-none bg-accent/25 pl-10 text-sm placeholder:text-muted-foreground/40 focus-visible:ring-0"
 				/>
 			</div>
 		</div>
