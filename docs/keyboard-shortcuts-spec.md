@@ -159,16 +159,14 @@ When one of these controls has focus:
 
 ## Visual Feedback
 
-The active pane should have subtle visual feedback so users understand why pane-scoped shortcuts are going to one pane and not another.
+Do not show a visible pane-focus treatment in the base UI.
 
-Acceptable approaches:
-- subtle pane outline
-- slightly stronger pane background
-- slightly stronger pane header tint
+Rules:
+- `activePane` is an internal interaction state, not a visible selection state.
+- The interface should not add outlines, rings, inset borders, or pane highlights just to show keyboard target.
+- Folder and note item selection should remain the only obvious visible selection states.
 
-Avoid:
-- heavy borders
-- anything that looks like a second selection state
+If keyboard discoverability becomes a problem later, solve it with documentation or a lightweight hint pattern, not a persistent pane highlight.
 
 ## Implementation Phases
 
@@ -176,7 +174,7 @@ Recommended order:
 
 1. Add `activePane` state.
 2. Wire pane activation on item clicks and empty-space clicks.
-3. Add subtle active-pane visual styling.
+3. Keep `activePane` internal only. Do not add pane highlight styling.
 4. Implement global shortcuts:
    - `Cmd/Ctrl+N`
    - `Cmd/Ctrl+Shift+N`

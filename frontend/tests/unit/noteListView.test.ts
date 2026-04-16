@@ -97,6 +97,27 @@ describe('NoteListView', () => {
 		expect(notes).toHaveLength(2);
 	});
 
+	it('should flatten visible note ids in rendered order', async () => {
+		const selector = new NoteListView(
+			{} as any,
+			{} as any,
+			{} as any,
+			{
+				getNotesForFolder: vi.fn().mockReturnValue([
+					{ id: '1', title: 'A', content: '', updatedAt: '2025-01-02T00:00:00Z' },
+					{ id: '2', title: 'B', content: '', updatedAt: '2025-01-02T12:00:00Z' },
+					{ id: '3', title: 'C', content: '', updatedAt: '2025-01-01T00:00:00Z' }
+				])
+			} as any,
+			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
+		);
+
+		selector.setSearchQuery('');
+		await vi.advanceTimersByTimeAsync(150);
+
+		expect(selector.getVisibleNoteIds()).toEqual(['1', '2', '3']);
+	});
+
 	it('should debounce search query updates and use the latest value', async () => {
 		const selector = new NoteListView(
 			{} as any,

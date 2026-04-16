@@ -47,6 +47,14 @@ export type SidebarSourceSection = {
 	sources: SidebarSourceItem[];
 };
 
+export type SidebarNavigationItem = {
+	id: FolderID;
+	parentId: FolderID | null;
+	firstChildId: FolderID | null;
+	hasChildren: boolean;
+	isOpen: boolean;
+};
+
 type SidebarActionDeps = {
 	folderCreate: () => void;
 	folderStartRename: (id: FolderID) => void;
@@ -128,6 +136,52 @@ export class FolderSidebarView {
 
 	getSections(): SidebarSourceSection[] {
 		return this.sections;
+	}
+
+	getNavigableIds(): FolderID[] {
+		const ids: FolderID[] = [];
+		const visit = (source: SidebarSourceItem) => {
+			ids.push(source.id);
+			if (source.isOpen) {
+				source.children.forEach(visit);
+			}
+		};
+
+		this.getSections().forEach((section) => {
+			section.sources.forEach(visit);
+		});
+
+		return ids;
+	}
+
+	getNavigationItem(id: FolderID): SidebarNavigationItem | null {
+		const find = (source: SidebarSourceItem): SidebarNavigationItem | null => {
+			if (source.id === id) {
+				return {
+					id: source.id,
+					parentId: source.item.parentId ?? null,
+					firstChildId: source.children[0]?.id ?? null,
+					hasChildren: source.children.length > 0,
+					isOpen: source.isOpen
+				};
+			}
+
+			for (const child of source.children) {
+				const match = find(child);
+				if (match) return match;
+			}
+
+			return null;
+		};
+
+		for (const section of this.getSections()) {
+			for (const source of section.sources) {
+				const match = find(source);
+				if (match) return match;
+			}
+		}
+
+		return null;
 	}
 
 	private buildSource(

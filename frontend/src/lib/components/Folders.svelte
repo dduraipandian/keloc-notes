@@ -14,7 +14,7 @@
 	import { folderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte';
 	import { folderService } from '$lib/stores/services';
 
-	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none';
+	const menuButtonStyle = 'h-8 rounded-sm px-3 pr-10 transition-none focus-visible:ring-0';
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
@@ -31,10 +31,7 @@
 </script>
 
 <div
-	class={[
-		'h-full w-full transition-shadow',
-		uiStateStore.activePane === 'folders' && 'shadow-[inset_-2px_0_0_hsl(var(--ring)/0.22)]'
-	]}
+	class="h-full w-full"
 	data-testid="folders-pane"
 	data-pane-active={uiStateStore.activePane === 'folders' ? 'true' : 'false'}
 	use:activatePaneOnClick={'folders'}

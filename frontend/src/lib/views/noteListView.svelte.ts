@@ -88,6 +88,10 @@ export class NoteListView {
 		return groupNotesByDate(this.getFilteredNotes());
 	}
 
+	getVisibleNoteIds() {
+		return this.getSections().flatMap(([, notes]) => notes.map((note) => note.id));
+	}
+
 	getRestoreContext(note: NoteItem | null) {
 		if (!note?.folderId) {
 			return { isHierarchical: false, targetName: 'Home' };

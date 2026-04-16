@@ -46,10 +46,7 @@
 </script>
 
 <aside
-	class={[
-		'relative z-0 flex h-full w-full select-none flex-col transition-shadow',
-		uiStateStore.activePane === 'notes' && 'shadow-[inset_-2px_0_0_hsl(var(--ring)/0.22)]'
-	]}
+	class="relative z-0 flex h-full w-full select-none flex-col"
 	data-testid="notes-pane"
 	data-pane-active={uiStateStore.activePane === 'notes' ? 'true' : 'false'}
 	use:activatePaneOnClick={'notes'}

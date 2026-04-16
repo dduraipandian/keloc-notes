@@ -433,3 +433,58 @@ describe('selection and note counts', () => {
 		expect(work?.noteCount).toBe(5);
 	});
 });
+
+describe('navigable order', () => {
+	it('flattens visible sidebar ids in display order', () => {
+		const view = createView({
+			items: ['work', 'personal'],
+			folders: {
+				home: { id: 'home', title: 'Home', profile: 'home' },
+				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Recently Deleted', profile: 'trash' },
+				work: { id: 'work', title: 'Work', profile: 'regular', isOpen: true, items: ['projects'] },
+				projects: { id: 'projects', title: 'Projects', profile: 'regular', parentId: 'work' },
+				personal: { id: 'personal', title: 'Personal', profile: 'regular' }
+			}
+		});
+
+		expect(view.getNavigableIds()).toEqual([
+			'home',
+			'favorites',
+			'deleted-notes',
+			'work',
+			'projects',
+			'personal'
+		]);
+	});
+
+	it('returns tree metadata for the selected folder', () => {
+		const view = createView({
+			items: ['work', 'personal'],
+			folders: {
+				home: { id: 'home', title: 'Home', profile: 'home' },
+				favorites: { id: 'favorites', title: 'Favorites', profile: 'favorites' },
+				'deleted-notes': { id: 'deleted-notes', title: 'Recently Deleted', profile: 'trash' },
+				work: { id: 'work', title: 'Work', profile: 'regular', isOpen: true, items: ['projects'] },
+				projects: { id: 'projects', title: 'Projects', profile: 'regular', parentId: 'work' },
+				personal: { id: 'personal', title: 'Personal', profile: 'regular' }
+			}
+		});
+
+		expect(view.getNavigationItem('work')).toEqual({
+			id: 'work',
+			parentId: null,
+			firstChildId: 'projects',
+			hasChildren: true,
+			isOpen: true
+		});
+
+		expect(view.getNavigationItem('projects')).toEqual({
+			id: 'projects',
+			parentId: 'work',
+			firstChildId: null,
+			hasChildren: false,
+			isOpen: false
+		});
+	});
+});

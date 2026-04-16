@@ -6,7 +6,12 @@
 	import { selectionStore } from '$lib/stores/selection.svelte';
 	import { settingsRepository } from '$lib/stores/repositories';
 	import { themeStore } from '$lib/stores/theme.svelte';
-	import { handleEscapeShortcut, handleGlobalShortcut } from '$lib/keyboard/shortcuts';
+	import {
+		handleEscapeShortcut,
+		handleFoldersPaneShortcut,
+		handleGlobalShortcut,
+		handleNotesPaneShortcut
+	} from '$lib/keyboard/shortcuts';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import Alert from './alert.svelte';
 	import Folders from '$lib/components/Folders.svelte';
@@ -14,6 +19,9 @@
 	import { EventsEmit, EventsOn, Quit, WindowSetTitle } from '$lib/wailsjs/runtime/runtime';
 	import { uiStore } from '$lib/stores/dialog.svelte';
 	import { folderService, noteService } from '$lib/stores/services';
+	import { folderSidebarView } from '$lib/views/folderSidebarView.svelte';
+	import { noteListView } from '$lib/views/noteListView.svelte';
+	import { uiStateStore } from '$lib/stores/uiState.svelte';
 
 	let { children } = $props();
 
@@ -174,6 +182,48 @@
 				{
 					hasDialogOpen: uiStore.hasOpenDialog(),
 					isRenameActive: folderStore.editingId != null
+				}
+			)
+		) {
+			return;
+		}
+
+		if (
+			handleFoldersPaneShortcut(
+				event,
+				{
+					activePane: uiStateStore.activePane,
+					isRenameActive: folderStore.editingId != null,
+					navigableIds: folderSidebarView.getNavigableIds(),
+					selectedFolderId: selectionStore.selectedFolderID,
+					selectedFolderTreeItem:
+						selectionStore.selectedFolderID != null
+							? folderSidebarView.getNavigationItem(selectionStore.selectedFolderID)
+							: null
+				},
+				{
+					selectFolder: (id) => folderService.select(id),
+					toggleFolder: (id) => folderService.toggle(id)
+				}
+			)
+		) {
+			return;
+		}
+
+		if (
+			handleNotesPaneShortcut(
+				event,
+				{
+					activePane: uiStateStore.activePane,
+					visibleNoteIds: noteListView.getVisibleNoteIds(),
+					selectedNoteId: notesStore.selectedNoteID,
+					selectedNoteDeleteContext: noteListView.getSelectedNoteDeleteContext()
+				},
+				{
+					selectNote: (id) => noteService.select(id),
+					activateEditor: () => uiStateStore.setActivePane('editor'),
+					requestDeleteNote: (id, title) =>
+						uiStore.confirmNoteDelete(title, () => noteService.delete(id))
 				}
 			)
 		) {

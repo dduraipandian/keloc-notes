@@ -35,10 +35,7 @@
 
 {#if selectedNote}
 	<div
-		class={[
-			'flex h-full animate-in flex-col bg-card duration-500 fade-in transition-shadow',
-			uiStateStore.activePane === 'editor' && 'shadow-[inset_2px_0_0_hsl(var(--ring)/0.22)]'
-		]}
+		class="flex h-full animate-in flex-col bg-card duration-500 fade-in"
 		data-testid="editor-pane"
 		data-pane-active={uiStateStore.activePane === 'editor' ? 'true' : 'false'}
 		use:activatePaneOnClick={'editor'}
@@ -107,10 +104,7 @@
 	</div>
 {:else}
 	<div
-		class={[
-			'flex h-full animate-in flex-col items-center justify-center bg-card/50 text-muted-foreground/20 duration-1000 zoom-in-95 transition-shadow',
-			uiStateStore.activePane === 'editor' && 'shadow-[inset_2px_0_0_hsl(var(--ring)/0.22)]'
-		]}
+		class="flex h-full animate-in flex-col items-center justify-center bg-card/50 text-muted-foreground/20 duration-1000 zoom-in-95"
 		data-testid="editor-pane"
 		data-pane-active={uiStateStore.activePane === 'editor' ? 'true' : 'false'}
 		use:activatePaneOnClick={'editor'}
