@@ -102,11 +102,13 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 			await putSetting('selectedNoteID', 'n1');
 			await putSetting('sidebarWidth', 280);
 			await putSetting('noteListWidth', 360);
+			await putSetting('applicationTheme', 'dark');
 			const settings = await getAllSettings();
 			expect(settings.selectedNoteID).toBe('n1');
 			expect(settings.selectedFolderID).toBeNull(); // Default
 			expect(settings.sidebarWidth).toBe(280);
 			expect(settings.noteListWidth).toBe(360);
+			expect(settings.applicationTheme).toBe('dark');
 		});
 	});
 
