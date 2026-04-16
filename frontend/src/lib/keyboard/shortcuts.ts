@@ -14,6 +14,16 @@ type GlobalShortcutActions = {
 	createFolder: () => void;
 };
 
+type EscapeShortcutActions = {
+	closeDialogs: () => void;
+	cancelRename: () => void;
+};
+
+type EscapeShortcutState = {
+	hasDialogOpen: boolean;
+	isRenameActive: boolean;
+};
+
 export function handleGlobalShortcut(
 	event: KeyboardEvent,
 	actions: GlobalShortcutActions
@@ -34,6 +44,28 @@ export function handleGlobalShortcut(
 	if (key === 'n') {
 		event.preventDefault();
 		actions.createNote();
+		return true;
+	}
+
+	return false;
+}
+
+export function handleEscapeShortcut(
+	event: KeyboardEvent,
+	actions: EscapeShortcutActions,
+	state: EscapeShortcutState
+) {
+	if (event.key !== 'Escape') return false;
+
+	if (state.hasDialogOpen) {
+		event.preventDefault();
+		actions.closeDialogs();
+		return true;
+	}
+
+	if (state.isRenameActive) {
+		event.preventDefault();
+		actions.cancelRename();
 		return true;
 	}
 

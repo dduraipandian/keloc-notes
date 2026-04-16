@@ -6,7 +6,7 @@
 	import { selectionStore } from '$lib/stores/selection.svelte';
 	import { settingsRepository } from '$lib/stores/repositories';
 	import { themeStore } from '$lib/stores/theme.svelte';
-	import { handleGlobalShortcut } from '$lib/keyboard/shortcuts';
+	import { handleEscapeShortcut, handleGlobalShortcut } from '$lib/keyboard/shortcuts';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import Alert from './alert.svelte';
 	import Folders from '$lib/components/Folders.svelte';
@@ -164,6 +164,22 @@
 	}
 
 	function handleWindowKeyDown(event: KeyboardEvent) {
+		if (
+			handleEscapeShortcut(
+				event,
+				{
+					closeDialogs: () => uiStore.closeDialogs(),
+					cancelRename: () => folderService.cancelRename()
+				},
+				{
+					hasDialogOpen: uiStore.hasOpenDialog(),
+					isRenameActive: folderStore.editingId != null
+				}
+			)
+		) {
+			return;
+		}
+
 		handleGlobalShortcut(event, {
 			createNote: () => noteService.create(selectionStore.selectedFolderID ?? null),
 			createFolder: () => folderService.create()

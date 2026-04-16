@@ -130,6 +130,16 @@ class UIStore {
 			onConfirm
 		};
 	}
+
+	closeDialogs() {
+		this.noteDialog.open = false;
+		this.folderDialog.open = false;
+		this.appDialog.open = false;
+	}
+
+	hasOpenDialog() {
+		return this.noteDialog.open || this.folderDialog.open || this.appDialog.open;
+	}
 }
 
 export const uiStore = new UIStore();

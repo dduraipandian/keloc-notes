@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
 	handleGlobalShortcut,
+	handleEscapeShortcut,
 	isEditableTarget
 } from '../../src/lib/keyboard/shortcuts';
 
@@ -81,6 +82,57 @@ describe('keyboard shortcuts helper', () => {
 		expect(handled).toBe(false);
 		expect(createNote).not.toHaveBeenCalled();
 		expect(createFolder).not.toHaveBeenCalled();
+		expect(event.defaultPrevented).toBe(false);
+	});
+
+	it('handles Escape by closing dialogs first', () => {
+		const closeDialogs = vi.fn();
+		const cancelRename = vi.fn();
+		const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+
+		const handled = handleEscapeShortcut(
+			event,
+			{ closeDialogs, cancelRename },
+			{ hasDialogOpen: true, isRenameActive: true }
+		);
+
+		expect(handled).toBe(true);
+		expect(closeDialogs).toHaveBeenCalledTimes(1);
+		expect(cancelRename).not.toHaveBeenCalled();
+		expect(event.defaultPrevented).toBe(true);
+	});
+
+	it('handles Escape by canceling rename when no dialogs are open', () => {
+		const closeDialogs = vi.fn();
+		const cancelRename = vi.fn();
+		const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+
+		const handled = handleEscapeShortcut(
+			event,
+			{ closeDialogs, cancelRename },
+			{ hasDialogOpen: false, isRenameActive: true }
+		);
+
+		expect(handled).toBe(true);
+		expect(cancelRename).toHaveBeenCalledTimes(1);
+		expect(closeDialogs).not.toHaveBeenCalled();
+		expect(event.defaultPrevented).toBe(true);
+	});
+
+	it('does not handle Escape when there is no transient ui state', () => {
+		const closeDialogs = vi.fn();
+		const cancelRename = vi.fn();
+		const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+
+		const handled = handleEscapeShortcut(
+			event,
+			{ closeDialogs, cancelRename },
+			{ hasDialogOpen: false, isRenameActive: false }
+		);
+
+		expect(handled).toBe(false);
+		expect(closeDialogs).not.toHaveBeenCalled();
+		expect(cancelRename).not.toHaveBeenCalled();
 		expect(event.defaultPrevented).toBe(false);
 	});
 });
