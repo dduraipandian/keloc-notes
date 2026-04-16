@@ -259,6 +259,39 @@
 				}
 			}
 		</style>
+		<script>
+			(function () {
+				try {
+					var request = window.indexedDB.open('mdnotes-db');
+					request.onsuccess = function (event) {
+						var db = event.target.result;
+						if (!db.objectStoreNames.contains('settings')) return;
+
+						var tx = db.transaction('settings', 'readonly');
+						var store = tx.objectStore('settings');
+
+						var sidebarReq = store.get('sidebarWidth');
+						var noteListReq = store.get('noteListWidth');
+
+						tx.oncomplete = function () {
+							var sidebarWidth = typeof sidebarReq.result === 'number' ? sidebarReq.result : 256;
+							var noteListWidth = typeof noteListReq.result === 'number' ? noteListReq.result : 350;
+
+							if (sidebarWidth !== 256 || noteListWidth !== 350) {
+								var style = document.createElement('style');
+								style.textContent =
+									'.startup-shell__body { grid-template-columns: ' +
+									sidebarWidth +
+									'px 10px ' +
+									noteListWidth +
+									'px 10px minmax(0, 1fr) !important; }';
+								document.head.appendChild(style);
+							}
+						};
+					};
+				} catch (e) {}
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
