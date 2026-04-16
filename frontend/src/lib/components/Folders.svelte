@@ -80,8 +80,8 @@
 					class={[
 						'rounded-sm p-1.5 transition-colors',
 						themeStore.theme === 'light'
-							? 'bg-accent text-foreground shadow-sm'
-							: 'text-foreground/40 hover:bg-accent/40 hover:text-foreground/70'
+							? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+							: 'text-sidebar-foreground/40 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70'
 					]}
 					onclick={() => themeStore.setTheme('light')}
 					title="Light Mode"
@@ -92,8 +92,8 @@
 					class={[
 						'rounded-sm p-1.5 transition-colors',
 						themeStore.theme === 'dark'
-							? 'bg-accent text-foreground shadow-sm'
-							: 'text-foreground/40 hover:bg-accent/40 hover:text-foreground/70'
+							? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+							: 'text-sidebar-foreground/40 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70'
 					]}
 					onclick={() => themeStore.setTheme('dark')}
 					title="Dark Mode"
@@ -104,8 +104,8 @@
 					class={[
 						'rounded-sm p-1.5 transition-colors',
 						themeStore.theme === 'system'
-							? 'bg-accent text-foreground shadow-sm'
-							: 'text-foreground/40 hover:bg-accent/40 hover:text-foreground/70'
+							? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+							: 'text-sidebar-foreground/40 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/70'
 					]}
 					onclick={() => themeStore.setTheme('system')}
 					title="System Theme"
@@ -166,8 +166,8 @@
 			menuButtonStyle,
 			isRenameRejected && 'folder-rename-rejected',
 			source.isSelected
-				? 'bg-accent text-foreground shadow-sm'
-				: 'text-foreground/70 hover:bg-accent/20 hover:text-foreground'
+				? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+				: 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
 		]}
 		{...props}
 		isActive={source.isSelected}

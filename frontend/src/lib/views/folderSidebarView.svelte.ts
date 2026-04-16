@@ -10,7 +10,10 @@ import Trash2 from '@lucide/svelte/icons/trash-2';
 import type { FolderProfileConfig, SidebarCapabilities } from '$lib/stores/domain/profiles';
 import { resolveProfile, getProfileId, SYSTEM_VIEWS } from '$lib/stores/domain/profiles';
 
-const FOLDER_COLOR = '#dcb15a'; // Apple-style gold/folder color
+const HOME_COLOR = '#4dbb5f';
+const FAVORITE_COLOR = '#f5d04e';
+const TRASH_COLOR = '#e85a5a';
+const FOLDER_COLOR = '#d4a34b';
 
 export type ContextMenuItemVariant = 'default' | 'destructive';
 
@@ -60,17 +63,20 @@ export const ICON_REGISTRY: Record<
 > = {
 	home: {
 		component: Home as any,
-		props: { class: 'text-green-300' }
+		props: { style: `color: ${HOME_COLOR}` }
 	},
-	favorites: { component: Star as any, props: { class: 'fill-[#e0b64b] text-[#e0b64b]' } },
-	trash: { component: Trash2 as any, props: { class: 'text-destructive/70' } },
+	favorites: {
+		component: Star as any,
+		props: { style: `color: ${FAVORITE_COLOR}`, fill: FAVORITE_COLOR }
+	},
+	trash: { component: Trash2 as any, props: { style: `color: ${TRASH_COLOR}` } },
 	regular: {
 		component: Folder as any,
-		props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' }
+		props: { style: `color: ${FOLDER_COLOR}` }
 	},
 	deleted: {
 		component: Folder as any,
-		props: { style: `color: ${FOLDER_COLOR}`, class: 'opacity-80' }
+		props: { style: `color: ${FOLDER_COLOR}` }
 	}
 };
 

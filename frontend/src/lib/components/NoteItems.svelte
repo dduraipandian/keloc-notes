@@ -93,9 +93,9 @@
 		<div class="custom-scrollbar flex-1 overflow-y-auto px-4 pb-8">
 			{#each sections as [label, notes]}
 				<Item.Group>
-					<Item.Header class="mt-6 px-3">
+					<Item.Header class="mt-4 px-3">
 						<span
-							class="text-[10px] font-bold tracking-[0.15em] text-muted-foreground/40 uppercase"
+							class="text-[11px] font-bold tracking-[0.05em] text-foreground opacity-30 uppercase"
 						>
 							{label}
 						</span>
@@ -105,22 +105,25 @@
 						<ContextMenu.Root>
 							<ContextMenu.Trigger>
 								<Item.Root
-									variant={isSelected ? 'muted' : 'default'}
+									class={[
+										'mx-1 mb-0.5 rounded-lg border-none transition-none',
+										isSelected ? 'bg-accent/80' : 'bg-transparent hover:bg-accent/30'
+									]}
 									onclick={() => noteService.select(note.id)}
 								>
-									<Item.Content>
-										<Item.Title class="flex w-full items-center gap-2 overflow-hidden">
+									<Item.Content class="px-3 py-3">
+										<Item.Title class="mb-0.5 flex w-full items-center gap-2 overflow-hidden">
 											{#if note.isFavorite}
-												<Star size={12} class="shrink-0 fill-[#e0b64b] text-[#e0b64b]" />
+												<Star size={12} class="shrink-0 fill-[#f5d04e] text-[#f5d04e]" />
 											{/if}
-											<span class="flex-1 truncate text-sm font-semibold text-foreground/90">
+											<span class="flex-1 truncate text-[13px] font-bold text-foreground">
 												{note.title || 'Untitled Note'}
 											</span>
-											<span class="shrink-0 text-[10px] text-muted-foreground/50 tabular-nums">
+											<span class="shrink-0 text-[11px] text-foreground/40 tabular-nums">
 												{getTime(note.updatedAt)}
 											</span>
 										</Item.Title>
-										<Item.Description>
+										<Item.Description class="line-clamp-2 text-[12px] leading-snug text-foreground/50">
 											{note.content || 'No additional text'}
 										</Item.Description>
 									</Item.Content>
