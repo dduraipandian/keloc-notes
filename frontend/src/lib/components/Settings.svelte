@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
+	import {
+		AlertDialog,
+		AlertDialogContent,
+		AlertDialogHeader,
+		AlertDialogTitle
+	} from './ui/alert-dialog';
 	import { preferencesStore } from '$lib/stores/preferences.svelte';
 	import { themeStore } from '$lib/stores/theme.svelte';
 	import SettingsIcon from '@lucide/svelte/icons/settings';
@@ -29,10 +34,18 @@
 		preferencesStore.setFolderAccentColor(color);
 	}
 
-	const isCustomColor = $derived(!predefinedColors.some((c) => c.value === preferencesStore.folderAccentColor));
+	const isCustomColor = $derived(
+		!predefinedColors.some((c) => c.value === preferencesStore.folderAccentColor)
+	);
 </script>
 
-<AlertDialog {open} onOpenChange={(isOpen) => { open = isOpen; if (!isOpen) onClose?.(); }}>
+<AlertDialog
+	{open}
+	onOpenChange={(isOpen) => {
+		open = isOpen;
+		if (!isOpen) onClose?.();
+	}}
+>
 	<AlertDialogContent class="settings-dialog">
 		<div class="settings-container">
 			<div class="macos-titlebar">
@@ -48,16 +61,16 @@
 			</div>
 
 			<div class="settings-toolbar">
-				<button 
-					class={['toolbar-item', activeTab === 'general' && 'active']} 
-					onclick={() => activeTab = 'general'}
+				<button
+					class={['toolbar-item', activeTab === 'general' && 'active']}
+					onclick={() => (activeTab = 'general')}
 				>
 					<SettingsIcon size={20} />
 					<span>General</span>
 				</button>
-				<button 
-					class={['toolbar-item', activeTab === 'appearance' && 'active']} 
-					onclick={() => activeTab = 'appearance'}
+				<button
+					class={['toolbar-item', activeTab === 'appearance' && 'active']}
+					onclick={() => (activeTab = 'appearance')}
 				>
 					<Palette size={20} />
 					<span>Appearance</span>
@@ -72,7 +85,10 @@
 						<div class="color-picker-grid">
 							{#each predefinedColors as { name, value }}
 								<button
-									class={['color-swatch', preferencesStore.folderAccentColor === value && 'selected']}
+									class={[
+										'color-swatch',
+										preferencesStore.folderAccentColor === value && 'selected'
+									]}
 									style="background-color: {value};"
 									title={name}
 									onclick={() => handleColorChange(value)}
@@ -81,6 +97,7 @@
 							{/each}
 							<div
 								class={['custom-color-wrapper', isCustomColor && 'selected']}
+								style={isCustomColor ? `background: ${preferencesStore.folderAccentColor}` : ''}
 								title="Custom color picker"
 							>
 								<input
@@ -98,21 +115,21 @@
 						<label>Appearance Mode</label>
 						<p class="description">Select how mdnotes should look on your system.</p>
 						<div class="appearance-options">
-							<button 
+							<button
 								class={['appearance-card', themeStore.theme === 'light' && 'selected']}
 								onclick={() => themeStore.setTheme('light')}
 							>
 								<div class="theme-preview light"></div>
 								<span>Light</span>
 							</button>
-							<button 
+							<button
 								class={['appearance-card', themeStore.theme === 'dark' && 'selected']}
 								onclick={() => themeStore.setTheme('dark')}
 							>
 								<div class="theme-preview dark"></div>
 								<span>Dark</span>
 							</button>
-							<button 
+							<button
 								class={['appearance-card', themeStore.theme === 'system' && 'selected']}
 								onclick={() => themeStore.setTheme('system')}
 							>
@@ -267,7 +284,7 @@
 		border: 2px solid transparent;
 		cursor: pointer;
 		transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-		box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 	}
 
 	.color-swatch:hover {
@@ -276,7 +293,9 @@
 
 	.color-swatch.selected {
 		border-color: var(--foreground);
-		box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--foreground);
+		box-shadow:
+			0 0 0 2px var(--background),
+			0 0 0 4px var(--foreground);
 	}
 
 	.custom-color-wrapper {
@@ -305,7 +324,9 @@
 
 	.custom-color-wrapper.selected {
 		border-color: var(--foreground);
-		box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--foreground);
+		box-shadow:
+			0 0 0 2px var(--background),
+			0 0 0 4px var(--foreground);
 	}
 
 	.custom-color-wrapper:hover {
@@ -321,6 +342,7 @@
 		top: -25%;
 		left: -25%;
 		cursor: pointer;
+		opacity: 0;
 	}
 
 	.appearance-options {
@@ -358,9 +380,13 @@
 		border: 1px solid var(--border);
 	}
 
-	.theme-preview.light { background: #f5f5f7; }
-	.theme-preview.dark { background: #1e1e1e; }
-	.theme-preview.system { 
+	.theme-preview.light {
+		background: #f5f5f7;
+	}
+	.theme-preview.dark {
+		background: #1e1e1e;
+	}
+	.theme-preview.system {
 		background: linear-gradient(135deg, #f5f5f7 50%, #1e1e1e 50%);
 	}
 
