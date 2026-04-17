@@ -16,7 +16,9 @@
 
 	let searchQuery = $state('');
 	const selectedFolderTitle = $derived(noteListView.getSelectedFolderTitle());
-	const selectedFolderIcon = $derived(ICON_REGISTRY[noteListView.getSelectedFolderProfileId()] ?? ICON_REGISTRY.regular);
+	const selectedFolderIcon = $derived(
+		ICON_REGISTRY[noteListView.getSelectedFolderProfileId()] ?? ICON_REGISTRY.regular
+	);
 	const canCreateNote = $derived(noteListView.canCreateNote());
 	const canDeleteSelectedNote = $derived(noteListView.canDeleteSelectedNote());
 	const selectedNoteDeleteContext = $derived(noteListView.getSelectedNoteDeleteContext());
@@ -45,7 +47,7 @@
 </script>
 
 <aside
-	class="relative z-0 flex h-full w-full select-none flex-col"
+	class="relative z-0 flex h-full w-full flex-col select-none"
 	data-testid="notes-pane"
 	use:activatePaneOnClick={'notes'}
 >
@@ -91,7 +93,7 @@
 				<Input
 					bind:value={searchQuery}
 					placeholder="Search notes..."
-					class="h-[34px] select-text rounded-sm border-none bg-accent/25 pl-10 text-sm placeholder:text-muted-foreground/40 focus-visible:ring-0"
+					class="h-[34px] rounded-sm border-none bg-accent/25 pl-10 text-sm select-text placeholder:text-muted-foreground/40 focus-visible:ring-0"
 				/>
 			</div>
 		</div>
@@ -100,7 +102,7 @@
 				<Item.Group>
 					<Item.Header class="mt-4 px-3">
 						<span
-							class="text-[11px] font-bold tracking-[0.05em] text-foreground opacity-30 uppercase"
+							class="text-[11px] font-bold tracking-[0.05em] text-foreground uppercase opacity-30"
 						>
 							{label}
 						</span>
@@ -111,7 +113,7 @@
 							<ContextMenu.Trigger>
 								<Item.Root
 									class={[
-										'mx-1 mb-0.5 rounded-lg border-none outline-none shadow-none transition-none focus:outline-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:shadow-none',
+										'mx-1 mb-0.5 rounded-lg border-none shadow-none transition-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:shadow-none focus-visible:ring-0',
 										isSelected ? 'bg-accent/80' : 'bg-transparent hover:bg-accent/30'
 									]}
 									onclick={() => noteService.select(note.id)}
@@ -128,7 +130,9 @@
 												{getTime(note.updatedAt)}
 											</span>
 										</Item.Title>
-										<Item.Description class="line-clamp-2 text-[12px] leading-snug text-foreground/50">
+										<Item.Description
+											class="lline-clamp-1 text-[12px] leading-snug break-all text-foreground/50"
+										>
 											{note.content || 'No additional text'}
 										</Item.Description>
 									</Item.Content>
