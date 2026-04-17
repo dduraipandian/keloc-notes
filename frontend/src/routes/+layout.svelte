@@ -197,6 +197,10 @@
 			return;
 		}
 
+		if (uiStore.hasOpenDialog()) {
+			return;
+		}
+
 		if (
 			handleFoldersPaneShortcut(
 				event,
@@ -230,7 +234,13 @@
 				},
 				{
 					selectNote: (id) => noteService.select(id),
-					activateEditor: () => uiStateStore.setActivePane('editor'),
+					activateEditor: () => {
+						uiStateStore.setActivePane('editor');
+						setTimeout(() => {
+							const titleInput = document.querySelector('[data-testid="editor-pane"] textarea:first-of-type') as HTMLTextAreaElement;
+							if (titleInput) titleInput.focus();
+						}, 10);
+					},
 					requestDeleteNote: (id, title) =>
 						uiStore.confirmNoteDelete(title, () => noteService.delete(id))
 				}
@@ -241,7 +251,12 @@
 
 		handleGlobalShortcut(event, {
 			createNote: () => noteService.create(selectionStore.selectedFolderID ?? null),
-			createFolder: () => folderService.create()
+			createFolder: () => folderService.create(),
+			focusSearch: () => {
+				uiStateStore.setActivePane('notes');
+				const input = document.querySelector('[data-testid="notes-pane"] input') as HTMLInputElement;
+				if (input) input.focus();
+			}
 		});
 	}
 

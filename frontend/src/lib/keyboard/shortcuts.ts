@@ -12,6 +12,7 @@ export function isEditableTarget(target: EventTarget | null) {
 type GlobalShortcutActions = {
 	createNote: () => void;
 	createFolder: () => void;
+	focusSearch: () => void;
 };
 
 type EscapeShortcutActions = {
@@ -65,9 +66,15 @@ export function handleGlobalShortcut(
 	if (isEditableTarget(event.target)) return false;
 
 	const hasPrimaryModifier = event.metaKey || event.ctrlKey;
-	if (!hasPrimaryModifier) return false;
-
 	const key = event.key.toLowerCase();
+
+	if (key === '/' && !hasPrimaryModifier) {
+		event.preventDefault();
+		actions.focusSearch();
+		return true;
+	}
+
+	if (!hasPrimaryModifier) return false;
 
 	if (key === 'n' && event.shiftKey) {
 		event.preventDefault();

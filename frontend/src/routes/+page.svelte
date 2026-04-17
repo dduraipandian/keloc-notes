@@ -12,18 +12,6 @@
 	let selectedNote = $derived(notesStore.selectedNote);
 
 	let restoreContext = $derived(noteListView.getRestoreContext(selectedNote));
-	let titleRef = $state<HTMLTextAreaElement | null>(null);
-
-	$effect(() => {
-		if (uiStateStore.activePane === 'editor' && selectedNote && titleRef) {
-			const timer = setTimeout(() => {
-				if (uiStateStore.activePane === 'editor') {
-					titleRef?.focus();
-				}
-			}, 10);
-			return () => clearTimeout(timer);
-		}
-	});
 
 	function handleRestoreInit() {
 		if (!selectedNote) return;
@@ -79,7 +67,6 @@
 						<span>{formatDate(selectedNote.updatedAt)}</span>
 					</div>
 					<textarea
-						bind:this={titleRef}
 						bind:value={selectedNote.title}
 						oninput={() => noteService.update(selectedNote!.id, { title: selectedNote!.title })}
 						placeholder="Note Title"
