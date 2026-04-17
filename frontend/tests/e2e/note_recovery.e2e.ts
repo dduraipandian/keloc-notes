@@ -4,6 +4,19 @@ function uniqueName(prefix: string) {
 	return `${prefix}-${Math.floor(Math.random() * 1000)}`;
 }
 
+async function gotoApp(page: import('@playwright/test').Page) {
+	const dbName = `mdnotes-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	await page.addInitScript(() => {
+		window.localStorage.clear();
+		window.sessionStorage.clear();
+	}, {});
+	await page.addInitScript((name: string) => {
+		(window as Window & { __MDNOTES_DB_NAME__?: string }).__MDNOTES_DB_NAME__ = name;
+	}, dbName);
+	await page.goto('/');
+	await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true');
+}
+
 function getNoteTitleInPane(page: import('@playwright/test').Page) {
 	return page.locator('aside div[data-slot="item-title"]');
 }
@@ -53,7 +66,7 @@ async function deleteSelectedNote(page: import('@playwright/test').Page) {
 
 test.describe('Note Recovery (Flat Model)', () => {
 	test.beforeEach(async ({ page }) => {
-		await page.goto('/');
+		await gotoApp(page);
 	});
 
 	test('should recover a note to Home (Root) if its original folder was deleted', async ({ page }) => {

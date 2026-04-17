@@ -4,6 +4,19 @@ function uniqueName(prefix: string) {
 	return `${prefix}-${Math.floor(Math.random() * 1000)}`;
 }
 
+async function gotoApp(page: import('@playwright/test').Page) {
+	const dbName = `mdnotes-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	await page.addInitScript(() => {
+		window.localStorage.clear();
+		window.sessionStorage.clear();
+	}, {});
+	await page.addInitScript((name: string) => {
+		(window as Window & { __MDNOTES_DB_NAME__?: string }).__MDNOTES_DB_NAME__ = name;
+	}, dbName);
+	await page.goto('/');
+	await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true');
+}
+
 function getSideBarContent(page: import('@playwright/test').Page) {
 	return page.locator('div[data-sidebar="content"] ul li[data-sidebar="menu-item"]');
 }
@@ -107,14 +120,14 @@ async function openFavorites(page: import('@playwright/test').Page) {
 }
 
 test('can create and rename a folder from the sidebar', async ({ page }) => {
-	await page.goto('/');
+	await gotoApp(page);
 
 	const folderTitle = uniqueName('Playwright Folder');
 	await createFolder(page, folderTitle);
 });
 
 test('can create a note in the selected folder', async ({ page }) => {
-	await page.goto('/');
+	await gotoApp(page);
 
 	const folderTitle = uniqueName('Notes Folder');
 	const noteTitle = uniqueName('Playwright Note');
@@ -126,7 +139,7 @@ test('can create a note in the selected folder', async ({ page }) => {
 });
 
 test('selecting a folder shows its first visible note', async ({ page }) => {
-	await page.goto('/');
+	await gotoApp(page);
 
 	const folderTitle = uniqueName('Folder First Note');
 	const olderNoteTitle = uniqueName('Older Note');
@@ -147,7 +160,7 @@ test('selecting a folder shows its first visible note', async ({ page }) => {
 test('deleting the selected note selects the next visible note and updates the editor', async ({
 	page
 }) => {
-	await page.goto('/');
+	await gotoApp(page);
 
 	const folderTitle = uniqueName('Delete Note Folder');
 	const fallbackNoteTitle = uniqueName('Fallback Note');
@@ -167,7 +180,7 @@ test('deleting the selected note selects the next visible note and updates the e
 });
 
 test('deleting the selected folder selects the next folder', async ({ page }) => {
-	await page.goto('/');
+	await gotoApp(page);
 
 	const parentFolderTitle = uniqueName('Parent Folder');
 	const nextFolderTitle = uniqueName('Next Folder');
@@ -190,7 +203,7 @@ test('deleting the selected folder selects the next folder', async ({ page }) =>
 });
 
 test('can soft delete and recover a note from trash', async ({ page }) => {
-	await page.goto('/');
+	await gotoApp(page);
 
 	const noteTitle = uniqueName('Recoverable Note');
 	await createNote(page, noteTitle, 'This note will be deleted and restored.');
@@ -230,7 +243,7 @@ test('can soft delete and recover a note from trash', async ({ page }) => {
 });
 
 test('recovering a note re-selects the proper folder and note', async ({ page }) => {
-	await page.goto('/');
+	await gotoApp(page);
 
 	const folderTitle = uniqueName('Recover Note Folder');
 	const noteTitle = uniqueName('Recover Selected Note');
@@ -258,7 +271,7 @@ test('recovering a note re-selects the proper folder and note', async ({ page })
 });
 
 test('can soft delete and recover a folder from trash', async ({ page }) => {
-	await page.goto('/');
+	await gotoApp(page);
 
 	const folderTitle = uniqueName('Recoverable Folder');
 	await createFolder(page, folderTitle);
@@ -285,7 +298,7 @@ test('can soft delete and recover a folder from trash', async ({ page }) => {
 });
 
 test('complex soft delete and recover a folder from trash', async ({ page }) => {
-	await page.goto('/');
+	await gotoApp(page);
 
 	const parentFolderTitle = uniqueName('Parent Folder');
 	const subFolderTitle = uniqueName('Sub Folder');

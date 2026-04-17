@@ -3,7 +3,7 @@ import type { FolderItem } from './folders.svelte';
 import type { NoteItem } from './notes.svelte';
 import { uiStore } from './dialog.svelte';
 
-const DB_NAME = 'mdnotes-db';
+const DEFAULT_DB_NAME = 'mdnotes-db';
 const DB_VERSION = 2;
 
 export interface DBStore {
@@ -26,6 +26,13 @@ export interface DBStore {
 }
 
 let dbPromise: Promise<IDBPDatabase<DBStore>>;
+
+function getDBName() {
+	if (typeof window === 'undefined') return DEFAULT_DB_NAME;
+
+	const override = (window as typeof window & { __MDNOTES_DB_NAME__?: string }).__MDNOTES_DB_NAME__;
+	return typeof override === 'string' && override.length > 0 ? override : DEFAULT_DB_NAME;
+}
 
 function ensureStores(db: IDBPDatabase<DBStore>) {
 	if (!db.objectStoreNames.contains('folders')) {
@@ -53,16 +60,18 @@ export function handleDatabaseBlocked(currentVersion: number | undefined, blocke
 export function initDB() {
 	if (dbPromise) return dbPromise;
 
-	dbPromise = openDB<DBStore>(DB_NAME, DB_VERSION, {
+	dbPromise = openDB<DBStore>(getDBName(), DB_VERSION, {
 		upgrade(db, oldVersion, newVersion) {
 			switch (oldVersion) {
 				case 0:
 					ensureStores(db);
 					// fall through to future migrations
 				case 1:
+					ensureStores(db);
 					// v1 -> v2 migrations go here
 					break;
 				default:
+					ensureStores(db);
 					break;
 			}
 		},

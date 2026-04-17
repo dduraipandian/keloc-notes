@@ -175,12 +175,13 @@ class NotesStore {
 			const oldDeletedAt = note.deletedAt;
 
 			Object.assign(note, updates);
+
+			if (updatedTimestamp) {
+				note.updatedAt = new Date().toISOString();
+			}
 			
-			// Throttled persistence and timestamp update
+			// Keep persistence throttled, but update in-memory ordering immediately.
 			this.debouncer.debounce(id, () => {
-				if (updatedTimestamp) {
-					note.updatedAt = new Date().toISOString();
-				}
 				this.persistNote(id);
 			}, 400);
 

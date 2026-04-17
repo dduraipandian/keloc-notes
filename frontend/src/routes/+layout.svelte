@@ -48,6 +48,10 @@
 	let resizeStartSidebarWidth = DEFAULT_SIDEBAR_WIDTH;
 	let resizeStartNoteListWidth = DEFAULT_NOTE_LIST_WIDTH;
 
+	function hasWailsRuntime() {
+		return typeof window !== 'undefined' && typeof (window as typeof window & { runtime?: unknown }).runtime !== 'undefined';
+	}
+
 	$effect(() => {
 		document.documentElement.dataset.appReady = isInitializing ? 'false' : 'true';
 	});
@@ -241,23 +245,13 @@
 		const selectedNoteTitle = selectedNote?.title.trim();
 		const selectedFolderId = selectionStore.selectedFolderID;
 		const selectedFolderTitle = selectedFolderId ? selectionStore.getSelectedFolder()?.title : null;
+		const nextTitle = selectedNoteTitle || selectedFolderTitle || 'mdnotes';
 
-		if (isInitializing) {
-			WindowSetTitle('mdnotes');
-			return;
+		if (hasWailsRuntime()) {
+			WindowSetTitle(isInitializing ? 'mdnotes' : nextTitle);
+		} else {
+			document.title = isInitializing ? 'mdnotes' : nextTitle;
 		}
-
-		if (selectedNoteTitle) {
-			WindowSetTitle(`${selectedNoteTitle}`);
-			return;
-		}
-
-		if (selectedFolderTitle) {
-			WindowSetTitle(`${selectedFolderTitle}`);
-			return;
-		}
-
-		WindowSetTitle('mdnotes');
 	});
 
 	$effect(() => {
@@ -285,13 +279,15 @@
 		window.addEventListener('pointerup', handleWindowPointerUp);
 		window.addEventListener('keydown', handleWindowKeyDown);
 
-		const offBeforeClose = EventsOn('app:before-close', async () => {
-			try {
-				await notesStore.flushAllPendingWrites();
-			} finally {
-				EventsEmit('app:flush-complete');
-			}
-		});
+		const offBeforeClose = hasWailsRuntime()
+			? EventsOn('app:before-close', async () => {
+					try {
+						await notesStore.flushAllPendingWrites();
+					} finally {
+						EventsEmit('app:flush-complete');
+					}
+				})
+			: () => {};
 
 		void (async () => {
 			try {
@@ -316,7 +312,7 @@
 				};
 			} catch (err) {
 				initError = err instanceof Error ? err.message : 'An unexpected error occurred.';
-				uiStore.confirmAppQuit('Failed to Start', initError, Quit);
+				uiStore.confirmAppQuit('Failed to Start', initError, hasWailsRuntime() ? Quit : () => {});
 			} finally {
 				isInitializing = false;
 			}

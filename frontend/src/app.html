@@ -316,12 +316,21 @@
 					document.head.appendChild(s);
 				}
 
+				if (typeof window.runtime === 'undefined') {
+					revealBody();
+					return;
+				}
+
 				try {
-					var request = window.indexedDB.open('mdnotes-db');
+					var dbName = window.__MDNOTES_DB_NAME__ || 'mdnotes-db';
+					var request = window.indexedDB.open(dbName);
 					request.onerror = revealBody;
 					request.onsuccess = function (event) {
 						var db = event.target.result;
-						if (!db.objectStoreNames.contains('settings')) return revealBody();
+						if (!db.objectStoreNames.contains('settings')) {
+							db.close();
+							return revealBody();
+						}
 
 						var tx = db.transaction('settings', 'readonly');
 						var store = tx.objectStore('settings');
@@ -356,9 +365,16 @@
 								'px 10px minmax(0, 1fr) !important; opacity: 1 !important; }';
 							document.head.appendChild(style);
 							bodyRevealed = true;
+							db.close();
 						};
-						tx.onerror = revealBody;
-						tx.onabort = revealBody;
+						tx.onerror = function () {
+							db.close();
+							revealBody();
+						};
+						tx.onabort = function () {
+							db.close();
+							revealBody();
+						};
 					};
 				} catch (e) {
 					revealBody();
