@@ -50,8 +50,8 @@ describe('Phase A: Reactivity & Mutation Tests', () => {
 		const initialUpdatedAt = note.updatedAt;
 
 		// Simulate typing
-		// @ts-ignore - updates.bumpUpdatedAt doesn't exist yet
-		notesStore.updateNote(noteId, { content: 'typing...' }, { bumpUpdatedAt: false });
+		// @ts-ignore - updates.updatedTimestamp exists
+		notesStore.updateNote(noteId, { content: 'typing...' }, { updatedTimestamp: false });
 
 		expect(note.content).toBe('typing...');
 		expect(note.updatedAt).toBe(initialUpdatedAt);

@@ -28,9 +28,9 @@
 	const DEFAULT_SIDEBAR_WIDTH = 256;
 	const DEFAULT_NOTE_LIST_WIDTH = 350;
 	const MIN_SIDEBAR_WIDTH = 220;
-	const MAX_SIDEBAR_WIDTH = 360;
+	const MAX_SIDEBAR_WIDTH = 512;
 	const MIN_NOTE_LIST_WIDTH = 280;
-	const MAX_NOTE_LIST_WIDTH = 460;
+	const MAX_NOTE_LIST_WIDTH = 512;
 	const MIN_EDITOR_WIDTH = 420;
 	const RESIZE_HANDLE_WIDTH = 10;
 
@@ -49,7 +49,10 @@
 	let resizeStartNoteListWidth = DEFAULT_NOTE_LIST_WIDTH;
 
 	function hasWailsRuntime() {
-		return typeof window !== 'undefined' && typeof (window as typeof window & { runtime?: unknown }).runtime !== 'undefined';
+		return (
+			typeof window !== 'undefined' &&
+			typeof (window as typeof window & { runtime?: unknown }).runtime !== 'undefined'
+		);
 	}
 
 	$effect(() => {
@@ -78,14 +81,16 @@
 		nextSidebarWidth = liveSidebarWidth,
 		nextNoteListWidth = liveNoteListWidth
 	) {
-		const maxSidebarWidth = Math.max(
+		const maxSidebarWidth = clamp(
+			window.innerWidth - MIN_NOTE_LIST_WIDTH - MIN_EDITOR_WIDTH - RESIZE_HANDLE_WIDTH * 2,
 			MIN_SIDEBAR_WIDTH,
-			window.innerWidth - MIN_NOTE_LIST_WIDTH - MIN_EDITOR_WIDTH - RESIZE_HANDLE_WIDTH * 2
+			MAX_SIDEBAR_WIDTH
 		);
 		const normalizedSidebarWidth = clamp(nextSidebarWidth, MIN_SIDEBAR_WIDTH, maxSidebarWidth);
-		const maxNoteListWidth = Math.max(
+		const maxNoteListWidth = clamp(
+			window.innerWidth - normalizedSidebarWidth - MIN_EDITOR_WIDTH - RESIZE_HANDLE_WIDTH * 2,
 			MIN_NOTE_LIST_WIDTH,
-			window.innerWidth - normalizedSidebarWidth - MIN_EDITOR_WIDTH - RESIZE_HANDLE_WIDTH * 2
+			MAX_NOTE_LIST_WIDTH
 		);
 
 		return {

@@ -131,7 +131,7 @@
 											</span>
 										</Item.Title>
 										<Item.Description
-											class="lline-clamp-1 text-[12px] leading-snug break-all text-foreground/50"
+											class="line-clamp-1 text-[12px] leading-snug break-all text-foreground/50"
 										>
 											{note.content || 'No additional text'}
 										</Item.Description>
