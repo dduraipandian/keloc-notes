@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
-	import appIcon from '$lib/assets/app-icon.png';
+	import appIcon from '$lib/assets/app-icon.svg';
 
 	interface Props {
 		open?: boolean;

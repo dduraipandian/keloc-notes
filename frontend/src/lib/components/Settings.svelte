@@ -28,6 +28,8 @@
 	function handleColorChange(color: string) {
 		preferencesStore.setFolderAccentColor(color);
 	}
+
+	const isCustomColor = $derived(!predefinedColors.some((c) => c.value === preferencesStore.folderAccentColor));
 </script>
 
 <AlertDialog {open} onOpenChange={(isOpen) => { open = isOpen; if (!isOpen) onClose?.(); }}>
@@ -77,14 +79,16 @@
 									aria-label="{name} accent color"
 								></button>
 							{/each}
-							<div class="custom-color-wrapper">
+							<div
+								class={['custom-color-wrapper', isCustomColor && 'selected']}
+								title="Custom color picker"
+							>
 								<input
 									type="color"
 									id="accent-color"
 									class="custom-color-input"
 									value={preferencesStore.folderAccentColor}
 									oninput={(e) => handleColorChange(e.currentTarget.value)}
-									title="Custom color"
 								/>
 							</div>
 						</div>
@@ -280,8 +284,32 @@
 		height: 32px;
 		border-radius: 50%;
 		overflow: hidden;
-		border: 1px solid var(--border);
+		border: 2px solid var(--border);
 		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: conic-gradient(
+			from 180deg at 50% 50%,
+			#ff0000 0deg,
+			#ffff00 60deg,
+			#00ff00 120deg,
+			#00ffff 180deg,
+			#0000ff 240deg,
+			#ff00ff 300deg,
+			#ff0000 360deg
+		);
+		cursor: pointer;
+		transition: transform 0.2s;
+	}
+
+	.custom-color-wrapper.selected {
+		border-color: var(--foreground);
+		box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--foreground);
+	}
+
+	.custom-color-wrapper:hover {
+		transform: scale(1.15);
 	}
 
 	.custom-color-input {
