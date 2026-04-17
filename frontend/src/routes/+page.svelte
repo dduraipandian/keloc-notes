@@ -6,11 +6,24 @@
 	import { uiStore } from '$lib/stores/dialog.svelte';
 	import { noteService, trashService } from '$lib/stores/services';
 	import { noteListView } from '$lib/views/noteListView.svelte';
+	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);
 
 	let restoreContext = $derived(noteListView.getRestoreContext(selectedNote));
+	let titleRef = $state<HTMLTextAreaElement | null>(null);
+
+	$effect(() => {
+		if (uiStateStore.activePane === 'editor' && selectedNote && titleRef) {
+			const timer = setTimeout(() => {
+				if (uiStateStore.activePane === 'editor') {
+					titleRef?.focus();
+				}
+			}, 10);
+			return () => clearTimeout(timer);
+		}
+	});
 
 	function handleRestoreInit() {
 		if (!selectedNote) return;
@@ -66,6 +79,7 @@
 						<span>{formatDate(selectedNote.updatedAt)}</span>
 					</div>
 					<textarea
+						bind:this={titleRef}
 						bind:value={selectedNote.title}
 						oninput={() => noteService.update(selectedNote!.id, { title: selectedNote!.title })}
 						placeholder="Note Title"

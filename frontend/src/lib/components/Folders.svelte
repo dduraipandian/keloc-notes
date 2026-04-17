@@ -254,23 +254,22 @@
 		box-shadow: none;
 	}
 
-	:global([data-testid='folders-pane'] [data-slot='collapsible-trigger']:focus-visible) {
-		outline: none;
-		box-shadow: none;
+	:global([data-testid='folders-pane'] [data-slot='collapsible-trigger']:focus-visible),
+	:global([data-testid='folders-pane'] [data-slot='context-menu-trigger']:focus-visible) {
+		outline: none !important;
+		box-shadow: none !important;
+		border-color: transparent !important;
 	}
 
 	:global([data-testid='folders-pane'] [data-slot='sidebar-menu-button']) {
-		outline: none;
+		outline: none !important;
 	}
 
-	:global([data-testid='folders-pane'] [data-slot='sidebar-menu-button']:focus) {
-		outline: none;
-		box-shadow: none;
-	}
-
+	:global([data-testid='folders-pane'] [data-slot='sidebar-menu-button']:focus),
 	:global([data-testid='folders-pane'] [data-slot='sidebar-menu-button']:focus-visible) {
-		outline: none;
-		box-shadow: none;
+		outline: none !important;
+		box-shadow: none !important;
+		border-color: transparent !important;
 	}
 
 	:global(.folder-rename-rejected) {

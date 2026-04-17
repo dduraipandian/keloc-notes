@@ -184,4 +184,18 @@
 	.custom-scrollbar:hover::-webkit-scrollbar-thumb {
 		background-color: hsl(var(--muted-foreground) / 0.1);
 	}
+
+	:global([data-testid='notes-pane'] [data-slot='item']),
+	:global([data-testid='notes-pane'] [data-slot='context-menu-trigger']) {
+		outline: none !important;
+	}
+
+	:global([data-testid='notes-pane'] [data-slot='item']:focus),
+	:global([data-testid='notes-pane'] [data-slot='item']:focus-visible),
+	:global([data-testid='notes-pane'] [data-slot='context-menu-trigger']:focus),
+	:global([data-testid='notes-pane'] [data-slot='context-menu-trigger']:focus-visible) {
+		outline: none !important;
+		box-shadow: none !important;
+		border-color: transparent !important;
+	}
 </style>
