@@ -96,17 +96,21 @@
 								></button>
 							{/each}
 							<div
-								class={['custom-color-wrapper', isCustomColor && 'selected']}
-								style={isCustomColor ? `background: ${preferencesStore.folderAccentColor}` : ''}
+								class={['custom-color-ring', isCustomColor && 'selected']}
 								title="Custom color picker"
 							>
-								<input
-									type="color"
-									id="accent-color"
-									class="custom-color-input"
-									value={preferencesStore.folderAccentColor}
-									oninput={(e) => handleColorChange(e.currentTarget.value)}
-								/>
+								<div
+									class="custom-color-circle"
+									style={isCustomColor ? `background: ${preferencesStore.folderAccentColor}` : ''}
+								>
+									<input
+										type="color"
+										id="accent-color"
+										class="custom-color-input"
+										value={preferencesStore.folderAccentColor}
+										oninput={(e) => handleColorChange(e.currentTarget.value)}
+									/>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -298,39 +302,55 @@
 			0 0 0 4px var(--foreground);
 	}
 
-	.custom-color-wrapper {
-		width: 32px;
-		height: 32px;
+	.custom-color-ring {
+		width: 36px;
+		height: 36px;
 		border-radius: 50%;
-		overflow: hidden;
-		border: 2px solid var(--border);
-		position: relative;
+		border: 2px solid transparent;
+		box-sizing: border-box;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: conic-gradient(
-			from 180deg at 50% 50%,
-			#ff0000 0deg,
-			#ffff00 60deg,
-			#00ff00 120deg,
-			#00ffff 180deg,
-			#0000ff 240deg,
-			#ff00ff 300deg,
-			#ff0000 360deg
-		);
 		cursor: pointer;
-		transition: transform 0.2s;
+		transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 	}
 
-	.custom-color-wrapper.selected {
+	.custom-color-ring.selected {
 		border-color: var(--foreground);
 		box-shadow:
 			0 0 0 2px var(--background),
 			0 0 0 4px var(--foreground);
 	}
 
-	.custom-color-wrapper:hover {
+	.custom-color-ring:hover {
 		transform: scale(1.15);
+	}
+
+	.custom-color-circle {
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		overflow: hidden;
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: conic-gradient(
+			hsl(0, 100%, 50%),
+			hsl(30, 100%, 50%),
+			hsl(60, 100%, 50%),
+			hsl(90, 100%, 50%),
+			hsl(120, 100%, 50%),
+			hsl(150, 100%, 50%),
+			hsl(180, 100%, 50%),
+			hsl(210, 100%, 50%),
+			hsl(240, 100%, 50%),
+			hsl(270, 100%, 50%),
+			hsl(300, 100%, 50%),
+			hsl(330, 100%, 50%),
+			hsl(360, 100%, 50%)
+		);
+		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 	}
 
 	.custom-color-input {
