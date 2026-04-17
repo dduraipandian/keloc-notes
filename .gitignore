@@ -36,3 +36,4 @@ node_modules
 frontend/dist
 frontend/build
 
+*.DS_Store

@@ -241,6 +241,18 @@ class FolderStore {
 		return this.folders.get(id) || null;
 	}
 
+	getPathForFolder(folder: FolderItem): string {
+		const path: string[] = [];
+		let current: FolderItem | null | undefined = folder;
+
+		while (current) {
+			path.unshift(current.title);
+			current = current.parentId ? this.folders.get(current.parentId) : null;
+		}
+
+		return path.join('/');
+	}
+
 	renameFolder(id: FolderID, newTitle: string) {
 		const folder = this.folders.get(id);
 		this.editingId = null;

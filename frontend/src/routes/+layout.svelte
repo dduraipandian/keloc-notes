@@ -18,10 +18,14 @@
 	import NoteItems from '$lib/components/NoteItems.svelte';
 	import { EventsEmit, EventsOn, Quit, WindowSetTitle } from '$lib/wailsjs/runtime/runtime';
 	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { folderService, noteService } from '$lib/stores/services';
+	import { folderService, noteService, trashService } from '$lib/stores/services';
 	import { folderSidebarView } from '$lib/views/folderSidebarView.svelte';
 	import { noteListView } from '$lib/views/noteListView.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
+	import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
+	import About from '$lib/components/About.svelte';
+	import Settings from '$lib/components/Settings.svelte';
+	import { preferencesStore } from '$lib/stores/preferences.svelte';
 
 	let { children } = $props();
 
@@ -42,6 +46,8 @@
 	let pendingPointerX = $state<number | null>(null);
 	let resizeFrame = $state<number | null>(null);
 	let paneLayoutRef = $state<HTMLDivElement | null>(null);
+	let showAbout = $state(false);
+	let showSettings = $state(false);
 	let liveSidebarWidth = DEFAULT_SIDEBAR_WIDTH;
 	let liveNoteListWidth = DEFAULT_NOTE_LIST_WIDTH;
 	let resizeStartPointerX: number | null = null;
@@ -57,6 +63,10 @@
 
 	$effect(() => {
 		document.documentElement.dataset.appReady = isInitializing ? 'false' : 'true';
+	});
+
+	$effect(() => {
+		document.documentElement.style.setProperty('--folder-accent', preferencesStore.folderAccentColor);
 	});
 
 	function clamp(value: number, min: number, max: number) {
@@ -250,8 +260,6 @@
 		}
 
 		handleGlobalShortcut(event, {
-			createNote: () => noteService.create(selectionStore.selectedFolderID ?? null),
-			createFolder: () => folderService.create(),
 			focusSearch: () => {
 				uiStateStore.setActivePane('notes');
 				const input = document.querySelector('[data-testid="notes-pane"] input') as HTMLInputElement;
@@ -309,10 +317,21 @@
 				})
 			: () => {};
 
+		const offMenuBridge = initMenuBridge({
+			onOpenAbout: () => {
+				showAbout = true;
+			},
+			onOpenPreferences: () => {
+				showSettings = true;
+			}
+		});
+		initMenuStateEffect();
+
 		void (async () => {
 			try {
 				const settings = await settingsRepository.getAll();
 				themeStore.init(settings.applicationTheme);
+				await preferencesStore.init(settings);
 				applyPaneWidths(
 					settings.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH,
 					settings.noteListWidth ?? DEFAULT_NOTE_LIST_WIDTH,
@@ -340,6 +359,7 @@
 
 		return () => {
 			offBeforeClose?.();
+			offMenuBridge();
 			stopResize();
 			if (resizeFrame != null) {
 				cancelAnimationFrame(resizeFrame);
@@ -366,14 +386,15 @@
 			<div
 				class={[
 					'h-full shrink-0 overflow-hidden border-r border-sidebar-border/10',
-					activeResizeHandle && 'pointer-events-none select-none'
+					activeResizeHandle && 'pointer-events-none select-none',
+					!uiStateStore.sidebarVisible && 'hidden'
 				]}
-				style="width: var(--app-sidebar-width);"
+				style={uiStateStore.sidebarVisible ? 'width: var(--app-sidebar-width);' : 'width: 0; display: none;'}
 			>
 				<Folders />
 			</div>
 			<div
-				class="pane-resize-handle hidden shrink-0 md:flex"
+				class={['pane-resize-handle hidden shrink-0 md:flex', !uiStateStore.sidebarVisible && 'hidden']}
 				role="separator"
 				aria-label="Resize folders pane"
 				aria-orientation="vertical"
@@ -389,14 +410,15 @@
 			<div
 				class={[
 					'h-full shrink-0 overflow-hidden',
-					activeResizeHandle && 'pointer-events-none select-none'
+					activeResizeHandle && 'pointer-events-none select-none',
+					!uiStateStore.noteListVisible && 'hidden'
 				]}
-				style="width: var(--app-note-list-width);"
+				style={uiStateStore.noteListVisible ? 'width: var(--app-note-list-width);' : 'width: 0; display: none;'}
 			>
 				<NoteItems />
 			</div>
 			<div
-				class="pane-resize-handle hidden shrink-0 md:flex"
+				class={['pane-resize-handle hidden shrink-0 md:flex', !uiStateStore.noteListVisible && 'hidden']}
 				role="separator"
 				aria-label="Resize note list pane"
 				aria-orientation="vertical"
@@ -422,6 +444,8 @@
 </div>
 
 <Alert dialog={uiStore.appDialog} />
+<About bind:open={showAbout} onClose={() => { showAbout = false; }} />
+<Settings bind:open={showSettings} onClose={() => { showSettings = false; }} />
 
 <style>
 	.pane-resize-handle {

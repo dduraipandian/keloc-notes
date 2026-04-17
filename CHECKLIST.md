@@ -413,9 +413,9 @@ This is the current high-level backlog after the Part A release blockers. The re
 
 ### Phase C: Desktop Polish & UX
 
-- [x] **Keyboard shortcuts (partial)** — `Cmd+N` (new note), `Cmd+Shift+N` (new folder), `Escape` (close dialogs / cancel rename), and arrow-key folder navigation are implemented. Remaining: `Cmd+Delete` (trash selected note).
+- [x] **Keyboard shortcuts** — `Cmd+N` (new note), `Cmd+Shift+N` (new folder), `Escape` (close dialogs / cancel rename), arrow-key folder navigation, `Delete`/`Backspace` (trash selected note), and `/` (focus search) are all implemented.
 - [x] **Window title context** — Update OS window title to reflect active note/folder.
-- [ ] **Menu bar integration** — Native OS menu bar actions (Wails options).
+- [ ] **Menu bar integration** — Native macOS menu bar (HIG-compliant), Preferences window, About dialog, Markdown + JSON backup import/export, dynamic enablement, extensible for Windows/Linux. Full implementation plan (TDD, M1–M12) in [MENU_BAR.md](MENU_BAR.md).
 - [x] **Resizable panes** — Drag handles between sidebar, list, and editor.
 - [x] **No loading state on startup** — Add brief loading indicator for IndexedDB initialization.
 
@@ -423,7 +423,6 @@ This is the current high-level backlog after the Part A release blockers. The re
 
 - [x] **Light mode / theme toggle** — Wire up existing light mode CSS variables.
 - [x] **Rename feedback** — Add visual feedback (flash/revert) for invalid folder renames.
-- [ ] **No fallback folder after delete** — Auto-fallback to Home or first folder when active folder is deleted.
 
 ### Phase E: Performance & Architecture (Scale)
 

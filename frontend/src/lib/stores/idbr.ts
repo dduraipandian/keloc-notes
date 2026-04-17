@@ -184,6 +184,7 @@ export type SettingsState = {
 	sidebarWidth: number | null;
 	noteListWidth: number | null;
 	applicationTheme: 'light' | 'dark' | 'system' | null;
+	folderAccentColor: string | null;
 };
 
 type SettingsKey = keyof SettingsState;
@@ -213,6 +214,7 @@ export async function getAllSettings(): Promise<SettingsState> {
 		let sidebarWidth: number | null = null;
 		let noteListWidth: number | null = null;
 		let applicationTheme: 'light' | 'dark' | 'system' | null = null;
+		let folderAccentColor: string | null = null;
 
 		keys.forEach((key, index) => {
 			switch (key) {
@@ -231,6 +233,9 @@ export async function getAllSettings(): Promise<SettingsState> {
 				case 'applicationTheme':
 					applicationTheme = (values[index] as 'light' | 'dark' | 'system' | null) ?? null;
 					break;
+				case 'folderAccentColor':
+					folderAccentColor = (values[index] as string | null) ?? null;
+					break;
 				default:
 					break;
 			}
@@ -240,7 +245,8 @@ export async function getAllSettings(): Promise<SettingsState> {
 			selectedNoteID,
 			sidebarWidth,
 			noteListWidth,
-			applicationTheme
+			applicationTheme,
+			folderAccentColor
 		};
 	});
 }

@@ -13,7 +13,6 @@ import { resolveProfile, getProfileId, SYSTEM_VIEWS } from '$lib/stores/domain/p
 const HOME_COLOR = '#4dbb5f';
 const FAVORITE_COLOR = '#f5d04e';
 const TRASH_COLOR = '#e85a5a';
-const FOLDER_COLOR = '#d4a34b';
 
 export type ContextMenuItemVariant = 'default' | 'destructive';
 
@@ -80,11 +79,11 @@ export const ICON_REGISTRY: Record<
 	trash: { component: Trash2 as any, props: { style: `color: ${TRASH_COLOR}` } },
 	regular: {
 		component: Folder as any,
-		props: { style: `color: ${FOLDER_COLOR}` }
+		props: { style: 'color: var(--folder-accent)' }
 	},
 	deleted: {
 		component: Folder as any,
-		props: { style: `color: ${FOLDER_COLOR}` }
+		props: { style: 'color: var(--folder-accent)' }
 	}
 };
 

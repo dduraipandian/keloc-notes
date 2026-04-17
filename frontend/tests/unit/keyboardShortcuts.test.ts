@@ -29,24 +29,18 @@ describe('keyboard shortcuts helper', () => {
 		expect(isEditableTarget(div)).toBe(false);
 	});
 
-	it('handles Cmd/Ctrl+N as create note', () => {
-		const createNote = vi.fn();
-		const createFolder = vi.fn();
+	it('does not handle Cmd/Ctrl+N (menu owns it)', () => {
 		const focusSearch = vi.fn();
 		const event = new KeyboardEvent('keydown', { key: 'n', metaKey: true, cancelable: true });
 
-		const handled = handleGlobalShortcut(event, { createNote, createFolder, focusSearch });
+		const handled = handleGlobalShortcut(event, { focusSearch });
 
-		expect(handled).toBe(true);
-		expect(createNote).toHaveBeenCalledTimes(1);
-		expect(createFolder).not.toHaveBeenCalled();
+		expect(handled).toBe(false);
 		expect(focusSearch).not.toHaveBeenCalled();
-		expect(event.defaultPrevented).toBe(true);
+		expect(event.defaultPrevented).toBe(false);
 	});
 
-	it('handles Cmd/Ctrl+Shift+N as create folder', () => {
-		const createNote = vi.fn();
-		const createFolder = vi.fn();
+	it('does not handle Cmd/Ctrl+Shift+N (menu owns it)', () => {
 		const focusSearch = vi.fn();
 		const event = new KeyboardEvent('keydown', {
 			key: 'n',
@@ -55,56 +49,43 @@ describe('keyboard shortcuts helper', () => {
 			cancelable: true
 		});
 
-		const handled = handleGlobalShortcut(event, { createNote, createFolder, focusSearch });
+		const handled = handleGlobalShortcut(event, { focusSearch });
 
-		expect(handled).toBe(true);
-		expect(createFolder).toHaveBeenCalledTimes(1);
-		expect(createNote).not.toHaveBeenCalled();
+		expect(handled).toBe(false);
 		expect(focusSearch).not.toHaveBeenCalled();
-		expect(event.defaultPrevented).toBe(true);
+		expect(event.defaultPrevented).toBe(false);
 	});
 
 	it('handles / as focus search', () => {
-		const createNote = vi.fn();
-		const createFolder = vi.fn();
 		const focusSearch = vi.fn();
 		const event = new KeyboardEvent('keydown', { key: '/', cancelable: true });
 
-		const handled = handleGlobalShortcut(event, { createNote, createFolder, focusSearch });
+		const handled = handleGlobalShortcut(event, { focusSearch });
 
 		expect(handled).toBe(true);
 		expect(focusSearch).toHaveBeenCalledTimes(1);
-		expect(createNote).not.toHaveBeenCalled();
-		expect(createFolder).not.toHaveBeenCalled();
 		expect(event.defaultPrevented).toBe(true);
 	});
 
 	it('does not handle shortcuts while typing in editable targets', () => {
-		const createNote = vi.fn();
-		const createFolder = vi.fn();
 		const focusSearch = vi.fn();
 		const input = document.createElement('input');
-		const event = new KeyboardEvent('keydown', { key: 'n', metaKey: true });
+		const event = new KeyboardEvent('keydown', { key: '/', ctrlKey: false });
 		Object.defineProperty(event, 'target', { value: input });
 
-		const handled = handleGlobalShortcut(event, { createNote, createFolder, focusSearch });
+		const handled = handleGlobalShortcut(event, { focusSearch });
 
 		expect(handled).toBe(false);
-		expect(createNote).not.toHaveBeenCalled();
-		expect(createFolder).not.toHaveBeenCalled();
+		expect(focusSearch).not.toHaveBeenCalled();
 	});
 
 	it('ignores unrelated shortcuts', () => {
-		const createNote = vi.fn();
-		const createFolder = vi.fn();
 		const focusSearch = vi.fn();
 		const event = new KeyboardEvent('keydown', { key: 'k', metaKey: true });
 
-		const handled = handleGlobalShortcut(event, { createNote, createFolder, focusSearch });
+		const handled = handleGlobalShortcut(event, { focusSearch });
 
 		expect(handled).toBe(false);
-		expect(createNote).not.toHaveBeenCalled();
-		expect(createFolder).not.toHaveBeenCalled();
 		expect(focusSearch).not.toHaveBeenCalled();
 		expect(event.defaultPrevented).toBe(false);
 	});

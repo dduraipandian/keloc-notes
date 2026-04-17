@@ -10,8 +10,6 @@ export function isEditableTarget(target: EventTarget | null) {
 }
 
 type GlobalShortcutActions = {
-	createNote: () => void;
-	createFolder: () => void;
 	focusSearch: () => void;
 };
 
@@ -71,20 +69,6 @@ export function handleGlobalShortcut(
 	if (key === '/' && !hasPrimaryModifier) {
 		event.preventDefault();
 		actions.focusSearch();
-		return true;
-	}
-
-	if (!hasPrimaryModifier) return false;
-
-	if (key === 'n' && event.shiftKey) {
-		event.preventDefault();
-		actions.createFolder();
-		return true;
-	}
-
-	if (key === 'n') {
-		event.preventDefault();
-		actions.createNote();
 		return true;
 	}
 
