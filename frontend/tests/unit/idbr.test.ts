@@ -143,7 +143,7 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 			await putNoteContent('n1', content);
 			
 			const archivedAt = Date.now();
-			await permanentDeleteNoteTransactionally(meta, content, 'Home / To Delete', archivedAt);
+			await permanentDeleteNoteTransactionally(meta, 'Home / To Delete', archivedAt);
 			
 			// Verify note is gone from notes stores
 			const fetchedMeta = await getNoteMeta('n1');

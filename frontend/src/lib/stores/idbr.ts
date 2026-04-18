@@ -276,7 +276,7 @@ export async function getAllSettings(): Promise<SettingsState> {
 // ─────────────────────────────────────────────
 
 export async function permanentDeleteFolderTransactionally(
-	notesToDelete: { meta: any; path: string }[],
+	notesToDelete: { note: any; path: string }[],
 	foldersToDelete: FolderItem[],
 	archivedAt: number
 ) {
@@ -287,20 +287,18 @@ export async function permanentDeleteFolderTransactionally(
 		const bStore = tx.objectStore('backups')!;
 
 		// Backup and Delete Notes
-		for (const { meta, path } of notesToDelete) {
-			// We might need the content for backup... 
-			// But for now let's assume meta is enough or we fetch content before calling this.
+		for (const { note, path } of notesToDelete) {
 			// Re-assembling for backup:
-			const content = await cStore.get(meta.id);
+			const content = await cStore.get(note.id);
 			await bStore.put!({
-				id: `note_${meta.id}`,
+				id: `note_${note.id}`,
 				type: 'note',
-				data: { ...meta, content: content?.content ?? '' },
+				data: { ...note, content: content?.content ?? '' },
 				path,
 				archivedAt
 			});
-			await mStore.delete!(meta.id);
-			await cStore.delete!(meta.id);
+			await mStore.delete!(note.id);
+			await cStore.delete!(note.id);
 		}
 
 		// Delete Folders
@@ -311,8 +309,7 @@ export async function permanentDeleteFolderTransactionally(
 }
 
 export async function permanentDeleteNoteTransactionally(
-	meta: any,
-	content: string,
+	note: any,
 	path: string,
 	archivedAt: number
 ) {
@@ -321,14 +318,17 @@ export async function permanentDeleteNoteTransactionally(
 		const cStore = tx.objectStore('notes_contents')!;
 		const bStore = tx.objectStore('backups')!;
 
+		const contentEntry = await cStore.get(note.id);
+		const content = contentEntry?.content ?? '';
+
 		await bStore.put!({
-			id: `note_${meta.id}`,
+			id: `note_${note.id}`,
 			type: 'note',
-			data: { ...meta, content },
+			data: { ...note, content },
 			path,
 			archivedAt
 		});
-		await mStore.delete!(meta.id);
-		await cStore.delete!(meta.id);
+		await mStore.delete!(note.id);
+		await cStore.delete!(note.id);
 	});
 }
