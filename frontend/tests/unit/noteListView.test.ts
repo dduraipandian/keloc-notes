@@ -32,8 +32,8 @@ describe('NoteListView', () => {
 			{} as any,
 			{
 				getNotesForFolder: vi.fn().mockReturnValue([
-					{ id: '1', title: 'Alpha', content: 'First', updatedAt: '2025-01-01T00:00:00Z' },
-					{ id: '2', title: 'Beta', content: 'Second', updatedAt: '2025-01-02T00:00:00Z' }
+					{ id: '1', title: 'Alpha', content: 'First', updatedAt: '2025-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
+					{ id: '2', title: 'Beta', content: 'Second', updatedAt: '2025-01-02T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null }
 				])
 			} as any,
 			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
@@ -82,8 +82,8 @@ describe('NoteListView', () => {
 			{} as any,
 			{
 				getNotesForFolder: vi.fn().mockReturnValue([
-					{ id: '1', title: 'A', content: '', updatedAt: '2025-01-01T00:00:00Z' },
-					{ id: '2', title: 'B', content: '', updatedAt: '2025-01-01T12:00:00Z' }
+					{ id: '1', title: 'A', content: '', updatedAt: '2025-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
+					{ id: '2', title: 'B', content: '', updatedAt: '2025-01-01T12:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null }
 				])
 			} as any,
 			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
@@ -104,9 +104,9 @@ describe('NoteListView', () => {
 			{} as any,
 			{
 				getNotesForFolder: vi.fn().mockReturnValue([
-					{ id: '1', title: 'A', content: '', updatedAt: '2025-01-02T00:00:00Z' },
-					{ id: '2', title: 'B', content: '', updatedAt: '2025-01-02T12:00:00Z' },
-					{ id: '3', title: 'C', content: '', updatedAt: '2025-01-01T00:00:00Z' }
+					{ id: '1', title: 'A', content: '', updatedAt: '2025-01-02T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
+					{ id: '2', title: 'B', content: '', updatedAt: '2025-01-02T12:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
+					{ id: '3', title: 'C', content: '', updatedAt: '2025-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null }
 				])
 			} as any,
 			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
@@ -125,8 +125,8 @@ describe('NoteListView', () => {
 			{} as any,
 			{
 				getNotesForFolder: vi.fn().mockReturnValue([
-					{ id: '1', title: 'Alpha', content: '', updatedAt: '2025-01-01T00:00:00Z' },
-					{ id: '2', title: 'Albatross', content: '', updatedAt: '2025-01-02T00:00:00Z' }
+					{ id: '1', title: 'Alpha', content: '', updatedAt: '2025-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
+					{ id: '2', title: 'Albatross', content: '', updatedAt: '2025-01-02T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null }
 				])
 			} as any,
 			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any

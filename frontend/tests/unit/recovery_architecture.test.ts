@@ -10,7 +10,11 @@ import { resolveProfile } from '../../src/lib/stores/domain/profiles';
 // Mock Repositories
 vi.mock('../../src/lib/stores/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
-	notesRepository: { list: vi.fn(), save: vi.fn() },
+	notesRepository: { 
+		list: vi.fn(), 
+		saveMeta: vi.fn().mockResolvedValue(undefined),
+		saveContent: vi.fn().mockResolvedValue(undefined)
+	},
 	settingsRepository: { getAll: vi.fn(), save: vi.fn() },
 	trashRepository: { permanentlyDeleteFolderTree: vi.fn(), permanentlyDeleteNote: vi.fn() }
 }));
@@ -65,7 +69,10 @@ describe('Recovery Architecture: Comprehensive Suite', () => {
 			deletedAt: 100,
 			deletedBatchId: 'batch-tree',
 			updatedAt: '2025-01-01T00:00:00Z',
-			content: ''
+			content: '',
+			summary: '',
+			isFavorite: false,
+			isContentLoaded: true
 		};
 		// Note directly in trash (no parent)
 		const nR: NoteItem = {
@@ -75,7 +82,10 @@ describe('Recovery Architecture: Comprehensive Suite', () => {
 			deletedAt: 100,
 			deletedBatchId: 'batch-root',
 			updatedAt: '2025-01-01T00:00:00Z',
-			content: ''
+			content: '',
+			summary: '',
+			isFavorite: false,
+			isContentLoaded: true
 		};
 
 		folderStore.folders.set('f1', f1);
@@ -101,7 +111,10 @@ describe('Recovery Architecture: Comprehensive Suite', () => {
 				deletedAt: 100,
 				deletedBatchId: 'batch-active',
 				updatedAt: '2025-01-01T00:00:00Z',
-				content: ''
+				content: '',
+				summary: '',
+				isFavorite: false,
+				isContentLoaded: true
 			};
 			notesStore.notes.set('nA', nActive);
 
@@ -142,7 +155,10 @@ describe('Recovery Architecture: Comprehensive Suite', () => {
 				deletedAt: 100,
 				deletedBatchId: 'batch-orphan',
 				updatedAt: '2025-01-01T00:00:00Z',
-				content: ''
+				content: '',
+				summary: '',
+				isFavorite: false,
+				isContentLoaded: true
 			};
 			notesStore.notes.set('nO', nOrphan);
 
@@ -205,7 +221,10 @@ describe('Recovery Architecture: Comprehensive Suite', () => {
 				folderId: 'A',
 				deletedAt: null,
 				updatedAt: '2025-01-01T00:00:00Z',
-				content: ''
+				content: '',
+				summary: '',
+				isFavorite: false,
+				isContentLoaded: true
 			};
 			const noteB: NoteItem = {
 				id: 'nB',
@@ -213,7 +232,10 @@ describe('Recovery Architecture: Comprehensive Suite', () => {
 				folderId: 'B',
 				deletedAt: null,
 				updatedAt: '2025-01-01T00:00:00Z',
-				content: ''
+				content: '',
+				summary: '',
+				isFavorite: false,
+				isContentLoaded: true
 			};
 
 			folderStore.folders.set('A', folderA);

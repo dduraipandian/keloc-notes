@@ -65,8 +65,8 @@ describe('FolderService', () => {
 		};
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([
-				{ id: 'note-2', folderId: 'folder-1', updatedAt: '2025-01-02T00:00:00Z', deletedAt: null },
-				{ id: 'note-1', folderId: 'folder-1', updatedAt: '2025-01-01T00:00:00Z', deletedAt: null }
+				{ id: 'note-2', folderId: 'folder-1', updatedAt: '2025-01-02T00:00:00Z', deletedAt: null, summary: '', isFavorite: false, isContentLoaded: true },
+				{ id: 'note-1', folderId: 'folder-1', updatedAt: '2025-01-01T00:00:00Z', deletedAt: null, summary: '', isFavorite: false, isContentLoaded: true }
 			]),
 			selectNote: vi.fn()
 		};
@@ -292,8 +292,8 @@ describe('NoteService', () => {
 		};
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([
-				{ id: 'note-1', folderId: 'f1', updatedAt: '2025-01-02T00:00:00Z', deletedAt: null },
-				{ id: 'note-2', folderId: 'f1', updatedAt: '2025-01-01T00:00:00Z', deletedAt: null }
+				{ id: 'note-1', folderId: 'f1', updatedAt: '2025-01-02T00:00:00Z', deletedAt: null, summary: '', isFavorite: false, isContentLoaded: true },
+				{ id: 'note-2', folderId: 'f1', updatedAt: '2025-01-01T00:00:00Z', deletedAt: null, summary: '', isFavorite: false, isContentLoaded: true }
 			]),
 			deleteNote: vi.fn(),
 			selectNote: vi.fn()
@@ -399,9 +399,9 @@ describe('NoteService', () => {
 		};
 		const notes = {
 			listNotes: vi.fn().mockReturnValue([
-				{ id: '1', folderId: 'f1', deletedAt: null, updatedAt: '2025-01-01T00:00:00Z' },
-				{ id: '2', folderId: 'f1', deletedAt: null, updatedAt: '2024-01-01T00:00:00Z' },
-				{ id: '3', folderId: 'f2', deletedAt: null, updatedAt: '2023-01-01T00:00:00Z' }
+				{ id: '1', folderId: 'f1', deletedAt: null, updatedAt: '2025-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true },
+				{ id: '2', folderId: 'f1', deletedAt: null, updatedAt: '2024-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true },
+				{ id: '3', folderId: 'f2', deletedAt: null, updatedAt: '2023-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true }
 			]),
 			getNoteCount: vi.fn().mockReturnValue(2),
 			getDeletedNotes: vi.fn(() => [])
@@ -447,7 +447,7 @@ describe('TrashService (Flat Recovery)', () => {
 			selectFolder: vi.fn()
 		};
 		const notes = {
-			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'folder-a' }),
+			getNote: vi.fn().mockReturnValue({ id: 'note-1', folderId: 'folder-a', summary: '', isFavorite: false, isContentLoaded: true }),
 			restoreNote: vi.fn(),
 			selectNote: vi.fn()
 		};

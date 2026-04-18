@@ -5,7 +5,11 @@ import { SvelteMap } from 'svelte/reactivity';
 
 vi.mock('../../src/lib/stores/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
-	notesRepository: { list: vi.fn(), save: vi.fn() },
+	notesRepository: { 
+		list: vi.fn(), 
+		saveMeta: vi.fn().mockResolvedValue(undefined),
+		saveContent: vi.fn().mockResolvedValue(undefined)
+	},
 	settingsRepository: { getAll: vi.fn(), save: vi.fn() }
 }));
 
@@ -28,7 +32,8 @@ describe('NotesStore flushAllPendingWrites', () => {
 				folderId: null,
 				updatedAt: '2021-01-01T00:00:00.000Z',
 				deletedAt: null,
-				deletedBatchId: null
+				deletedBatchId: null,
+				isContentLoaded: true
 			} as any
 		);
 	});
@@ -39,25 +44,22 @@ describe('NotesStore flushAllPendingWrites', () => {
 
 	it('flushes a pending debounced write and waits for the save to settle', async () => {
 		let resolveSave!: () => void;
-		(notesRepository.save as any).mockReturnValue(
+		(notesRepository.saveContent as any).mockReturnValue(
 			new Promise<void>((resolve) => {
 				resolveSave = resolve;
 			})
 		);
 
 		notesStore.updateNote('n1', { content: 'Flushed content' });
-		expect(notesRepository.save).not.toHaveBeenCalled();
+		expect(notesRepository.saveMeta).not.toHaveBeenCalled();
+		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 
 		const flushPromise = notesStore.flushAllPendingWrites();
 		await vi.advanceTimersByTimeAsync(400);
 
-		expect(notesRepository.save).toHaveBeenCalledTimes(1);
-		expect((notesRepository.save as any).mock.calls[0][0]).toEqual(
-			expect.objectContaining({
-				id: 'n1',
-				content: 'Flushed content'
-			})
-		);
+		expect(notesRepository.saveMeta).toHaveBeenCalledTimes(1);
+		expect(notesRepository.saveContent).toHaveBeenCalledTimes(1);
+		expect((notesRepository.saveContent as any).mock.calls[0][1]).toBe('Flushed content');
 
 		let settled = false;
 		void flushPromise.then(() => {
@@ -72,10 +74,8 @@ describe('NotesStore flushAllPendingWrites', () => {
 	});
 
 	it('resolves immediately when there are no pending writes', async () => {
-		(notesRepository.save as any).mockResolvedValue(undefined);
-		(settingsRepository.save as any).mockResolvedValue(undefined);
-
 		await expect(notesStore.flushAllPendingWrites()).resolves.toBeUndefined();
-		expect(notesRepository.save).not.toHaveBeenCalled();
+		expect(notesRepository.saveMeta).not.toHaveBeenCalled();
+		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 	});
 });

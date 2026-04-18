@@ -13,7 +13,8 @@ vi.mock('../../src/lib/stores/repositories', () => ({
 	},
 	notesRepository: {
 		list: vi.fn(),
-		save: vi.fn()
+		saveMeta: vi.fn().mockResolvedValue(undefined),
+		saveContent: vi.fn().mockResolvedValue(undefined)
 	},
 	settingsRepository: {
 		getAll: vi.fn(),
@@ -63,9 +64,12 @@ describe('Permanent Deletion with Archival', () => {
 			folderId: null,
 			title: 'Note',
 			content: '',
+			summary: '',
 			updatedAt: new Date().toISOString(),
+			isFavorite: false,
 			deletedAt: null,
 			deletedBatchId: null,
+			isContentLoaded: true,
 			...note
 		};
 		notesStore.notes.set(fullNote.id, fullNote);

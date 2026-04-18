@@ -8,7 +8,11 @@ import { NoteService, TrashService } from '../../src/lib/stores/services';
 // Mock repositories
 vi.mock('../../src/lib/stores/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
-	notesRepository: { list: vi.fn(), save: vi.fn() },
+	notesRepository: { 
+		list: vi.fn(), 
+		saveMeta: vi.fn().mockResolvedValue(undefined),
+		saveContent: vi.fn().mockResolvedValue(undefined)
+	},
 	settingsRepository: { getAll: vi.fn(), save: vi.fn() },
 	trashRepository: { permanentlyDeleteNote: vi.fn(), permanentlyDeleteFolderTree: vi.fn() }
 }));
@@ -31,9 +35,9 @@ describe('Selection Shifting Behavior', () => {
 
 		// Setup mock notes
 		const notes = [
-			{ id: 'n1', title: 'Note 1', folderId: 'f1', updatedAt: '2023-01-01T00:00:00.000Z', deletedAt: null },
-			{ id: 'n2', title: 'Note 2', folderId: 'f1', updatedAt: '2023-01-01T00:00:01.000Z', deletedAt: null },
-			{ id: 'n3', title: 'Note 3', folderId: 'f1', updatedAt: '2023-01-01T00:00:02.000Z', deletedAt: null }
+			{ id: 'n1', title: 'Note 1', folderId: 'f1', updatedAt: '2023-01-01T00:00:00.000Z', deletedAt: null, summary: '', isFavorite: false, isContentLoaded: true },
+			{ id: 'n2', title: 'Note 2', folderId: 'f1', updatedAt: '2023-01-01T00:00:01.000Z', deletedAt: null, summary: '', isFavorite: false, isContentLoaded: true },
+			{ id: 'n3', title: 'Note 3', folderId: 'f1', updatedAt: '2023-01-01T00:00:02.000Z', deletedAt: null, summary: '', isFavorite: false, isContentLoaded: true }
 		];
 
 		notes.forEach(note => {

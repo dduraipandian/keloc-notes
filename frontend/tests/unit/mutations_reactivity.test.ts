@@ -6,7 +6,11 @@ import { SvelteMap } from 'svelte/reactivity';
 // Mock repositories
 vi.mock('../../src/lib/stores/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
-	notesRepository: { list: vi.fn(), save: vi.fn() },
+	notesRepository: { 
+		list: vi.fn(), 
+		saveMeta: vi.fn().mockResolvedValue(undefined),
+		saveContent: vi.fn().mockResolvedValue(undefined)
+	},
 	settingsRepository: { getAll: vi.fn(), save: vi.fn() }
 }));
 
@@ -32,15 +36,13 @@ describe('Phase A: Reactivity & Mutation Tests', () => {
 
 		// 1. Update via updateNote
 		notesStore.updateNote(noteId, { title: 'New Title' });
-		// Should NOT call set (it should just mutate the proxy)
-		// Wait: Currently it DOES NOT call set. Let's verify.
-		expect(setSpy).not.toHaveBeenCalled();
+		// Now it DOES call set for immutable replacement
+		expect(setSpy).toHaveBeenCalledTimes(1);
 
 		// 2. setFavorite
 		setSpy.mockClear();
 		notesStore.setFavorite(noteId, true);
-		// EXPECTED TO FAIL CURRENTLY (Item 3.1)
-		expect(setSpy).not.toHaveBeenCalled(); 
+		expect(setSpy).toHaveBeenCalledTimes(1); 
 	});
 
 	it('Item 3.2: should NOT update updatedAt when typing (content update)', () => {
@@ -53,8 +55,9 @@ describe('Phase A: Reactivity & Mutation Tests', () => {
 		// @ts-ignore - updates.updatedTimestamp exists
 		notesStore.updateNote(noteId, { content: 'typing...' }, { updatedTimestamp: false });
 
-		expect(note.content).toBe('typing...');
-		expect(note.updatedAt).toBe(initialUpdatedAt);
+		const updatedNote = notesStore.getNote(noteId)!;
+		expect(updatedNote.content).toBe('typing...');
+		expect(updatedNote.updatedAt).toBe(initialUpdatedAt);
 	});
 
 	it('Reactivity: counts should still update correctly without Map.set', () => {

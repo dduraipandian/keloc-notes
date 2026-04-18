@@ -6,8 +6,10 @@ import * as idbr from '../../src/lib/stores/idbr';
 vi.mock('../../src/lib/stores/idbr', () => ({
 	getAllFolders: vi.fn(),
 	putFolder: vi.fn(),
-	getAllNotes: vi.fn(),
-	putNote: vi.fn(),
+	getAllNotesMeta: vi.fn(),
+	putNoteMeta: vi.fn(),
+	putNoteContent: vi.fn(),
+	getNoteContent: vi.fn(),
 	getAllSettings: vi.fn(),
 	putSetting: vi.fn(),
 	permanentDeleteFolderTransactionally: vi.fn(),
@@ -26,15 +28,25 @@ describe('Repositories (Wiring Tests)', () => {
 		expect(idbr.putFolder).toHaveBeenCalledWith(folder);
 	});
 
-	it('notesRepository.list should call getAllNotes', async () => {
+	it('notesRepository.list should call getAllNotesMeta', async () => {
 		await notesRepository.list();
-		expect(idbr.getAllNotes).toHaveBeenCalled();
+		expect(idbr.getAllNotesMeta).toHaveBeenCalled();
 	});
 
-	it('notesRepository.save should call putNote', async () => {
-		const note = { id: 'n1' } as any;
-		await notesRepository.save(note);
-		expect(idbr.putNote).toHaveBeenCalledWith(note);
+	it('notesRepository.saveMeta should call putNoteMeta', async () => {
+		const meta = { id: 'n1' } as any;
+		await notesRepository.saveMeta(meta);
+		expect(idbr.putNoteMeta).toHaveBeenCalledWith(meta);
+	});
+
+	it('notesRepository.saveContent should call putNoteContent', async () => {
+		await notesRepository.saveContent('n1', 'content');
+		expect(idbr.putNoteContent).toHaveBeenCalledWith('n1', 'content');
+	});
+
+	it('notesRepository.getContent should call getNoteContent', async () => {
+		await notesRepository.getContent('n1');
+		expect(idbr.getNoteContent).toHaveBeenCalledWith('n1');
 	});
 
 	it('settingsRepository.getAll should call getAllSettings', async () => {

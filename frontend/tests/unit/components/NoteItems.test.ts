@@ -59,22 +59,26 @@ describe('NoteItems.svelte Component', () => {
 	            id: 'n1',
 	            title: 'Note 1',
 	            content: 'Content 1',
+                summary: 'Summary 1',
 	            updatedAt: now,
-	            folderId: 'f1'
-	        });
+	            folderId: 'f1',
+                isFavorite: false,
+                isContentLoaded: true,
+                deletedAt: null
+	        } as any);
         
         // Mock noteListView to return our note
         vi.spyOn(noteListView, 'getSections').mockReturnValue([
-            ['Today', [{ id: 'n1', title: 'Note 1', content: 'Content 1', updatedAt: now } as any]]
+            ['Today', [{ id: 'n1', title: 'Note 1', content: 'Content 1', summary: 'Summary 1', updatedAt: now } as any]]
         ]);
         vi.spyOn(noteListView, 'getSelectedFolderTitle').mockReturnValue('My Notes');
     });
 
-    it('should render the note title and content snippet', () => {
+    it('should render the note title and summary snippet', () => {
         render(NoteItems);
         
         expect(screen.getByText('Note 1')).toBeDefined();
-        expect(screen.getByText('Content 1')).toBeDefined();
+        expect(screen.getByText('Summary 1')).toBeDefined();
     });
 
     it('should focus the correct section header', () => {
