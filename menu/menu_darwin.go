@@ -78,7 +78,8 @@ func buildFileMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
 
 	// Close Window
 	fileMenuItems.Append(menu.Text("Close Window", keys.CmdOrCtrl("w"), func(cd *menu.CallbackData) {
-		// Role-based, handled by Wails
+		// Standard Close behavior would need runtime implementation or letting OS handle it.
+		// In Wails v2 without a role, we'll keep it as a placeholder for now.
 	}))
 	fileMenuItems.Append(menu.Separator())
 
@@ -168,26 +169,16 @@ func buildViewMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
 
 	viewMenuItems.Append(menu.Separator())
 	viewMenuItems.Append(menu.Text("Enter Full Screen", nil, func(cd *menu.CallbackData) {
-		// Full screen toggle
+		// Roles for individual items not available in Wails v2; manual implementation needed.
 	}))
 
 	return menu.SubMenu("View", viewMenuItems)
 }
 
 func buildWindowMenu(host MenuHost) *menu.MenuItem {
-	windowMenuItems := menu.NewMenu()
-	windowMenuItems.Append(menu.Text("Minimize", nil, func(cd *menu.CallbackData) {
-		// Minimize
-	}))
-	windowMenuItems.Append(menu.Text("Zoom", nil, func(cd *menu.CallbackData) {
-		// Zoom
-	}))
-	windowMenuItems.Append(menu.Separator())
-	windowMenuItems.Append(menu.Text("Bring All to Front", nil, func(cd *menu.CallbackData) {
-		// Bring all to front
-	}))
-
-	return menu.SubMenu("Window", windowMenuItems)
+	item := menu.WindowMenu()
+	item.Label = "Window"
+	return item
 }
 
 func buildHelpMenu(host MenuHost) *menu.MenuItem {

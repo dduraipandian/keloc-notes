@@ -144,11 +144,10 @@ func TestBuildMacMenuStructure(t *testing.T) {
 			}
 		}
 	}
-	
+
 	if !hasFind {
 		t.Error("View menu missing 'Find' item")
 	}
-
 	if !hasToggleSidebar {
 		t.Error("View menu missing 'Toggle Sidebar' item")
 	}
@@ -168,39 +167,20 @@ func TestBuildMacMenuStructure(t *testing.T) {
 		t.Errorf("expected fifth menu 'Window', got '%s'", windowMenu.Label)
 	}
 
-	if windowMenu.SubMenu == nil {
-		t.Fatal("Window menu has no submenu")
+	// In Wails v2, WindowMenu() uses a role that hides children in the Go side.
+	if windowMenu.Role == 0 {
+		t.Error("Window menu should have a native role")
 	}
 
-	// Check for Window menu items
-	var (
-		hasMinimize         bool
-		hasZoom             bool
-		hasBringAllToFront  bool
-	)
-
-	for _, item := range windowMenu.SubMenu.Items {
-		if item == nil {
-			continue
-		}
-		switch item.Label {
-		case "Minimize":
-			hasMinimize = true
-		case "Zoom":
-			hasZoom = true
-		case "Bring All to Front":
-			hasBringAllToFront = true
+	// Check File menu
+	var hasCloseWindow bool
+	for _, item := range fileMenu.SubMenu.Items {
+		if item != nil && item.Label == "Close Window" {
+			hasCloseWindow = true
 		}
 	}
-
-	if !hasMinimize {
-		t.Error("Window menu missing 'Minimize' item")
-	}
-	if !hasZoom {
-		t.Error("Window menu missing 'Zoom' item")
-	}
-	if !hasBringAllToFront {
-		t.Error("Window menu missing 'Bring All to Front' item")
+	if !hasCloseWindow {
+		t.Error("File menu missing 'Close Window' item")
 	}
 
 	// Check Help menu exists

@@ -10,8 +10,8 @@ vi.mock('../../src/lib/stores/repositories', () => ({
 }));
 
 describe('FolderService', () => {
-	it('should delegate folder creation', () => {
-		const folders = { createFolder: vi.fn() };
+	it('should delegate folder creation and return the new ID', () => {
+		const folders = { createFolder: vi.fn().mockReturnValue('new-folder-id') };
 		const selection = {
 			selectedFolderID: 'parent',
 			selectFolder: vi.fn(),
@@ -19,10 +19,11 @@ describe('FolderService', () => {
 			clearFolderIfSelected: vi.fn()
 		};
 
-		new FolderService(folders as any, {} as any, selection as any).create();
+		const result = new FolderService(folders as any, {} as any, selection as any).create();
 
 		expect(folders.createFolder).toHaveBeenCalledWith('parent');
-		expect(selection.selectFolder).toHaveBeenCalled();
+		expect(selection.selectFolder).toHaveBeenCalledWith('new-folder-id');
+		expect(result).toBe('new-folder-id');
 	});
 
 	it('should create at the root when a virtual view is selected', () => {
@@ -37,6 +38,19 @@ describe('FolderService', () => {
 		new FolderService(folders as any, {} as any, selection as any).create();
 
 		expect(folders.createFolder).toHaveBeenCalledWith(null);
+	});
+
+	it('should allow creating with an explicit parent ID', () => {
+		const folders = { createFolder: vi.fn().mockReturnValue('new-id') };
+		const selection = {
+			selectFolder: vi.fn(),
+			getSelectedFolder: vi.fn()
+		};
+
+		const result = new FolderService(folders as any, {} as any, selection as any).create('explicit-parent');
+
+		expect(folders.createFolder).toHaveBeenCalledWith('explicit-parent');
+		expect(result).toBe('new-id');
 	});
 
 	it('should select the first note when a folder is selected', () => {
@@ -180,7 +194,7 @@ describe('FolderService', () => {
 });
 
 describe('NoteService', () => {
-	it('should create in the selected regular folder', () => {
+	it('should create in the selected regular folder and return the new ID', () => {
 		const folders = {
 			findItemById: vi.fn().mockReturnValue({ id: 'work', profile: 'regular' }),
 			getDefaultFolderId: vi.fn()
@@ -191,12 +205,13 @@ describe('NoteService', () => {
 			getSelectedFolder: vi.fn(),
 			clearFolderIfSelected: vi.fn()
 		};
-		const notes = { createNote: vi.fn() };
+		const notes = { createNote: vi.fn().mockReturnValue('new-note-id') };
 
-		new NoteService(folders as any, notes as any, selection as any).create('work');
+		const result = new NoteService(folders as any, notes as any, selection as any).create('work');
 
 		expect(notes.createNote).toHaveBeenCalledWith('work');
 		expect(selection.selectFolder).toHaveBeenCalledWith('work');
+		expect(result).toBe('new-note-id');
 		expect(folders.getDefaultFolderId).not.toHaveBeenCalled();
 	});
 

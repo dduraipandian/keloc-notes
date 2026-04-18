@@ -25,10 +25,10 @@ export class NoteService {
 		if (!folder || !resolveProfile(folder).capabilities.createNote) {
 			const defaultId = this.folders.getDefaultFolderId();
 			this.selection.selectFolder(defaultId);
-			this.notes.createNote(defaultId);
+			return this.notes.createNote(defaultId);
 		} else {
 			this.selection.selectFolder(folderId);
-			this.notes.createNote(folderId);
+			return this.notes.createNote(folderId);
 		}
 	}
 

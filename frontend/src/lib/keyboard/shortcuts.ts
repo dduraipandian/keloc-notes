@@ -177,7 +177,7 @@ export function handleNotesPaneShortcut(
 	if (state.activePane !== 'notes') return false;
 	if (isEditableTarget(event.target)) return false;
 
-	if (event.key === 'Delete' || event.key === 'Backspace') {
+	if ((event.key === 'Delete' || event.key === 'Backspace') && !(event.metaKey || event.ctrlKey)) {
 		if (state.selectedNoteDeleteContext == null) return false;
 		event.preventDefault();
 		actions.requestDeleteNote(

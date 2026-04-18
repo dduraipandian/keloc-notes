@@ -191,31 +191,12 @@ export function initMenuBridge(callbacks?: {
 							}
 
 							if (!folderId) {
-								// Create new folder in parent
-								selectionStore.selectedFolderID = parentId;
-								folderService.create();
-								// Wait for newly created folder to appear in store
-								await new Promise<void>((resolve) => {
-									const checkInterval = setInterval(() => {
-										for (const [id, folder] of folderStore.folders) {
-											if (folder.parentId === parentId && folder.title === '') {
-												folderId = id;
-												clearInterval(checkInterval);
-												resolve();
-												return;
-											}
-										}
-									}, 10);
-									// Timeout after 1 second to prevent infinite wait
-									setTimeout(() => {
-										clearInterval(checkInterval);
-										resolve();
-									}, 1000);
-								});
+								// Create new folder in parent deterministically
+								folderId = folderService.create(parentId) ?? null;
 
 								// Rename newly created folder
 								if (folderId) {
-									await folderService.rename(folderId, part);
+									folderService.rename(folderId, part);
 								}
 							}
 
@@ -225,9 +206,14 @@ export function initMenuBridge(callbacks?: {
 						targetFolderId = parentId;
 					}
 
-					// Create note
-					selectionStore.selectedFolderID = targetFolderId;
-					noteService.create(targetFolderId);
+					// Create note and set its content
+					const newNoteId = noteService.create(targetFolderId);
+					if (newNoteId) {
+						noteService.update(newNoteId, {
+							title: importedNote.Title,
+							content: importedNote.Content
+						});
+					}
 				}
 			} catch (err) {
 				console.error('Failed to import notes:', err);

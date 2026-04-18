@@ -184,13 +184,13 @@ type MenuState struct {
 | M3  | Edit menu (roles + Find)                              | P0       | 1 h    | M1         | `[x]`  |
 | M4  | View menu (toggles + Appearance)                      | P0       | 2 h    | M1         | `[x]`  |
 | M5  | Window + Help menus                                   | P1       | 45 min | M1         | `[x]`  |
-| M6  | Dynamic enablement bridge                             | P0       | 2 h    | M1–M5      | `[ ]`  |
-| M7  | Keyboard-shortcut reconciliation                      | P0       | 45 min | M1–M5      | `[ ]`  |
-| M8  | About dialog                                          | P1       | 1 h    | M1         | `[ ]`  |
-| M9  | Preferences window (Appearance + Folder accent color) | P1       | 3 h    | M1         | `[ ]`  |
-| M10 | Markdown import / export (zip)                        | P1       | 3 h    | M2         | `[ ]`  |
-| M11 | IndexedDB JSON backup                                 | P2       | 2 h    | M2         | `[ ]`  |
-| M12 | Windows / Linux extensibility scaffolding             | P2       | 30 min | M1         | `[ ]`  |
+| M6  | Dynamic enablement bridge                             | P0       | 2 h    | M1–M5      | `[x]`  |
+| M7  | Keyboard-shortcut reconciliation                      | P0       | 45 min | M1–M5      | `[x]`  |
+| M8  | About dialog                                          | P1       | 1 h    | M1         | `[x]`  |
+| M9  | Preferences window (Appearance + Folder accent color) | P1       | 3 h    | M1         | `[x]`  |
+| M10 | Markdown import / export (zip)                        | P1       | 3 h    | M2         | `[x]`  |
+| M11 | IndexedDB JSON backup                                 | P2       | 2 h    | M2         | `[x]`  |
+| M12 | Windows / Linux extensibility scaffolding             | P2       | 30 min | M1         | `[x]`  |
 
 ---
 

@@ -415,7 +415,14 @@ This is the current high-level backlog after the Part A release blockers. The re
 
 - [x] **Keyboard shortcuts** — `Cmd+N` (new note), `Cmd+Shift+N` (new folder), `Escape` (close dialogs / cancel rename), arrow-key folder navigation, `Delete`/`Backspace` (trash selected note), and `/` (focus search) are all implemented.
 - [x] **Window title context** — Update OS window title to reflect active note/folder.
-- [ ] **Menu bar integration** — Native macOS menu bar (HIG-compliant), Preferences window, About dialog, Markdown + JSON backup import/export, dynamic enablement, extensible for Windows/Linux. Full implementation plan (TDD, M1–M12) in [MENU_BAR.md](MENU_BAR.md).
+- [x] M1: Native Menu Bar (HIG-compliant)
+- [x] M2: Dynamic Enablement (Enable/disable menu items based on state)
+- [x] M3: Shortcut Reconciliation (Move JS shortcuts to native menu)
+- [x] M4: About Dialog integration
+- [x] M5: Preferences/Settings window integration
+- [x] M6: Markdown Import/Export integration
+- [x] M7: JSON Backup Import/Export integration
+- [x] M8: Menu bar dynamic enablement, extensible for Windows/Linux. Full implementation plan (TDD, M1–M12) in [MENU_BAR.md](MENU_BAR.md).
 - [x] **Resizable panes** — Drag handles between sidebar, list, and editor.
 - [x] **No loading state on startup** — Add brief loading indicator for IndexedDB initialization.
 

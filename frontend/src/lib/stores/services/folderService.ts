@@ -18,18 +18,25 @@ export class FolderService {
 		this.selection = selection;
 	}
 
-	create() {
-		const selectedFolder = this.selection.getSelectedFolder();
-		let parentFolderId =
-			selectedFolder && resolveProfile(selectedFolder).capabilities.createFolder
-				? this.selection.selectedFolderID
-				: null;
-		
+	create(parentId?: FolderID | null) {
+		let parentFolderId: FolderID | null;
+
+		if (parentId !== undefined) {
+			parentFolderId = parentId;
+		} else {
+			const selectedFolder = this.selection.getSelectedFolder();
+			parentFolderId =
+				selectedFolder && resolveProfile(selectedFolder).capabilities.createFolder
+					? this.selection.selectedFolderID
+					: null;
+		}
+
 		// Normalize root parent to null
 		if (parentFolderId === 'home') parentFolderId = null;
 
 		const newFolderId = this.folders.createFolder(parentFolderId);
 		this.selection.selectFolder(newFolderId ?? null);
+		return newFolderId;
 	}
 
 	select(folderId: FolderID | null) {

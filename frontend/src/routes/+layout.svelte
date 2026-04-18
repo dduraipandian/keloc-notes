@@ -22,7 +22,7 @@
 	import { folderSidebarView } from '$lib/views/folderSidebarView.svelte';
 	import { noteListView } from '$lib/views/noteListView.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
-	import { initMenuBridge } from '$lib/menu/menuBridge.svelte';
+	import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
 	import About from '$lib/components/About.svelte';
 	import Settings from '$lib/components/Settings.svelte';
 	import { preferencesStore } from '$lib/stores/preferences.svelte';
@@ -327,27 +327,7 @@ import { hasWailsRuntime } from '$lib/wails.svelte';
 			: () => {};
 
 		if (hasWailsRuntime()) {
-			$effect(() => {
-				// Track selectedNoteID and other state to update menu
-				const noteId = notesStore.selectedNoteID;
-				const selectedNote = notesStore.selectedNote;
-				const menuState = new menu.MenuState({
-					HasSelectedNote: noteId !== null,
-					SelectedNoteInTrash: selectedNote?.deletedAt != null,
-					TrashHasItems: notesStore.trashCount > 0,
-					Theme: themeStore.theme
-				});
-
-				console.log(
-					`[MENU] MenuState: noteId=${noteId}, hasSelected=${noteId !== null}, trashCount=${notesStore.trashCount}, theme=${themeStore.theme}`
-				);
-
-				try {
-					UpdateMenuState(menuState);
-				} catch (err) {
-					console.error('Failed to update native menu:', err);
-				}
-			});
+			initMenuStateEffect();
 		}
 
 		void (async () => {
