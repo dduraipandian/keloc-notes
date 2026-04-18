@@ -116,7 +116,7 @@
 					</div>
 				{:else if activeTab === 'appearance'}
 					<div class="setting-group">
-						<label>Appearance Mode</label>
+						<h3 class="setting-title">Appearance Mode</h3>
 						<p class="description">Select how mdnotes should look on your system.</p>
 						<div class="appearance-options">
 							<button
@@ -261,7 +261,8 @@
 		margin-bottom: 24px;
 	}
 
-	.setting-group label {
+	.setting-group label,
+	.setting-title {
 		display: block;
 		font-size: 14px;
 		font-weight: 600;

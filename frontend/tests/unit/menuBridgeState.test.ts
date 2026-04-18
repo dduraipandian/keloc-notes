@@ -11,6 +11,8 @@ vi.mock('$lib/wailsjs/go/main/App', () => ({
 describe('Menu State Effect', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Mock Wails runtime for unit tests
+		(window as any).runtime = {};
 		notesStore.notes.clear();
 		notesStore.selectedNoteID = null;
 		notesStore.trashCount = 0;

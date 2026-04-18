@@ -8,6 +8,7 @@ import { folderStore } from '$lib/stores/folders.svelte';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStateStore } from '$lib/stores/uiState.svelte';
 import { themeStore } from '$lib/stores/theme.svelte';
+import { hasWailsRuntime } from '$lib/wails.svelte';
 
 /**
  * Initialize menu event listeners and wire them to store actions.
@@ -275,6 +276,12 @@ export function initMenuStateEffect(): void {
 		});
 
 		// Update the native menu with current state
-		UpdateMenuState(menuState);
+		if (hasWailsRuntime()) {
+			try {
+				UpdateMenuState(menuState);
+			} catch (err) {
+				console.error('Failed to update native menu:', err);
+			}
+		}
 	});
 }

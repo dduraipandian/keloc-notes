@@ -26,6 +26,7 @@
 	import About from '$lib/components/About.svelte';
 	import Settings from '$lib/components/Settings.svelte';
 	import { preferencesStore } from '$lib/stores/preferences.svelte';
+import { hasWailsRuntime } from '$lib/wails.svelte';
 
 	let { children } = $props();
 
@@ -54,12 +55,7 @@
 	let resizeStartSidebarWidth = DEFAULT_SIDEBAR_WIDTH;
 	let resizeStartNoteListWidth = DEFAULT_NOTE_LIST_WIDTH;
 
-	function hasWailsRuntime() {
-		return (
-			typeof window !== 'undefined' &&
-			typeof (window as typeof window & { runtime?: unknown }).runtime !== 'undefined'
-		);
-	}
+
 
 	$effect(() => {
 		document.documentElement.dataset.appReady = isInitializing ? 'false' : 'true';
@@ -317,29 +313,40 @@
 				})
 			: () => {};
 
-		const offMenuBridge = initMenuBridge({
-			onOpenAbout: () => {
-				showAbout = true;
-			},
-			onOpenPreferences: () => {
-				showSettings = true;
-			}
-		});
-		initMenuStateEffect();
+		const offMenuBridge = hasWailsRuntime()
+			? initMenuBridge({
+					onOpenAbout: () => {
+						showAbout = true;
+					},
+					onOpenPreferences: () => {
+						showSettings = true;
+					}
+				})
+			: () => {};
+
+		if (hasWailsRuntime()) {
+			initMenuStateEffect();
+		}
 
 		void (async () => {
 			try {
+				console.log('[DEBUG] Init starting');
 				const settings = await settingsRepository.getAll();
+				console.log('[DEBUG] Settings loaded');
 				themeStore.init(settings.applicationTheme);
 				await preferencesStore.init(settings);
+				console.log('[DEBUG] Preferences initialized');
 				applyPaneWidths(
 					settings.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH,
 					settings.noteListWidth ?? DEFAULT_NOTE_LIST_WIDTH,
 					true
 				);
 				await folderStore.init();
+				console.log('[DEBUG] Folders initialized');
 				await selectionStore.init();
+				console.log('[DEBUG] Selection initialized');
 				await notesStore.init();
+				console.log('[DEBUG] Notes initialized');
 				folderStore.onPersistError = (err) => {
 					uiStore.confirmAppQuit('Save failed', String(err), () => {});
 				};
