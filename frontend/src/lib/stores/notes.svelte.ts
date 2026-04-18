@@ -5,17 +5,20 @@ import type { FolderID } from './folders.svelte';
 
 export type NoteID = string;
 
-export type NoteItem = {
+export type NoteMeta = {
 	id: NoteID;
 	folderId: string | null;
 	title: string;
-	content: string;
+	summary: string;
 	updatedAt: string;
 	isFavorite?: boolean;
-	// deletedAt is the timestamp of deletion state; do not use it to group deleted items.
-	// deletedBatchId identifies one delete operation and must drive restore/grouping logic.
 	deletedAt?: number | null;
 	deletedBatchId?: string | null;
+};
+
+export type NoteItem = NoteMeta & {
+	content: string;
+	isContentLoaded: boolean;
 };
 
 class NotesStore {
@@ -25,6 +28,7 @@ class NotesStore {
 	onPersistError = $state<((err: unknown, noteId: string) => void) | null>(null);
 	private debouncer = new KeyedDebouncer();
 	private inFlightWrites = new Set<Promise<unknown>>();
+	private dirtyContentNotes = new Set<NoteID>();
 
 	folderNoteCounts = $state<Record<string, number>>({ null: 0 });
 	folderDeletedNoteCounts = $state<Record<string, number>>({ null: 0 });
@@ -41,41 +45,79 @@ class NotesStore {
 		};
 	}
 
-	constructor(initialNotes: NoteItem[] = []) {
+	constructor(initialNotes: (NoteMeta | NoteItem)[] = []) {
 		if (initialNotes.length > 0) {
 			initialNotes.forEach((n) => {
-				let ns = $state(n);
-				this.notes.set(n.id, ns);
+				const isFull = 'isContentLoaded' in n;
+				const item: NoteItem = {
+					...n,
+					content: isFull ? (n as NoteItem).content : '',
+					isContentLoaded: isFull ? (n as NoteItem).isContentLoaded : false
+				};
+				this.notes.set(n.id, item);
 			});
 		}
+	}
+
+	summarize(content: string): string {
+		if (!content) return '';
+		// Split by lines and filter out empty ones
+		const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+		// Take the first two non-empty lines and join them
+		return lines.slice(0, 2).join('\n');
 	}
 
 	async init() {
 		if (this.isInitialized) return;
 
 		try {
-			const allNotesData = await notesRepository.list();
+			const allMeta = await notesRepository.list();
 			const settings = await settingsRepository.getAll();
 
 			this.notes.clear();
-			allNotesData.forEach((note) => {
-				if (note && note.id) {
-					if (note.deletedAt === undefined) note.deletedAt = null;
-					if (note.deletedBatchId === undefined) note.deletedBatchId = null;
-					if (note.isFavorite === undefined) note.isFavorite = false;
-					let n = $state(note);
-					this.notes.set(note.id, n);
+			allMeta.forEach((meta) => {
+				if (meta && meta.id) {
+					if (meta.deletedAt === undefined) meta.deletedAt = null;
+					if (meta.deletedBatchId === undefined) meta.deletedBatchId = null;
+					if (meta.isFavorite === undefined) meta.isFavorite = false;
+					if (meta.summary === undefined) meta.summary = '';
+					
+					const item: NoteItem = {
+						...meta,
+						content: '',
+						isContentLoaded: false
+					};
+					this.notes.set(meta.id, item);
 				}
 			});
 
 			this.recalculateCounts();
 			if (settings && settings.selectedNoteID) {
 				this.selectedNoteID = settings.selectedNoteID;
+				// Initial content load for selected note
+				await this.loadNoteContent(this.selectedNoteID);
 			}
 			this.isInitialized = true;
 		} catch (error) {
 			console.error('Failed to load notes from storage:', error);
 			throw error;
+		}
+	}
+
+	async loadNoteContent(id: NoteID) {
+		const note = this.notes.get(id);
+		if (!note || note.isContentLoaded) return;
+
+		try {
+			const content = await notesRepository.getContent(id);
+			// Replace in map to trigger reactivity
+			this.notes.set(id, {
+				...note,
+				content,
+				isContentLoaded: true
+			});
+		} catch (error) {
+			console.error(`Failed to load content for note ${id}:`, error);
 		}
 	}
 
@@ -99,17 +141,40 @@ class NotesStore {
 		}
 	}
 
-	persistNote(id: NoteID | null) {
+	persistNote(id: NoteID | null, forcePersistContent = false) {
 		if (!this.isInitialized || !id) return;
 		this.debouncer.cancel(id);
 		const note = this.notes.get(id);
 		if (note) {
-			const write = Promise.resolve(notesRepository.save($state.snapshot(note)));
+			const meta: NoteMeta = {
+				id: note.id,
+				folderId: note.folderId,
+				title: note.title,
+				summary: note.summary,
+				updatedAt: note.updatedAt,
+				isFavorite: note.isFavorite,
+				deletedAt: note.deletedAt,
+				deletedBatchId: note.deletedBatchId
+			};
+
+			const metaWrite = Promise.resolve(notesRepository.saveMeta(meta));
 			this.trackWrite(
-				write.catch((err) => {
-				this.onPersistError?.(err, id);
+				metaWrite.catch((err) => {
+					this.onPersistError?.(err, id);
 				})
 			);
+
+			const shouldPersistContent = forcePersistContent || this.dirtyContentNotes.has(id);
+
+			if (shouldPersistContent && note.isContentLoaded) {
+				const contentWrite = Promise.resolve(notesRepository.saveContent(id, note.content));
+				this.trackWrite(
+					contentWrite.catch((err) => {
+						this.onPersistError?.(err, `${id}_content`);
+					})
+				);
+				this.dirtyContentNotes.delete(id);
+			}
 		}
 	}
 
@@ -145,10 +210,12 @@ class NotesStore {
 			folderId: targetFolderId,
 			title: 'Untitled Note',
 			content: '',
+			summary: '',
 			updatedAt: new Date().toISOString(),
 			isFavorite: false,
 			deletedAt: null,
-			deletedBatchId: null
+			deletedBatchId: null,
+			isContentLoaded: true
 		};
 		let n = $state(newNote);
 		this.notes.set(newNote.id, n);
@@ -173,21 +240,30 @@ class NotesStore {
 			const oldFolderId = note.folderId ?? 'null';
 			const oldIsFavorite = !!note.isFavorite;
 			const oldDeletedAt = note.deletedAt;
+			const contentChanged = updates.content !== undefined && updates.content !== note.content;
 
-			Object.assign(note, updates);
+			const newNote = { ...note, ...updates };
+
+			if (contentChanged) {
+				newNote.summary = this.summarize(newNote.content);
+				this.dirtyContentNotes.add(id);
+			}
 
 			if (updatedTimestamp) {
-				note.updatedAt = new Date().toISOString();
+				newNote.updatedAt = new Date().toISOString();
 			}
+
+			// Replace in map to trigger reactivity
+			this.notes.set(id, newNote);
 			
-			// Keep persistence throttled, but update in-memory ordering immediately.
+			// Keep persistence throttled
 			this.debouncer.debounce(id, () => {
 				this.persistNote(id);
 			}, 400);
 
-			const newFolderId = note.folderId ?? 'null';
-			const newDeletedAt = note.deletedAt;
-			const newIsFavorite = !!note.isFavorite;
+			const newFolderId = newNote.folderId ?? 'null';
+			const newDeletedAt = newNote.deletedAt;
+			const newIsFavorite = !!newNote.isFavorite;
 
 			// Handle Folder Movement
 			if (oldFolderId !== newFolderId) {
@@ -221,8 +297,6 @@ class NotesStore {
 			if (newDeletedAt === null && oldIsFavorite !== newIsFavorite) {
 				this.favoriteCount += newIsFavorite ? 1 : -1;
 			}
-
-			// We don't call this.persistNote(id) directly anymore
 		}
 	}
 
@@ -237,8 +311,8 @@ class NotesStore {
 		}
 		if (note && note.deletedAt == null) {
 			const fid = note.folderId ?? 'null';
-			note.deletedAt = deletedAt;
-			note.deletedBatchId = deletedBatchId;
+			const newNote = { ...note, deletedAt, deletedBatchId };
+			this.notes.set(id, newNote);
 
 			// Update counts
 			this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) - 1;
@@ -254,17 +328,17 @@ class NotesStore {
 		const note = this.notes.get(id);
 		if (note && note.deletedAt != null) {
 			const oldFolderId = note.folderId ?? 'null';
-			if (folderId !== undefined) note.folderId = folderId;
-			const newFolderId = note.folderId ?? 'null';
+			const newNote = { ...note, deletedAt: null, deletedBatchId: null };
+			if (folderId !== undefined) newNote.folderId = folderId;
+			const newFolderId = newNote.folderId ?? 'null';
 			
-			note.deletedAt = null;
-			note.deletedBatchId = null;
+			this.notes.set(id, newNote);
 
 			// Update counts
 			this.trashCount--;
 			this.folderDeletedNoteCounts[oldFolderId] = (this.folderDeletedNoteCounts[oldFolderId] ?? 0) - 1;
 			this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) + 1;
-			if (note.isFavorite) this.favoriteCount++;
+			if (newNote.isFavorite) this.favoriteCount++;
 
 			this.persistNote(id);
 			this.persistSelection();
@@ -277,8 +351,8 @@ class NotesStore {
 		for (const note of allNotes) {
 			if ((note.folderId ?? 'root') === folderId && note.deletedAt == null) {
 				const fid = note.folderId ?? 'null';
-				note.deletedAt = deletedAt;
-				note.deletedBatchId = deletedBatchId;
+				const newNote = { ...note, deletedAt, deletedBatchId };
+				this.notes.set(note.id, newNote);
 
 				// Update counts
 				this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) - 1;
@@ -303,12 +377,12 @@ class NotesStore {
 		for (const note of allNotes) {
 			if ((note.folderId ?? 'root') === folderId && note.deletedAt != null && note.deletedBatchId != null) {
 				if (targetBatchId && note.deletedBatchId === targetBatchId) {
-					note.deletedAt = null;
-					note.deletedBatchId = null;
+					const fid = note.folderId ?? 'null';
+					const newNote = { ...note, deletedAt: null, deletedBatchId: null };
+					this.notes.set(note.id, newNote);
 
 					// Update counts
 					this.trashCount--;
-					const fid = note.folderId ?? 'null';
 					this.folderDeletedNoteCounts[fid] = (this.folderDeletedNoteCounts[fid] ?? 0) - 1;
 					this.folderNoteCounts[fid] = (this.folderNoteCounts[fid] ?? 0) + 1;
 					if (note.isFavorite) this.favoriteCount++;
@@ -341,10 +415,12 @@ class NotesStore {
 		const note = this.notes.get(id);
 		if (!note) return;
 		const oldFav = !!note.isFavorite;
-		note.isFavorite = isFavorite;
+		
+		const newNote = { ...note, isFavorite };
+		this.notes.set(id, newNote);
 
 		// Update counts if not in trash
-		if (note.deletedAt == null && oldFav !== isFavorite) {
+		if (newNote.deletedAt == null && oldFav !== isFavorite) {
 			this.favoriteCount += isFavorite ? 1 : -1;
 		}
 

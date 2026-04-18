@@ -1,13 +1,13 @@
-import type { FolderItem } from './folders.svelte';
-import type { NoteItem } from './notes.svelte';
 import {
 	getAllFolders,
-	getAllNotes,
+	getAllNotesMeta,
 	getAllSettings,
+	getNoteContent,
 	permanentDeleteFolderTransactionally,
 	permanentDeleteNoteTransactionally,
 	putFolder,
-	putNote,
+	putNoteContent,
+	putNoteMeta,
 	putSetting
 } from './idbr';
 
@@ -21,11 +21,17 @@ export const foldersRepository = {
 };
 
 export const notesRepository = {
-	list(): Promise<NoteItem[]> {
-		return getAllNotes();
+	list(): Promise<NoteMeta[]> {
+		return getAllNotesMeta();
 	},
-	save(note: NoteItem) {
-		return putNote(note);
+	saveMeta(meta: NoteMeta) {
+		return putNoteMeta(meta);
+	},
+	saveContent(id: NoteID, content: string) {
+		return putNoteContent(id, content);
+	},
+	getContent(id: NoteID): Promise<string> {
+		return getNoteContent(id);
 	}
 };
 

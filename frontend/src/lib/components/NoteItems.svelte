@@ -133,7 +133,7 @@
 										<Item.Description
 											class="line-clamp-1 text-[12px] leading-snug break-all text-foreground/50"
 										>
-											{note.content || 'No additional text'}
+											{note.summary || 'No additional text'}
 										</Item.Description>
 									</Item.Content>
 								</Item.Root>

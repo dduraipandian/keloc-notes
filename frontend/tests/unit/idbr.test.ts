@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { 
 	initDB, 
@@ -7,10 +7,12 @@ import {
 	getFolder, 
 	deleteFolder, 
 	getAllFolders, 
-	putNote, 
-	getNote, 
+	putNoteMeta, 
+	getNoteMeta, 
+	putNoteContent, 
+	getNoteContent, 
 	deleteNote, 
-	getAllNotes, 
+	getAllNotesMeta, 
 	putSetting, 
 	getSetting, 
 	getAllSettings,
@@ -20,16 +22,15 @@ import { uiStore } from '../../src/lib/stores/dialog.svelte';
 
 describe('IndexedDB Wrapper (idbr.ts)', () => {
 	beforeEach(async () => {
-		// No explicit reset needed for fake-indexeddb as we can just overwrite the DB if needed,
-		// but typically we should clear the object stores.
-		// For simplicity, we just use a fresh environment for each test.
+		// Fresh environment for each test via fake-indexeddb
 	});
 
 	it('should initialize the database and create stores', async () => {
 		const db = await initDB();
 		expect(db.name).toBe('mdnotes-db');
 		expect(db.objectStoreNames).toContain('folders');
-		expect(db.objectStoreNames).toContain('notes');
+		expect(db.objectStoreNames).toContain('notes_meta');
+		expect(db.objectStoreNames).toContain('notes_contents');
 		expect(db.objectStoreNames).toContain('settings');
 		expect(db.objectStoreNames).toContain('backups');
 	});
@@ -73,21 +74,38 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 	});
 
 	describe('Note CRUD', () => {
-		it('should put and get a note', async () => {
-			const note = { id: 'n1', title: 'Note 1', content: 'Hello' };
-			await putNote(note);
-			const result = await getNote('n1');
-			expect(result).toEqual(note);
+		it('should put and get note metadata', async () => {
+			const meta = { id: 'n1', title: 'Note 1', summary: 'Summary' };
+			await putNoteMeta(meta);
+			const result = await getNoteMeta('n1');
+			expect(result).toEqual(meta);
 		});
 
-		it('should return all notes', async () => {
+		it('should put and get note content', async () => {
+			await putNoteContent('n1', 'Hello World');
+			const result = await getNoteContent('n1');
+			expect(result).toBe('Hello World');
+		});
+
+		it('should return all notes metadata', async () => {
 			const n1 = { id: 'n1', title: 'N1' };
 			const n2 = { id: 'n2', title: 'N2' };
-			await putNote(n1);
-			await putNote(n2);
-			const all = await getAllNotes();
+			await putNoteMeta(n1);
+			await putNoteMeta(n2);
+			const all = await getAllNotesMeta();
 			expect(all).toContainEqual(n1);
 			expect(all).toContainEqual(n2);
+		});
+
+		it('should delete a note from both stores', async () => {
+			await putNoteMeta({ id: 'n1', title: 'T' });
+			await putNoteContent('n1', 'C');
+			await deleteNote('n1');
+			
+			const meta = await getNoteMeta('n1');
+			const content = await getNoteContent('n1');
+			expect(meta).toBeUndefined();
+			expect(content).toBe('');
 		});
 	});
 
@@ -112,29 +130,32 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 		});
 	});
 
-		describe('Transactional Operations', () => {
-			it('should archive and delete a note transactionally', async () => {
-				const note = {
-					id: 'n1',
-					title: 'To Delete',
-					content: 'Some content',
-					folderId: null,
-					updatedAt: new Date().toISOString()
-				};
-				await putNote(note);
-				
-				const archivedAt = Date.now();
-			await permanentDeleteNoteTransactionally(note, 'Home / To Delete', archivedAt);
+	describe('Transactional Operations', () => {
+		it('should archive and delete a note transactionally', async () => {
+			const meta = {
+				id: 'n1',
+				title: 'To Delete',
+				folderId: null,
+				updatedAt: new Date().toISOString()
+			};
+			const content = 'Some content';
+			await putNoteMeta(meta);
+			await putNoteContent('n1', content);
 			
-			// Verify note is gone from notes store
-			const fetchedNote = await getNote('n1');
-			expect(fetchedNote).toBeUndefined();
+			const archivedAt = Date.now();
+			await permanentDeleteNoteTransactionally(meta, content, 'Home / To Delete', archivedAt);
+			
+			// Verify note is gone from notes stores
+			const fetchedMeta = await getNoteMeta('n1');
+			expect(fetchedMeta).toBeUndefined();
+			const fetchedContent = await getNoteContent('n1');
+			expect(fetchedContent).toBe('');
 			
 			// Verify note is in backups store
 			const db = await initDB();
 			const backup = await db.get('backups', 'note_n1');
 			expect(backup).toBeDefined();
-			expect(backup.data).toEqual(note);
+			expect(backup.data).toEqual({ ...meta, content });
 			expect(backup.path).toBe('Home / To Delete');
 			expect(backup.archivedAt).toBe(archivedAt);
 		});

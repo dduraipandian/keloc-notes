@@ -78,9 +78,7 @@ export class NoteListView {
 		if (!normalizedQuery) return visibleNotes;
 
 		return visibleNotes.filter(
-			(note) =>
-				note.title.toLowerCase().includes(normalizedQuery) ||
-				note.content.toLowerCase().includes(normalizedQuery)
+			(note) => note.title.toLowerCase().includes(normalizedQuery)
 		);
 	}
 

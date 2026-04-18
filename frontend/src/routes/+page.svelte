@@ -31,6 +31,12 @@
 			minute: '2-digit'
 		});
 	}
+
+	$effect(() => {
+		if (selectedNote && !selectedNote.isContentLoaded) {
+			notesStore.loadNoteContent(selectedNote.id);
+		}
+	});
 </script>
 
 {#if selectedNote}
@@ -67,8 +73,8 @@
 						<span>{formatDate(selectedNote.updatedAt)}</span>
 					</div>
 					<textarea
-						bind:value={selectedNote.title}
-						oninput={() => noteService.update(selectedNote!.id, { title: selectedNote!.title })}
+						value={selectedNote.title}
+						oninput={(e) => noteService.update(selectedNote!.id, { title: (e.target as HTMLTextAreaElement).value })}
 						placeholder="Note Title"
 						readonly={selectedNote.deletedAt != null}
 						onclick={() => {
@@ -87,12 +93,12 @@
 				<div class="prose prose-lg flex max-w-none flex-1 flex-col dark:prose-invert">
 					<!-- Placeholder for future TipTap editor -->
 					<textarea
-						bind:value={selectedNote.content}
+						value={selectedNote.content}
 						readonly={selectedNote.deletedAt != null}
 						onclick={() => {
 							if (selectedNote.deletedAt != null) handleRestoreInit();
 						}}
-						oninput={() => noteService.update(selectedNote!.id, { content: selectedNote!.content })}
+						oninput={(e) => noteService.update(selectedNote!.id, { content: (e.target as HTMLTextAreaElement).value })}
 						placeholder="Start writing..."
 						class="w-full flex-1 resize-none bg-transparent leading-relaxed text-foreground/90 outline-none placeholder:text-muted-foreground/10"
 						spellcheck="false"

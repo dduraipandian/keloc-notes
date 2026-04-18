@@ -4,14 +4,18 @@ import type { NoteItem } from './notes.svelte';
 import { uiStore } from './dialog.svelte';
 
 const DEFAULT_DB_NAME = 'mdnotes-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export interface DBStore {
 	folders: {
 		key: string;
 		value: any;
 	};
-	notes: {
+	notes_meta: {
+		key: string;
+		value: any;
+	};
+	notes_contents: {
 		key: string;
 		value: any;
 	};
@@ -38,8 +42,11 @@ function ensureStores(db: IDBPDatabase<DBStore>) {
 	if (!db.objectStoreNames.contains('folders')) {
 		db.createObjectStore('folders', { keyPath: 'id' });
 	}
-	if (!db.objectStoreNames.contains('notes')) {
-		db.createObjectStore('notes', { keyPath: 'id' });
+	if (!db.objectStoreNames.contains('notes_meta')) {
+		db.createObjectStore('notes_meta', { keyPath: 'id' });
+	}
+	if (!db.objectStoreNames.contains('notes_contents')) {
+		db.createObjectStore('notes_contents', { keyPath: 'id' });
 	}
 	if (!db.objectStoreNames.contains('settings')) {
 		db.createObjectStore('settings');
@@ -65,10 +72,14 @@ export function initDB() {
 			switch (oldVersion) {
 				case 0:
 					ensureStores(db);
-					// fall through to future migrations
+					break;
 				case 1:
+				case 2:
+					// Fresh start for v3 as per user request to ignore/clean v2 data
+					if (db.objectStoreNames.contains('notes')) {
+						db.deleteObjectStore('notes');
+					}
 					ensureStores(db);
-					// v1 -> v2 migrations go here
 					break;
 				default:
 					ensureStores(db);
@@ -149,29 +160,38 @@ export async function getAllFolders(): Promise<FolderItem[]> {
 // Granular Note Methods
 // ─────────────────────────────────────────────
 
-export type NotesState = {
-	notes: any[];
-	selectedNoteId: string | null;
-};
-
-export async function putNote(note: any) {
+export async function putNoteMeta(meta: any) {
 	const db = await getDB();
-	return db.put('notes', note);
+	return db.put('notes_meta', meta);
 }
 
-export async function getNote(id: string) {
+export async function getNoteMeta(id: string) {
 	const db = await getDB();
-	return db.get('notes', id);
+	return db.get('notes_meta', id);
+}
+
+export async function putNoteContent(id: string, content: string) {
+	const db = await getDB();
+	return db.put('notes_contents', { id, content });
+}
+
+export async function getNoteContent(id: string) {
+	const db = await getDB();
+	const result = await db.get('notes_contents', id);
+	return result ? result.content : '';
 }
 
 export async function deleteNote(id: string) {
 	const db = await getDB();
-	return db.delete('notes', id);
+	return await withTransaction(['notes_meta', 'notes_contents'], 'readwrite', async (tx) => {
+		await tx.objectStore('notes_meta').delete(id);
+		await tx.objectStore('notes_contents').delete(id);
+	});
 }
 
-export async function getAllNotes(): Promise<any[]> {
+export async function getAllNotesMeta(): Promise<any[]> {
 	const db = await getDB();
-	return db.getAll('notes');
+	return db.getAll('notes_meta');
 }
 
 // ─────────────────────────────────────────────
@@ -256,25 +276,31 @@ export async function getAllSettings(): Promise<SettingsState> {
 // ─────────────────────────────────────────────
 
 export async function permanentDeleteFolderTransactionally(
-	notesToDelete: { note: NoteItem; path: string }[],
+	notesToDelete: { meta: any; path: string }[],
 	foldersToDelete: FolderItem[],
 	archivedAt: number
 ) {
-	return await withTransaction(['folders', 'notes', 'backups'], 'readwrite', async (tx) => {
+	return await withTransaction(['folders', 'notes_meta', 'notes_contents', 'backups'], 'readwrite', async (tx) => {
 		const fStore = tx.objectStore('folders')!;
-		const nStore = tx.objectStore('notes')!;
+		const mStore = tx.objectStore('notes_meta')!;
+		const cStore = tx.objectStore('notes_contents')!;
 		const bStore = tx.objectStore('backups')!;
 
 		// Backup and Delete Notes
-		for (const { note, path } of notesToDelete) {
+		for (const { meta, path } of notesToDelete) {
+			// We might need the content for backup... 
+			// But for now let's assume meta is enough or we fetch content before calling this.
+			// Re-assembling for backup:
+			const content = await cStore.get(meta.id);
 			await bStore.put!({
-				id: `note_${note.id}`,
+				id: `note_${meta.id}`,
 				type: 'note',
-				data: note,
+				data: { ...meta, content: content?.content ?? '' },
 				path,
 				archivedAt
 			});
-			await nStore.delete!(note.id);
+			await mStore.delete!(meta.id);
+			await cStore.delete!(meta.id);
 		}
 
 		// Delete Folders
@@ -285,21 +311,24 @@ export async function permanentDeleteFolderTransactionally(
 }
 
 export async function permanentDeleteNoteTransactionally(
-	note: NoteItem,
+	meta: any,
+	content: string,
 	path: string,
 	archivedAt: number
 ) {
-	return await withTransaction(['notes', 'backups'], 'readwrite', async (tx) => {
-		const nStore = tx.objectStore('notes')!;
+	return await withTransaction(['notes_meta', 'notes_contents', 'backups'], 'readwrite', async (tx) => {
+		const mStore = tx.objectStore('notes_meta')!;
+		const cStore = tx.objectStore('notes_contents')!;
 		const bStore = tx.objectStore('backups')!;
 
 		await bStore.put!({
-			id: `note_${note.id}`,
+			id: `note_${meta.id}`,
 			type: 'note',
-			data: note,
+			data: { ...meta, content },
 			path,
 			archivedAt
 		});
-		await nStore.delete!(note.id);
+		await mStore.delete!(meta.id);
+		await cStore.delete!(meta.id);
 	});
 }
