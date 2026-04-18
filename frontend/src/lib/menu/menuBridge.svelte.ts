@@ -272,14 +272,20 @@ export function initMenuBridge(callbacks?: {
  */
 export function initMenuStateEffect(): void {
 	$effect.root(() => {
-		// Derive menu state from current store state
+		// Explicitly access selectedNoteID to ensure proper reactivity tracking
+		const noteId = notesStore.selectedNoteID;
 		const selectedNote = notesStore.selectedNote;
+		const hasSelected = noteId !== null;
 		const menuState = new menu.MenuState({
-			HasSelectedNote: selectedNote !== null,
+			HasSelectedNote: hasSelected,
 			SelectedNoteInTrash: selectedNote?.deletedAt != null,
 			TrashHasItems: notesStore.trashCount > 0,
 			Theme: themeStore.theme
 		});
+
+		console.log(
+			`[MENU] MenuState: noteId=${noteId}, hasSelected=${hasSelected}, trashCount=${notesStore.trashCount}, theme=${themeStore.theme}`
+		);
 
 		// Update the native menu with current state
 		if (hasWailsRuntime()) {
