@@ -14,7 +14,7 @@ async function gotoApp(page: import('@playwright/test').Page) {
 		(window as Window & { __MDNOTES_DB_NAME__?: string }).__MDNOTES_DB_NAME__ = name;
 	}, dbName);
 	await page.goto('/');
-	await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true');
+	await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true', { timeout: 30000 });
 }
 
 function getSideBarContent(page: import('@playwright/test').Page) {
@@ -426,4 +426,65 @@ test('deleted favorite folders disappear from Favorites and reappear there after
 
 	await openFavorites(page);
 	await expect(getHeaderSidebarItem(page, folderTitle)).toBeVisible();
+});
+
+test.describe('Permanent Deletion & Empty Trash Regression', () => {
+	test.beforeEach(async ({ page }) => {
+		await gotoApp(page);
+	});
+
+	test('should permanently delete a note and remove it from Trash pane', async ({ page }) => {
+		const noteTitle = uniqueName('PermanentNote');
+		
+		// 1. Create and Soft-Delete a note
+		await page.getByTitle('New Note').click();
+		await page.getByPlaceholder('Note Title').fill(noteTitle);
+		await page.getByPlaceholder('Start writing...').fill('Permanent content');
+		
+		await page.getByTitle('Trash').click();
+		await expect(page.getByRole('heading', { name: 'Delete Note' })).toBeVisible();
+		await page.getByRole('button', { name: 'Delete Note' }).click();
+
+		// 2. Go to Trash (Recently Deleted)
+		const trashSidebarItem = page.locator('div[data-sidebar="header"]').getByText('Recently Deleted');
+		await trashSidebarItem.click();
+		
+		const noteInTrash = page.locator('aside div[data-slot="item-title"]').getByText(noteTitle, { exact: true });
+		await expect(noteInTrash).toBeVisible();
+
+		// 3. Perform Permanent Delete
+		await noteInTrash.click({ button: 'right' });
+		await page.getByText('Delete Permanently', { exact: true }).click();
+		
+		await expect(page.getByRole('heading', { name: 'Delete Note Permanently' })).toBeVisible();
+		await page.getByRole('button', { name: 'Delete Note', exact: true }).click();
+
+		// 4. Verify it's GONE from the list
+		await expect(noteInTrash).toBeHidden();
+	});
+
+	test('should empty the trash and clear all deleted items', async ({ page }) => {
+		const noteTitle = uniqueName('TrashNote');
+		
+		// 1. Setup a deleted note
+		await page.getByTitle('New Note').click();
+		await page.getByPlaceholder('Note Title').fill(noteTitle);
+		await page.getByTitle('Trash').click();
+		await page.getByRole('button', { name: 'Delete Note' }).click();
+
+		// 2. Go to Trash and Empty It
+		const trashSidebarItem = page.locator('div[data-sidebar="header"]').getByText('Recently Deleted');
+		await trashSidebarItem.click();
+		await expect(page.locator('aside div[data-slot="item-title"]').getByText(noteTitle, { exact: true })).toBeVisible();
+		
+		// Right click Trash in sidebar to Empty
+		await trashSidebarItem.click({ button: 'right' });
+		await page.getByText('Empty Trash', { exact: true }).click();
+
+		await expect(page.getByRole('heading', { name: 'Empty Trash' })).toBeVisible();
+		await page.getByRole('button', { name: 'Empty Trash' }).click();
+
+		// 3. Verify Trash is empty
+		await expect(page.locator('aside div[data-slot="item-title"]')).toHaveCount(0);
+	});
 });

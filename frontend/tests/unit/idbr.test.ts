@@ -130,19 +130,15 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 		});
 	});
 
-	describe('Transactional Operations', () => {
-		it('should archive and delete a note transactionally', async () => {
-			const meta = {
-				id: 'n1',
-				title: 'To Delete',
-				folderId: null,
-				updatedAt: new Date().toISOString()
-			};
-			const content = 'Some content';
+	describe('Permanent Delete Note (Single)', () => {
+		it('should CORRECTLY backup content even if called with the path signature (3 args)', async () => {
+			const meta = { id: 'n1', title: 'Note 1' };
+			const content = 'Actual Markdown Content';
+			const archivedAt = Date.now();
 			await putNoteMeta(meta);
 			await putNoteContent('n1', content);
-			
-			const archivedAt = Date.now();
+
+			// New robust signature (3 args)
 			await permanentDeleteNoteTransactionally(meta, 'Home / To Delete', archivedAt);
 			
 			// Verify note is gone from notes stores
