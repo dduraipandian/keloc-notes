@@ -2,25 +2,21 @@
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 
 	let { dialog = $bindable() } = $props();
+	let actionBtnRef = $state<HTMLButtonElement | null>(null);
+	let cancelBtnRef = $state<HTMLButtonElement | null>(null);
+	let previousFocusElement: Element | null = null;
 
 	function handleKeyDown(e: KeyboardEvent) {
 		if (!dialog.open) return;
 		if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-			const dialogNode = document.querySelector('[data-slot="alert-dialog-content"]');
-			if (!dialogNode) return;
-			const buttons = Array.from(dialogNode.querySelectorAll('button')) as HTMLElement[];
+			const buttons = [cancelBtnRef, actionBtnRef].filter(Boolean) as HTMLElement[];
 			if (buttons.length === 0) return;
 
 			const activeIndex = buttons.indexOf(document.activeElement as HTMLElement);
-			if (activeIndex === -1) {
-				// If focus is lost or elsewhere on the dialog, focus the first button
-				buttons[0].focus();
-				e.preventDefault();
-				return;
-			}
-
 			let nextIndex = activeIndex;
-			if (e.key === 'ArrowRight') {
+			if (activeIndex === -1) {
+				nextIndex = buttons.length - 1;
+			} else if (e.key === 'ArrowRight') {
 				nextIndex = (activeIndex + 1) % buttons.length;
 			} else {
 				nextIndex = (activeIndex - 1 + buttons.length) % buttons.length;
@@ -30,27 +26,41 @@
 		}
 	}
 
-	$effect(() => {
-		if (dialog.open) {
-			// Force focus on the primary action button slightly after mount
-			const timer = setTimeout(() => {
-				const dialogNode = document.querySelector('[data-slot="alert-dialog-content"]');
-				if (dialogNode) {
-					const buttons = Array.from(dialogNode.querySelectorAll('button'));
-					if (buttons.length > 0) {
-						(buttons[buttons.length - 1] as HTMLElement).focus();
-					}
+	function handleOpenAutoFocus(e: Event) {
+		e.preventDefault();
+		// Save the currently focused element before opening the dialog
+		previousFocusElement = document.activeElement;
+
+		// Focus the primary action button when dialog opens.
+		// Retry with rAF in case the button isn't mounted yet or window just regained focus.
+		let attempts = 0;
+		function tryFocus() {
+			if (attempts++ >= 10) return;
+			if (actionBtnRef) {
+				actionBtnRef.focus();
+				if (document.activeElement !== actionBtnRef) {
+					requestAnimationFrame(tryFocus);
 				}
-			}, 20);
-			return () => clearTimeout(timer);
+			} else {
+				requestAnimationFrame(tryFocus);
+			}
 		}
-	});
+		tryFocus();
+	}
+
+	function handleCloseAutoFocus(e: Event) {
+		e.preventDefault();
+		// Restore focus to the element that had focus before the dialog opened
+		if (previousFocusElement instanceof HTMLElement) {
+			previousFocusElement.focus();
+		}
+	}
 </script>
 
 <svelte:window onkeydown={handleKeyDown} />
 
 <AlertDialog.Root bind:open={dialog.open}>
-	<AlertDialog.Content>
+	<AlertDialog.Content onOpenAutoFocus={handleOpenAutoFocus} onCloseAutoFocus={handleCloseAutoFocus}>
 		<AlertDialog.Header>
 			<AlertDialog.Title>{dialog.title}</AlertDialog.Title>
 			<AlertDialog.Description>
@@ -63,11 +73,19 @@
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
 			{#if dialog.canCancel}
-				<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+				<AlertDialog.Cancel
+					bind:ref={cancelBtnRef}
+					class="focus:ring-ring/50 focus:ring-[3px] focus:outline-none"
+				>
+					Cancel
+				</AlertDialog.Cancel>
 			{/if}
 			<AlertDialog.Action
-				autofocus
-				class={dialog.type === 'destroy' ? 'bg-destructive hover:bg-destructive/90' : ''}
+				bind:ref={actionBtnRef}
+				class={[
+					'focus:ring-ring/50 focus:ring-[3px] focus:outline-none',
+					dialog.type === 'destroy' && 'bg-destructive hover:bg-destructive/90'
+				]}
 				onclick={() => {
 					dialog.onConfirm();
 					dialog.open = false;
