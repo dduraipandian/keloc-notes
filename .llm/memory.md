@@ -44,9 +44,24 @@
 
 ## Native Menu Reactivity (Wails v2 + Svelte 5)
 
-- **Problem**: `File > Export > Current Note` (and other state-dependent items) stayed disabled after selecting a note because `$effect.root` inside a utility module didn't re-track store getters.
-- **Fix**: Place the menu-state effect inside a component (`+layout.svelte`) and **explicitly access the primitive** `notesStore.selectedNoteID` alongside the `selectedNote` derived getter. Reading only the getter is not enough — runes need a direct reactive property read to register the dependency.
-- **Pattern**: `const noteId = notesStore.selectedNoteID;` **before** using `notesStore.selectedNote` in the same effect body. Menu state is then pushed via `UpdateMenuState(new menu.MenuState({...}))`.
+- **Problem**: `File > Export > Current Note` stayed disabled because `$effect.root` inside the `menuBridge` utility module failed to re-track dependencies (getters) after the initial run.
+- **Fix**: Implemented a nested `$effect` within the `$effect.root` block in `menuBridge.svelte.ts`. 
+- **Pattern**: 
+  ```ts
+  $effect.root(() => {
+    $effect(() => {
+       const noteId = notesStore.selectedNoteID; // Explicit access for tracking
+       // update logic...
+    });
+  });
+  ```
+  This allows bridging logic to remain decoupled from the UI (`+layout.svelte`) while maintaining full reactivity. Explicitly reading the reactive primitive (`selectedNoteID`) ensures the effect re-triggers whenever the selection changes.
+
+## Bulk Data Integrity (Import/Export)
+
+- **Export Harvesting**: Implemented chunked harvesting (50 notes per batch) in `NoteService.getExportData`. This prevents memory pressure during large exports and ensures that metadata is correctly merged with content from IndexedDB.
+- **Import Efficiency**: Implemented a `silent` creation mode in `FolderService` and `NoteService`. During bulk imports, we bypass global selection updates (`selectionStore`) for every note/folder created. This eliminates "UI selection churn" and significantly improves performance.
+- **ID Resolution**: Standardized on extracting the `.id` property from newly created Note objects before passing them to `noteService.update`, resolving a common type-mismatch bug where full objects were passed to the backend-style internal services.
 
 ## macOS Native Text Editing (Undo/Copy/Paste/Select All)
 

@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { flushSync } from 'svelte';
 import { initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
 import { notesStore } from '$lib/stores/notes.svelte';
 import { themeStore } from '$lib/stores/theme.svelte';
@@ -9,6 +10,8 @@ vi.mock('$lib/wailsjs/go/main/App', () => ({
 }));
 
 describe('Menu State Effect', () => {
+	let cleanup: (() => void) | null = null;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Mock Wails runtime for unit tests
@@ -19,11 +22,16 @@ describe('Menu State Effect', () => {
 		themeStore.init('system');
 	});
 
-	it('calls UpdateMenuState with HasSelectedNote false when no note selected', async () => {
-		initMenuStateEffect();
+	afterEach(() => {
+		if (cleanup) {
+			cleanup();
+			cleanup = null;
+		}
+	});
 
-		// Give effect time to run
-		await new Promise((resolve) => setTimeout(resolve, 10));
+	it('calls UpdateMenuState with HasSelectedNote false when no note selected', async () => {
+		cleanup = initMenuStateEffect();
+		flushSync();
 
 		expect(AppModule.UpdateMenuState).toHaveBeenCalled();
 		const call = (AppModule.UpdateMenuState as any).mock.calls[0];
@@ -47,14 +55,12 @@ describe('Menu State Effect', () => {
 		notesStore.notes.set('note-1', testNote as any);
 		notesStore.selectedNoteID = 'note-1';
 
-		initMenuStateEffect();
-
-		// Give effect time to run
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		cleanup = initMenuStateEffect();
+		flushSync();
 
 		expect(AppModule.UpdateMenuState).toHaveBeenCalled();
-		const call = (AppModule.UpdateMenuState as any).mock.calls[0];
-		const menuState = call[0];
+		const lastCall = (AppModule.UpdateMenuState as any).mock.calls[(AppModule.UpdateMenuState as any).mock.calls.length - 1];
+		const menuState = lastCall[0];
 		expect(menuState.HasSelectedNote).toBe(true);
 	});
 
@@ -74,42 +80,36 @@ describe('Menu State Effect', () => {
 		notesStore.selectedNoteID = 'note-1';
 		notesStore.trashCount = 1;
 
-		initMenuStateEffect();
-
-		// Give effect time to run
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		cleanup = initMenuStateEffect();
+		flushSync();
 
 		expect(AppModule.UpdateMenuState).toHaveBeenCalled();
-		const call = (AppModule.UpdateMenuState as any).mock.calls[0];
-		const menuState = call[0];
+		const lastCall = (AppModule.UpdateMenuState as any).mock.calls[(AppModule.UpdateMenuState as any).mock.calls.length - 1];
+		const menuState = lastCall[0];
 		expect(menuState.SelectedNoteInTrash).toBe(true);
 	});
 
 	it('calls UpdateMenuState with TrashHasItems true when trash count > 0', async () => {
 		notesStore.trashCount = 2;
 
-		initMenuStateEffect();
-
-		// Give effect time to run
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		cleanup = initMenuStateEffect();
+		flushSync();
 
 		expect(AppModule.UpdateMenuState).toHaveBeenCalled();
-		const call = (AppModule.UpdateMenuState as any).mock.calls[0];
-		const menuState = call[0];
+		const lastCall = (AppModule.UpdateMenuState as any).mock.calls[(AppModule.UpdateMenuState as any).mock.calls.length - 1];
+		const menuState = lastCall[0];
 		expect(menuState.TrashHasItems).toBe(true);
 	});
 
 	it('calls UpdateMenuState with correct theme', async () => {
 		themeStore.init('dark');
 
-		initMenuStateEffect();
-
-		// Give effect time to run
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		cleanup = initMenuStateEffect();
+		flushSync();
 
 		expect(AppModule.UpdateMenuState).toHaveBeenCalled();
-		const call = (AppModule.UpdateMenuState as any).mock.calls[0];
-		const menuState = call[0];
+		const lastCall = (AppModule.UpdateMenuState as any).mock.calls[(AppModule.UpdateMenuState as any).mock.calls.length - 1];
+		const menuState = lastCall[0];
 		expect(menuState.Theme).toBe('dark');
 	});
 });

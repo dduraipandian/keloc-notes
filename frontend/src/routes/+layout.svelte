@@ -326,9 +326,7 @@ import { hasWailsRuntime } from '$lib/wails.svelte';
 				})
 			: () => {};
 
-		if (hasWailsRuntime()) {
-			initMenuStateEffect();
-		}
+		const offMenuState = hasWailsRuntime() ? initMenuStateEffect() : () => {};
 
 		void (async () => {
 			try {
@@ -369,6 +367,7 @@ import { hasWailsRuntime } from '$lib/wails.svelte';
 		return () => {
 			offBeforeClose?.();
 			offMenuBridge();
+			offMenuState();
 			stopResize();
 			if (resizeFrame != null) {
 				cancelAnimationFrame(resizeFrame);

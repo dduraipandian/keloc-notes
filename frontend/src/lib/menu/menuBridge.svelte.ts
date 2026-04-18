@@ -262,31 +262,34 @@ export function initMenuBridge(callbacks?: {
 /**
  * Initialize menu state synchronization effect.
  * Monitors store state and updates the native menu dynamically.
+ * Returns a cleanup function to destroy the effect.
  */
-export function initMenuStateEffect(): void {
-	$effect.root(() => {
-		// Explicitly access selectedNoteID to ensure proper reactivity tracking
-		const noteId = notesStore.selectedNoteID;
-		const selectedNote = notesStore.selectedNote;
-		const hasSelected = noteId !== null;
-		const menuState = new menu.MenuState({
-			HasSelectedNote: hasSelected,
-			SelectedNoteInTrash: selectedNote?.deletedAt != null,
-			TrashHasItems: notesStore.trashCount > 0,
-			Theme: themeStore.theme
-		});
+export function initMenuStateEffect(): () => void {
+	return $effect.root(() => {
+		$effect(() => {
+			// Explicitly access reactive states to ensure tracking
+			const noteId = notesStore.selectedNoteID;
+			const selectedNote = notesStore.selectedNote;
+			const hasSelected = noteId !== null;
+			const menuState = new menu.MenuState({
+				HasSelectedNote: hasSelected,
+				SelectedNoteInTrash: selectedNote?.deletedAt != null,
+				TrashHasItems: notesStore.trashCount > 0,
+				Theme: themeStore.theme
+			});
 
-		console.log(
-			`[MENU] MenuState: noteId=${noteId}, hasSelected=${hasSelected}, trashCount=${notesStore.trashCount}, theme=${themeStore.theme}`
-		);
+			console.log(
+				`[MENU] MenuState: noteId=${noteId}, hasSelected=${hasSelected}, trashCount=${notesStore.trashCount}, theme=${themeStore.theme}`
+			);
 
-		// Update the native menu with current state
-		if (hasWailsRuntime()) {
-			try {
-				UpdateMenuState(menuState);
-			} catch (err) {
-				console.error('Failed to update native menu:', err);
+			// Update the native menu with current state
+			if (hasWailsRuntime()) {
+				try {
+					UpdateMenuState(menuState);
+				} catch (err) {
+					console.error('Failed to update native menu state:', err);
+				}
 			}
-		}
+		});
 	});
 }
