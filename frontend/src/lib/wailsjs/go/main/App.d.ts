@@ -13,9 +13,19 @@ export function OnDeleteNote():Promise<void>;
 
 export function OnEmptyTrash():Promise<void>;
 
+export function OnExportAllMarkdown():Promise<void>;
+
+export function OnExportBackup():Promise<void>;
+
+export function OnExportCurrentNote():Promise<void>;
+
 export function OnFocusSearch():Promise<void>;
 
 export function OnHelp(arg1:string):Promise<void>;
+
+export function OnImportBackup():Promise<void>;
+
+export function OnImportMarkdown():Promise<void>;
 
 export function OnNewFolder():Promise<void>;
 

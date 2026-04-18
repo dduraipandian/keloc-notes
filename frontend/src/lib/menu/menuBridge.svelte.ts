@@ -106,7 +106,6 @@ export function initMenuBridge(callbacks?: {
 					await ExportNoteToFile(note.title, note.content);
 				} catch (err) {
 					console.error('Failed to export note:', err);
-					uiStore.confirmAppQuit('Export failed', String(err), () => {});
 				}
 			}
 		})
@@ -143,7 +142,6 @@ export function initMenuBridge(callbacks?: {
 				await (ExportNotesZip as any)(notesToExport);
 			} catch (err) {
 				console.error('Failed to export notes:', err);
-				uiStore.confirmAppQuit('Export failed', String(err), () => {});
 			}
 		})
 	);
@@ -159,7 +157,6 @@ export function initMenuBridge(callbacks?: {
 				await SaveBackupFile(json);
 			} catch (err) {
 				console.error('Failed to export backup:', err);
-				uiStore.confirmAppQuit('Export failed', String(err), () => {});
 			}
 		})
 	);
@@ -197,15 +194,26 @@ export function initMenuBridge(callbacks?: {
 								// Create new folder in parent
 								selectionStore.selectedFolderID = parentId;
 								folderService.create();
-								// Wait for folder to be created
-								await new Promise((r) => setTimeout(r, 50));
-								// Find the newly created folder
-								for (const [id, folder] of folderStore.folders) {
-									if (folder.parentId === parentId && !folderId) {
-										folderId = id;
-										break;
-									}
-								}
+								// Wait for newly created folder to appear in store
+								await new Promise<void>((resolve) => {
+									const checkInterval = setInterval(() => {
+										for (const [id, folder] of folderStore.folders) {
+											if (folder.parentId === parentId && folder.title === '') {
+												folderId = id;
+												clearInterval(checkInterval);
+												resolve();
+												return;
+											}
+										}
+									}, 10);
+									// Timeout after 1 second to prevent infinite wait
+									setTimeout(() => {
+										clearInterval(checkInterval);
+										resolve();
+									}, 1000);
+								});
+
+								// Rename newly created folder
 								if (folderId) {
 									await folderService.rename(folderId, part);
 								}
@@ -223,7 +231,6 @@ export function initMenuBridge(callbacks?: {
 				}
 			} catch (err) {
 				console.error('Failed to import notes:', err);
-				uiStore.confirmAppQuit('Import failed', String(err), () => {});
 			}
 		})
 	);
@@ -243,7 +250,6 @@ export function initMenuBridge(callbacks?: {
 				}
 			} catch (err) {
 				console.error('Failed to import backup:', err);
-				uiStore.confirmAppQuit('Import failed', String(err), () => {});
 			}
 		})
 	);

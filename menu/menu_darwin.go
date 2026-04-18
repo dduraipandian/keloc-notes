@@ -20,6 +20,11 @@ type MenuHost interface {
 	OnToggleNoteList()
 	OnSetTheme(theme string)
 	OnFocusSearch()
+	OnExportCurrentNote()
+	OnExportAllMarkdown()
+	OnExportBackup()
+	OnImportMarkdown()
+	OnImportBackup()
 	OnHelp(topic string)
 }
 
@@ -80,25 +85,25 @@ func buildFileMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
 	// Import submenu
 	importMenuItems := menu.NewMenu()
 	importMenuItems.Append(menu.Text("Markdown Archive (.zip)...", nil, func(cd *menu.CallbackData) {
-		host.OnHelp("import-markdown")
+		host.OnImportMarkdown()
 	}))
 	importMenuItems.Append(menu.Text("Backup (.json)...", nil, func(cd *menu.CallbackData) {
-		host.OnHelp("import-backup")
+		host.OnImportBackup()
 	}))
 	fileMenuItems.Append(menu.SubMenu("Import", importMenuItems))
 
 	// Export submenu
 	exportMenuItems := menu.NewMenu()
 	exportCurrentNoteItem := menu.Text("Current Note (.md)", nil, func(cd *menu.CallbackData) {
-		host.OnHelp("export-note")
+		host.OnExportCurrentNote()
 	})
 	refs.ExportCurrentNote = exportCurrentNoteItem
 	exportMenuItems.Append(exportCurrentNoteItem)
 	exportMenuItems.Append(menu.Text("All Notes (.zip)...", nil, func(cd *menu.CallbackData) {
-		host.OnHelp("export-all-markdown")
+		host.OnExportAllMarkdown()
 	}))
 	exportMenuItems.Append(menu.Text("Backup (.json)...", nil, func(cd *menu.CallbackData) {
-		host.OnHelp("export-backup")
+		host.OnExportBackup()
 	}))
 	fileMenuItems.Append(menu.SubMenu("Export", exportMenuItems))
 

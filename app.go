@@ -102,6 +102,26 @@ func (a *App) OnFocusSearch() {
 	runtime.EventsEmit(a.ctx, "menu:focus-search")
 }
 
+func (a *App) OnExportCurrentNote() {
+	runtime.EventsEmit(a.ctx, "menu:export-note")
+}
+
+func (a *App) OnExportAllMarkdown() {
+	runtime.EventsEmit(a.ctx, "menu:export-all-markdown")
+}
+
+func (a *App) OnExportBackup() {
+	runtime.EventsEmit(a.ctx, "menu:export-backup")
+}
+
+func (a *App) OnImportMarkdown() {
+	runtime.EventsEmit(a.ctx, "menu:import-markdown")
+}
+
+func (a *App) OnImportBackup() {
+	runtime.EventsEmit(a.ctx, "menu:import-backup")
+}
+
 func (a *App) OnHelp(topic string) {
 	runtime.EventsEmit(a.ctx, "menu:help", topic)
 }

@@ -22,12 +22,32 @@ export function OnEmptyTrash() {
   return window['go']['main']['App']['OnEmptyTrash']();
 }
 
+export function OnExportAllMarkdown() {
+  return window['go']['main']['App']['OnExportAllMarkdown']();
+}
+
+export function OnExportBackup() {
+  return window['go']['main']['App']['OnExportBackup']();
+}
+
+export function OnExportCurrentNote() {
+  return window['go']['main']['App']['OnExportCurrentNote']();
+}
+
 export function OnFocusSearch() {
   return window['go']['main']['App']['OnFocusSearch']();
 }
 
 export function OnHelp(arg1) {
   return window['go']['main']['App']['OnHelp'](arg1);
+}
+
+export function OnImportBackup() {
+  return window['go']['main']['App']['OnImportBackup']();
+}
+
+export function OnImportMarkdown() {
+  return window['go']['main']['App']['OnImportMarkdown']();
 }
 
 export function OnNewFolder() {
