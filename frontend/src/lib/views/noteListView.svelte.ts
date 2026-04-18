@@ -4,6 +4,7 @@ import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
 import { folderService, noteService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { resolveProfile, getProfileId } from '$lib/stores/domain/profiles';
+import { searchService } from '$lib/stores/services';
 
 export class NoteListView {
 	searchQuery = $state('');
@@ -70,13 +71,37 @@ export class NoteListView {
 	getFilteredNotes() {
 		const normalizedQuery = this.debouncedSearchQuery.trim().toLowerCase();
 		const selectedFolder = this.selection.getSelectedFolder();
+		const currentFolderId = this.selection.selectedFolderID ?? null;
+
+		// 1. Fetch visibility-scoped notes (Legacy folder filter)
 		const visibleNotes = this.noteQueries.getNotesForFolder(
-			this.selection.selectedFolderID ?? null,
+			currentFolderId,
 			selectedFolder?.profile
 		);
 
 		if (!normalizedQuery) return visibleNotes;
 
+		// 2. Trigger on-demand indexing for the active hierarchy
+		// Note: This is async, results will populate as indexing completes via version reactivity.
+		void searchService.ensureFolderIndexed(currentFolderId);
+
+		// 3. Subscription to search service changes
+		// This line ensures Svelte re-runs this derived logic when the index updates.
+		searchService.version;
+
+		// 4. Perform scoped search
+		const searchResultIds = searchService.search(normalizedQuery, currentFolderId);
+		
+		// 5. Combine results:
+		// We prefer search results if found. 
+		if (searchResultIds.length > 0) {
+			const searchSet = new Set(searchResultIds);
+			return this.notes
+				.listNotes()
+				.filter(note => searchSet.has(note.id));
+		}
+
+		// Fallback: Default title search for legacy support and until indexing finishes
 		return visibleNotes.filter(
 			(note) => note.title.toLowerCase().includes(normalizedQuery)
 		);

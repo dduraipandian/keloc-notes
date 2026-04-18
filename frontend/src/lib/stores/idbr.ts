@@ -181,6 +181,21 @@ export async function getNoteContent(id: string) {
 	return result ? result.content : '';
 }
 
+export async function getBulkNoteContents(ids: string[]): Promise<Record<string, string>> {
+	if (ids.length === 0) return {};
+	const db = await getDB();
+	const tx = db.transaction('notes_contents', 'readonly');
+	const store = tx.objectStore('notes_contents');
+	const results: Record<string, string> = {};
+	await Promise.all(
+		ids.map(async (id) => {
+			const entry = await store.get(id);
+			results[id] = entry ? entry.content : '';
+		})
+	);
+	return results;
+}
+
 export async function deleteNote(id: string) {
 	const db = await getDB();
 	return await withTransaction(['notes_meta', 'notes_contents'], 'readwrite', async (tx) => {

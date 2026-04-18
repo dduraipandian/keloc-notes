@@ -133,7 +133,7 @@ Each item is an ordered set of steps. **Do not proceed to step N+1 until step N'
 
 #### Step 3 — Fix `sections` literal widening
 
-1. In [`folderSidebarView.svelte.ts:100`](frontend/src/lib/views/folderSidebarView.svelte.ts#L100), the `$derived.by` returns objects with `id: 'views'` and `id: 'folders'`. TypeScript widens to `string`. `getSections()` declares return type `SidebarSourceSection[]` with `id: 'views' | 'folders'`.
+1. In [`frontend/src/lib/views/folderSidebarView.svelte.ts:100`](frontend/src/lib/views/folderSidebarView.svelte.ts#L100), the `$derived.by` returns objects with `id: 'views'` and `id: 'folders'`. TypeScript widens to `string`. `getSections()` declares return type `SidebarSourceSection[]` with `id: 'views' | 'folders'`.
 2. Pick one fix:
    - Add `as const` on each `id` field, or
    - Annotate the `$derived.by` return type explicitly as `SidebarSourceSection[]`.
@@ -433,7 +433,7 @@ This is the current high-level backlog after the Part A release blockers. The re
 
 ### Phase E: Performance & Architecture (Scale)
 
-- [ ] **Lazy-load note content** — Move full text to separate object store to keep metadata operations fast.
+- [x] **Lazy-load note content** — Move full text to separate object store to keep metadata operations fast.
 
 ### Phase F: Release Readiness
 
@@ -453,6 +453,7 @@ This is the current high-level backlog after the Part A release blockers. The re
 ## 🛠️ Deferred
 
 - [ ] **Phase T: Testing & Reliability** — Mostly covered for MVP; defer deeper coverage and reliability hardening until later.
+- [ ] **Phase S: Advanced Search Features** — VS Code style toggles (Match Case, Whole Word, Regex).
 - [ ] Coverage Reporting
 - [ ] Persistence Testing
 - [ ] Component Testing

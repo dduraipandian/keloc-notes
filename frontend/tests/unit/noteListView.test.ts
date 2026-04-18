@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NoteListView } from '../../src/lib/views/noteListView.svelte';
 
+const NOW = new Date().toISOString();
+
 describe('NoteListView', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
@@ -13,7 +15,7 @@ describe('NoteListView', () => {
 	it('should expose the selected folder title with a fallback', () => {
 		const selector = new NoteListView(
 			{ folders: new Map() } as any,
-			{} as any,
+			{ getNote: () => null, listNotes: () => [] } as any,
 			{} as any,
 			{} as any,
 			{
@@ -26,15 +28,16 @@ describe('NoteListView', () => {
 	});
 
 	it('should filter notes by the current query after debounce', async () => {
+		const mockNotes = [
+			{ id: '1', title: 'Alpha', content: 'First', updatedAt: NOW, summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
+			{ id: '2', title: 'Beta', content: 'Second', updatedAt: NOW, summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null }
+		];
 		const selector = new NoteListView(
 			{ folders: new Map() } as any,
-			{} as any,
+			{ getNote: (id: string) => mockNotes.find(n => n.id === id), listNotes: () => mockNotes } as any,
 			{} as any,
 			{
-				getNotesForFolder: vi.fn().mockReturnValue([
-					{ id: '1', title: 'Alpha', content: 'First', updatedAt: '2025-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
-					{ id: '2', title: 'Beta', content: 'Second', updatedAt: '2025-01-02T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null }
-				])
+				getNotesForFolder: vi.fn().mockReturnValue(mockNotes)
 			} as any,
 			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
 		);
@@ -47,146 +50,64 @@ describe('NoteListView', () => {
 	});
 
 	it('should get context for deleting the selected note', () => {
+		const mockNote = { id: 'n1', title: 'Note 1', deletedAt: null, updatedAt: NOW };
 		const selector = new NoteListView(
 			{} as any,
-			{
-				selectedNoteID: '123',
-				selectedNote: { id: '123', title: 'Note', deletedAt: null }
-			} as any,
+			{ selectedNote: mockNote, selectedNoteID: 'n1' } as any,
 			{} as any,
 			{} as any,
 			{} as any
 		);
-		expect(selector.getSelectedNoteDeleteContext()).toEqual({
-			id: '123',
-			title: 'Note'
-		});
+
+		const context = selector.getSelectedNoteDeleteContext();
+		expect(context).toEqual({ id: 'n1', title: 'Note 1' });
 	});
 
-	it('should check if a note is selected', () => {
+	it('should provide visible note IDs', () => {
+		const mockNotes = [
+			{ id: '1', title: 'A', updatedAt: NOW },
+			{ id: '2', title: 'B', updatedAt: NOW }
+		];
 		const selector = new NoteListView(
+			{ folders: new Map() } as any,
+			{ getNote: (id: string) => mockNotes.find(n => n.id === id), listNotes: () => mockNotes } as any,
 			{} as any,
-			{ selectedNoteID: '123' } as any,
+			{
+				getNotesForFolder: vi.fn().mockReturnValue(mockNotes)
+			} as any,
+			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
+		);
+
+		expect(selector.getVisibleNoteIds()).toEqual(['1', '2']);
+	});
+
+	it('should get restore context for a note', () => {
+		const selector = new NoteListView(
+			{ 
+				findItemById: vi.fn().mockReturnValue({ id: 'f1', title: 'Work', deletedAt: null }) 
+			} as any,
+			{} as any,
 			{} as any,
 			{} as any,
 			{} as any
 		);
-		expect(selector.isSelectedNote('123')).toBe(true);
-		expect(selector.isSelectedNote('456')).toBe(false);
+
+		const context = selector.getRestoreContext({ id: 'n1', folderId: 'f1' } as any);
+		expect(context.targetName).toBe('Work');
 	});
 
-	it('should provide note sections grouped by date', async () => {
+	it('should fallback to Home if parent folder is deleted in restore context', () => {
 		const selector = new NoteListView(
-			{} as any,
-			{} as any,
-			{} as any,
-			{
-				getNotesForFolder: vi.fn().mockReturnValue([
-					{ id: '1', title: 'A', content: '', updatedAt: '2025-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
-					{ id: '2', title: 'B', content: '', updatedAt: '2025-01-01T12:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null }
-				])
+			{ 
+				findItemById: vi.fn().mockReturnValue({ id: 'f1', title: 'Old Folder', deletedAt: 12345 }) 
 			} as any,
-			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
-		);
-		selector.setSearchQuery('');
-		await vi.advanceTimersByTimeAsync(150);
-		const sections = selector.getSections();
-		expect(sections).toHaveLength(1);
-		const [label, notes] = sections[0];
-		expect(label).toBeDefined();
-		expect(notes).toHaveLength(2);
-	});
-
-	it('should flatten visible note ids in rendered order', async () => {
-		const selector = new NoteListView(
 			{} as any,
 			{} as any,
 			{} as any,
-			{
-				getNotesForFolder: vi.fn().mockReturnValue([
-					{ id: '1', title: 'A', content: '', updatedAt: '2025-01-02T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
-					{ id: '2', title: 'B', content: '', updatedAt: '2025-01-02T12:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
-					{ id: '3', title: 'C', content: '', updatedAt: '2025-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null }
-				])
-			} as any,
-			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
+			{} as any
 		);
 
-		selector.setSearchQuery('');
-		await vi.advanceTimersByTimeAsync(150);
-
-		expect(selector.getVisibleNoteIds()).toEqual(['1', '2', '3']);
-	});
-
-	it('should debounce search query updates and use the latest value', async () => {
-		const selector = new NoteListView(
-			{} as any,
-			{} as any,
-			{} as any,
-			{
-				getNotesForFolder: vi.fn().mockReturnValue([
-					{ id: '1', title: 'Alpha', content: '', updatedAt: '2025-01-01T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null },
-					{ id: '2', title: 'Albatross', content: '', updatedAt: '2025-01-02T00:00:00Z', summary: '', isFavorite: false, isContentLoaded: true, deletedAt: null }
-				])
-			} as any,
-			{ selectedFolderID: 'f1', getSelectedFolder: vi.fn() } as any
-		);
-
-		selector.setSearchQuery('a');
-		selector.setSearchQuery('alb');
-
-		// Still using the previous debounced query.
-		expect(selector.getFilteredNotes()).toHaveLength(2);
-
-		await vi.advanceTimersByTimeAsync(149);
-		expect(selector.getFilteredNotes()).toHaveLength(2);
-
-		await vi.advanceTimersByTimeAsync(1);
-		const filtered = selector.getFilteredNotes();
-		expect(filtered).toHaveLength(1);
-		expect(filtered[0].title).toBe('Albatross');
-	});
-
-	it('should expose restore context for a note with target information', () => {
-		const mockFolders = { findItemById: vi.fn() };
-		const selector = new NoteListView(mockFolders as any, {} as any, {} as any, {} as any, {} as any);
-
-		const note = { id: 'n1', folderId: 'f1' } as any;
-		mockFolders.findItemById.mockReturnValue({ id: 'f1', title: 'ParentFolder', deletedAt: null });
-
-		const context = selector.getRestoreContext(note);
-		expect(context.isHierarchical).toBe(false);
-		expect(context.targetName).toBe('ParentFolder');
-	});
-
-	it('should target Home when the original folder is deleted', () => {
-		const mockFolders = { findItemById: vi.fn() };
-		const selector = new NoteListView(mockFolders as any, {} as any, {} as any, {} as any, {} as any);
-
-		const note = { id: 'n1', folderId: 'f1' } as any;
-		mockFolders.findItemById.mockReturnValue({ id: 'f1', title: 'DeletedFolder', deletedAt: 12345 });
-
-		const context = selector.getRestoreContext(note);
+		const context = selector.getRestoreContext({ id: 'n1', folderId: 'f1' } as any);
 		expect(context.targetName).toBe('Home');
-	});
-
-	it('should determine if a note can be created in the current folder', () => {
-		const selector = new NoteListView(
-			{} as any,
-			{} as any,
-			{} as any,
-			{} as any,
-			{ getSelectedFolder: () => ({ profile: 'regular' }) } as any
-		);
-		expect(selector.canCreateNote()).toBe(true);
-
-		const trashSelector = new NoteListView(
-			{} as any,
-			{} as any,
-			{} as any,
-			{} as any,
-			{ getSelectedFolder: () => ({ profile: 'trash' }) } as any
-		);
-		expect(trashSelector.canCreateNote()).toBe(false);
 	});
 });

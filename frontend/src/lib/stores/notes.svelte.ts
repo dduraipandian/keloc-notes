@@ -2,6 +2,7 @@ import { SvelteMap } from 'svelte/reactivity';
 import { notesRepository, settingsRepository } from './repositories';
 import { KeyedDebouncer } from '../debounce';
 import type { FolderID } from './folders.svelte';
+import type { SearchService } from './searchService.svelte';
 
 export type NoteID = string;
 
@@ -34,6 +35,11 @@ class NotesStore {
 	folderDeletedNoteCounts = $state<Record<string, number>>({ null: 0 });
 	favoriteCount = $state(0);
 	trashCount = $state(0);
+	private searchService: SearchService | null = null;
+
+	setSearchService(service: SearchService) {
+		this.searchService = service;
+	}
 
 	get counts() {
 		return {
@@ -116,6 +122,8 @@ class NotesStore {
 				content,
 				isContentLoaded: true
 			});
+			// Index content once loaded
+			this.searchService?.updateNoteIndex(id, note.title, content);
 		} catch (error) {
 			console.error(`Failed to load content for note ${id}:`, error);
 		}
@@ -174,6 +182,9 @@ class NotesStore {
 					})
 				);
 				this.dirtyContentNotes.delete(id);
+				
+				// Update search index incrementally
+				this.searchService?.updateNoteIndex(id, note.title, note.content);
 			}
 		}
 	}
@@ -227,6 +238,10 @@ class NotesStore {
 		this.selectedNoteID = newNote.id;
 		this.persistNote(newNote.id);
 		this.persistSelection();
+		
+		// Index new note
+		this.searchService?.updateNoteIndex(newNote.id, newNote.title, '');
+		
 		return newNote;
 	}
 
@@ -440,6 +455,8 @@ class NotesStore {
 				if (note.isFavorite) this.favoriteCount--;
 			}
 			this.notes.delete(id);
+			// Remove from search index
+			this.searchService?.removeNoteIndex(id);
 		}
 		this.clearSelectionIfSelected(id);
 	}

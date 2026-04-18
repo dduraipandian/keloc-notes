@@ -64,6 +64,7 @@
 	},
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.2.8",
-		"idb": "^8.0.3"
+		"idb": "^8.0.3",
+		"minisearch": "^7.2.0"
 	}
 }

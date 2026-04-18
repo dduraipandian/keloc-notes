@@ -2,6 +2,7 @@ import {
 	getAllFolders,
 	getAllNotesMeta,
 	getAllSettings,
+	getBulkNoteContents,
 	getNoteContent,
 	permanentDeleteFolderTransactionally,
 	permanentDeleteNoteTransactionally,
@@ -32,6 +33,9 @@ export const notesRepository = {
 	},
 	getContent(id: NoteID): Promise<string> {
 		return getNoteContent(id);
+	},
+	getBulkContents(ids: NoteID[]): Promise<Record<string, string>> {
+		return getBulkNoteContents(ids);
 	}
 };
 
