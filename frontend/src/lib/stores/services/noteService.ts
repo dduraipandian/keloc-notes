@@ -18,16 +18,16 @@ export class NoteService {
 		this.selection = selection;
 	}
 
-	create(folderId: FolderID | null) {
+	create(folderId: FolderID | null, { silent = false }: { silent?: boolean } = {}) {
 		const actualFolderId = (folderId === 'home' || folderId === null) ? null : folderId;
 		const folder = actualFolderId ? this.folders.findItemById(actualFolderId) : this.folders.findItemById('home');
 
 		if (!folder || !resolveProfile(folder).capabilities.createNote) {
 			const defaultId = this.folders.getDefaultFolderId();
-			this.selection.selectFolder(defaultId);
+			if (!silent) this.selection.selectFolder(defaultId);
 			return this.notes.createNote(defaultId);
 		} else {
-			this.selection.selectFolder(folderId);
+			if (!silent) this.selection.selectFolder(folderId);
 			return this.notes.createNote(folderId);
 		}
 	}
@@ -71,5 +71,37 @@ export class NoteService {
 
 	getNoteCountForFolder(folderId: FolderID | null, folderProfile?: string) {
 		return this.notes.getNoteCount(folderId, folderProfile);
+	}
+
+	async getExportData(ids: NoteID[]) {
+		if (ids.length === 0) return [];
+
+		const results: Array<{
+			title: string;
+			content: string;
+			updatedAt: string;
+			folderId: string | null;
+		}> = [];
+
+		// Chunk processing for scalability and main-thread stability
+		const CHUNK_SIZE = 50;
+		for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+			const chunkIds = ids.slice(i, i + CHUNK_SIZE);
+			const contents = await this.notes.getBulkNoteContents(chunkIds);
+
+			chunkIds.forEach((id) => {
+				const note = this.notes.getNote(id);
+				if (note) {
+					results.push({
+						title: note.title,
+						content: contents[id] ?? note.content,
+						updatedAt: note.updatedAt,
+						folderId: note.folderId
+					});
+				}
+			});
+		}
+
+		return results;
 	}
 }

@@ -62,7 +62,7 @@ describe('menuBridge Import Logic', () => {
 
 		// Verify folder creation (Folder A then Sub B)
 		expect(folderService.create).toHaveBeenCalledTimes(2);
-		expect(folderService.create).toHaveBeenNthCalledWith(1, null); // Root
+		expect(folderService.create).toHaveBeenNthCalledWith(1, null, { silent: true }); // Root
 		// First mock returns id1
 		vi.mocked(folderService.create).mockReturnValueOnce('id1').mockReturnValueOnce('id2');
 		

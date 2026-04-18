@@ -18,7 +18,7 @@ export class FolderService {
 		this.selection = selection;
 	}
 
-	create(parentId?: FolderID | null) {
+	create(parentId?: FolderID | null, { silent = false }: { silent?: boolean } = {}) {
 		let parentFolderId: FolderID | null;
 
 		if (parentId !== undefined) {
@@ -35,7 +35,7 @@ export class FolderService {
 		if (parentFolderId === 'home') parentFolderId = null;
 
 		const newFolderId = this.folders.createFolder(parentFolderId);
-		this.selection.selectFolder(newFolderId ?? null);
+		if (!silent) this.selection.selectFolder(newFolderId ?? null);
 		return newFolderId;
 	}
 

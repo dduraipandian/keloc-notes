@@ -46,4 +46,5 @@ export type NotesStoreLike = {
 	removeNoteLocally(id: NoteID): void;
 	clearSelectionIfSelected(id: NoteID): void;
 	getNoteCount(folderId: FolderID | null, profileId?: string): number;
+	getBulkNoteContents(ids: NoteID[]): Promise<Record<NoteID, string>>;
 };

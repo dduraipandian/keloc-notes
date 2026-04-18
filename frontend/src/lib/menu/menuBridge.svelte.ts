@@ -99,11 +99,16 @@ export function initMenuBridge(callbacks?: {
 	// Export/Import events
 	unsubscribers.push(
 		EventsOn('menu:export-note', async () => {
-			const note = notesStore.selectedNote;
-			if (note && !note.deletedAt) {
+			const noteId = notesStore.selectedNoteID;
+			if (noteId) {
 				try {
 					const { ExportNoteToFile } = await import('$lib/wailsjs/go/main/App');
-					await ExportNoteToFile(note.title, note.content);
+					const { noteService } = await import('$lib/stores/services');
+					const harvested = await noteService.getExportData([noteId]);
+
+					if (harvested.length > 0) {
+						await ExportNoteToFile(harvested[0].title, harvested[0].content);
+					}
 				} catch (err) {
 					console.error('Failed to export note:', err);
 				}
@@ -115,28 +120,30 @@ export function initMenuBridge(callbacks?: {
 		EventsOn('menu:export-all-markdown', async () => {
 			try {
 				const { ExportNotesZip } = await import('$lib/wailsjs/go/main/App');
+				const { noteService } = await import('$lib/stores/services');
 
-				// Collect all active (non-deleted) notes with folder paths
-				const notesToExport: Array<{ title: string; content: string; folderPath: string; updatedAt: string }> = [];
+				// Collect all active (non-deleted) notes
+				const activeNoteIds = Array.from(notesStore.notes.values())
+					.filter((n) => !n.deletedAt)
+					.map((n) => n.id);
 
-				notesStore.notes.forEach((note) => {
-					if (!note.deletedAt) {
-						// Find folder path
-						let folderPath = '';
-						if (note.folderId) {
-							const folder = folderStore.findItemById(note.folderId);
-							if (folder) {
-								folderPath = folderStore.getPathForFolder(folder);
-							}
+				const harvestedNotes = await noteService.getExportData(activeNoteIds);
+
+				const notesToExport = harvestedNotes.map((note) => {
+					let folderPath = '';
+					if (note.folderId) {
+						const folder = folderStore.findItemById(note.folderId);
+						if (folder) {
+							folderPath = folderStore.getPathForFolder(folder);
 						}
-
-						notesToExport.push({
-							title: note.title,
-							content: note.content,
-							folderPath,
-							updatedAt: new Date(note.updatedAt ?? 0).toISOString()
-						});
 					}
+
+					return {
+						title: note.title,
+						content: note.content,
+						folderPath,
+						updatedAt: new Date(note.updatedAt ?? 0).toISOString()
+					};
 				});
 
 				await (ExportNotesZip as any)(notesToExport);
@@ -175,7 +182,7 @@ export function initMenuBridge(callbacks?: {
 				for (const importedNote of importedNotes) {
 					let targetFolderId: string | null = null;
 
-					// Create folders if needed
+					// Create folders if needed with { silent: true } to avoid selection churn
 					if (importedNote.FolderPath) {
 						const pathParts = importedNote.FolderPath.split('/');
 						let parentId: string | null = null;
@@ -191,8 +198,8 @@ export function initMenuBridge(callbacks?: {
 							}
 
 							if (!folderId) {
-								// Create new folder in parent deterministically
-								folderId = folderService.create(parentId) ?? null;
+								// Create new folder in parent with silent: true
+								folderId = (folderService.create(parentId, { silent: true }) as any) ?? null;
 
 								// Rename newly created folder
 								if (folderId) {
@@ -206,10 +213,10 @@ export function initMenuBridge(callbacks?: {
 						targetFolderId = parentId;
 					}
 
-					// Create note and set its content
-					const newNoteId = noteService.create(targetFolderId);
-					if (newNoteId) {
-						noteService.update(newNoteId, {
+					// Create note with silent: true and extract its id for updating
+					const newNote = noteService.create(targetFolderId, { silent: true });
+					if (newNote && typeof newNote === 'object' && 'id' in newNote) {
+						noteService.update((newNote as any).id, {
 							title: importedNote.Title,
 							content: importedNote.Content
 						});

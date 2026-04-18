@@ -493,6 +493,10 @@ class NotesStore {
 		return this.folderNoteCounts[normId] ?? 0;
 	}
 
+	async getBulkNoteContents(ids: NoteID[]): Promise<Record<NoteID, string>> {
+		return notesRepository.getBulkContents(ids);
+	}
+
 	private trackWrite<T>(write: Promise<T>) {
 		this.inFlightWrites.add(write);
 		void write.finally(() => {

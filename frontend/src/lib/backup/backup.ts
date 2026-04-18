@@ -11,9 +11,13 @@ interface BackupPayload {
 	settings: Record<string, unknown>;
 }
 
-export function exportBackup(): string {
+export async function exportBackup(): Promise<string> {
 	const folders = Array.from(folderStore.folders.values());
-	const notes = Array.from(notesStore.notes.values());
+	const noteIds = Array.from(notesStore.notes.keys());
+
+	const { noteService } = await import('$lib/stores/services');
+	const fullNotesArr = await noteService.getExportData(noteIds);
+
 	const settings = {
 		// Include all stored settings
 		applicationTheme: localStorage.getItem('applicationTheme'),
@@ -27,7 +31,7 @@ export function exportBackup(): string {
 		exportedAt: new Date().toISOString(),
 		appVersion: import.meta.env.VITE_APP_VERSION || '1.0.0',
 		folders,
-		notes,
+		notes: fullNotesArr,
 		settings
 	};
 
