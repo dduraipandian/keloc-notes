@@ -124,32 +124,9 @@ func buildFileMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
 }
 
 func buildEditMenu(host MenuHost) *menu.MenuItem {
-	editMenuItems := menu.NewMenu()
-	editMenuItems.Append(menu.Text("Undo", keys.CmdOrCtrl("z"), func(cd *menu.CallbackData) {
-		// Standard undo
-	}))
-	editMenuItems.Append(menu.Text("Redo", nil, func(cd *menu.CallbackData) {
-		// Standard redo
-	}))
-	editMenuItems.Append(menu.Separator())
-	editMenuItems.Append(menu.Text("Cut", keys.CmdOrCtrl("x"), func(cd *menu.CallbackData) {
-		// Standard cut
-	}))
-	editMenuItems.Append(menu.Text("Copy", keys.CmdOrCtrl("c"), func(cd *menu.CallbackData) {
-		// Standard copy
-	}))
-	editMenuItems.Append(menu.Text("Paste", keys.CmdOrCtrl("v"), func(cd *menu.CallbackData) {
-		// Standard paste
-	}))
-	editMenuItems.Append(menu.Text("Select All", keys.CmdOrCtrl("a"), func(cd *menu.CallbackData) {
-		// Standard select all
-	}))
-	editMenuItems.Append(menu.Separator())
-	editMenuItems.Append(menu.Text("Find", keys.CmdOrCtrl("f"), func(cd *menu.CallbackData) {
-		host.OnFocusSearch()
-	}))
-
-	return menu.SubMenu("Edit", editMenuItems)
+	item := menu.EditMenu()
+	item.Label = "Edit"
+	return item
 }
 
 func buildViewMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
@@ -160,6 +137,10 @@ func buildViewMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
 	}))
 	viewMenuItems.Append(menu.Text("Toggle Note List", nil, func(cd *menu.CallbackData) {
 		host.OnToggleNoteList()
+	}))
+	viewMenuItems.Append(menu.Separator())
+	viewMenuItems.Append(menu.Text("Find", keys.CmdOrCtrl("f"), func(cd *menu.CallbackData) {
+		host.OnFocusSearch()
 	}))
 	viewMenuItems.Append(menu.Separator())
 

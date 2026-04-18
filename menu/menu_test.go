@@ -18,15 +18,20 @@ func (m *mockMenuHost) OnOpenPreferences() {
 	m.onOpenPreferencesCalled = true
 }
 
-func (m *mockMenuHost) OnNewNote()                    {}
-func (m *mockMenuHost) OnNewFolder()                  {}
-func (m *mockMenuHost) OnDeleteNote()                 {}
-func (m *mockMenuHost) OnEmptyTrash()                 {}
-func (m *mockMenuHost) OnToggleSidebar()              {}
-func (m *mockMenuHost) OnToggleNoteList()             {}
-func (m *mockMenuHost) OnSetTheme(theme string)       {}
-func (m *mockMenuHost) OnFocusSearch()                {}
-func (m *mockMenuHost) OnHelp(topic string)           {}
+func (m *mockMenuHost) OnNewNote()             {}
+func (m *mockMenuHost) OnNewFolder()           {}
+func (m *mockMenuHost) OnDeleteNote()          {}
+func (m *mockMenuHost) OnEmptyTrash()          {}
+func (m *mockMenuHost) OnToggleSidebar()       {}
+func (m *mockMenuHost) OnToggleNoteList()      {}
+func (m *mockMenuHost) OnSetTheme(theme string) {}
+func (m *mockMenuHost) OnFocusSearch()         {}
+func (m *mockMenuHost) OnExportCurrentNote()   {}
+func (m *mockMenuHost) OnExportAllMarkdown()   {}
+func (m *mockMenuHost) OnExportBackup()        {}
+func (m *mockMenuHost) OnImportMarkdown()      {}
+func (m *mockMenuHost) OnImportBackup()        {}
+func (m *mockMenuHost) OnHelp(topic string)    {}
 
 func TestBuildMacMenuStructure(t *testing.T) {
 	host := &mockMenuHost{}
@@ -64,10 +69,10 @@ func TestBuildMacMenuStructure(t *testing.T) {
 		if item.Label == "About mdnotes" {
 			hasAbout = true
 		}
-		if item.Label == "Preferences..." {
+		if item.Label == "Settings..." {
 			hasPreferences = true
 			if item.Accelerator == nil {
-				t.Error("Preferences... item should have an accelerator")
+				t.Error("Settings... item should have an accelerator")
 			}
 		}
 	}
@@ -77,7 +82,7 @@ func TestBuildMacMenuStructure(t *testing.T) {
 	}
 
 	if !hasPreferences {
-		t.Error("App menu missing 'Preferences...' item")
+		t.Error("App menu missing 'Settings...' item")
 	}
 
 	// Check File menu exists
@@ -92,66 +97,9 @@ func TestBuildMacMenuStructure(t *testing.T) {
 		t.Errorf("expected third menu 'Edit', got '%s'", editMenu.Label)
 	}
 
-	if editMenu.SubMenu == nil {
-		t.Fatal("Edit menu has no submenu")
-	}
-
-	// Check for key Edit menu items
-	var (
-		hasUndo       bool
-		hasRedo       bool
-		hasCut        bool
-		hasCopy       bool
-		hasPaste      bool
-		hasSelectAll  bool
-		hasFind       bool
-	)
-
-	for _, item := range editMenu.SubMenu.Items {
-		if item == nil {
-			continue
-		}
-		switch item.Label {
-		case "Undo":
-			hasUndo = true
-		case "Redo":
-			hasRedo = true
-		case "Cut":
-			hasCut = true
-		case "Copy":
-			hasCopy = true
-		case "Paste":
-			hasPaste = true
-		case "Select All":
-			hasSelectAll = true
-		case "Find":
-			hasFind = true
-			if item.Accelerator == nil {
-				t.Error("Find item should have Cmd+F accelerator")
-			}
-		}
-	}
-
-	if !hasUndo {
-		t.Error("Edit menu missing 'Undo' item")
-	}
-	if !hasRedo {
-		t.Error("Edit menu missing 'Redo' item")
-	}
-	if !hasCut {
-		t.Error("Edit menu missing 'Cut' item")
-	}
-	if !hasCopy {
-		t.Error("Edit menu missing 'Copy' item")
-	}
-	if !hasPaste {
-		t.Error("Edit menu missing 'Paste' item")
-	}
-	if !hasSelectAll {
-		t.Error("Edit menu missing 'Select All' item")
-	}
-	if !hasFind {
-		t.Error("Edit menu missing 'Find' item")
+	// Check Edit menu has EditMenuRole (Native items handled by OS)
+	if editMenu.Role == 0 {
+		t.Error("Edit menu should have a native role")
 	}
 
 	// Check View menu exists
@@ -170,6 +118,7 @@ func TestBuildMacMenuStructure(t *testing.T) {
 		hasToggleNoteList  bool
 		hasAppearance      bool
 		hasFullScreen      bool
+		hasFind            bool
 	)
 
 	for _, item := range viewMenu.SubMenu.Items {
@@ -188,7 +137,16 @@ func TestBuildMacMenuStructure(t *testing.T) {
 			}
 		case "Enter Full Screen":
 			hasFullScreen = true
+		case "Find":
+			hasFind = true
+			if item.Accelerator == nil {
+				t.Error("Find item should have Cmd+F accelerator")
+			}
 		}
+	}
+	
+	if !hasFind {
+		t.Error("View menu missing 'Find' item")
 	}
 
 	if !hasToggleSidebar {
