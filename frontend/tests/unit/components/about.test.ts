@@ -1,11 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { tick } from 'svelte';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import About from '../../../src/lib/components/About.svelte';
 import { ThemeStore } from '../../../src/lib/stores/theme.svelte';
 import { UIStateStore } from '../../../src/lib/stores/uiState.svelte';
 import { STORE_KEYS } from '../../../src/lib/stores/context';
-import { beforeEach } from 'vitest';
 
 describe('About component', () => {
     let mockThemeStore: ThemeStore;
@@ -14,6 +14,13 @@ describe('About component', () => {
     beforeEach(() => {
         mockThemeStore = new ThemeStore();
         mockUIStateStore = new UIStateStore();
+    });
+
+    // Flush bits-ui PresenceManager's rAF-based animation callbacks before
+    // @testing-library cleanup destroys the component (describe-scope runs first).
+    afterEach(async () => {
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        await tick();
     });
 
     function renderAbout(props: { open?: boolean; onClose?: () => void } = { open: true }) {

@@ -1,4 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { tick } from 'svelte';
 import { render, screen } from '@testing-library/svelte';
 import Alert from '../../../src/routes/alert.svelte';
 import type { ConfirmOptions } from '../../../src/lib/stores/dialog.svelte';
@@ -6,6 +7,13 @@ import type { ConfirmOptions } from '../../../src/lib/stores/dialog.svelte';
 describe('Alert route', () => {
 	beforeEach(() => {
 		delete (window as Window & { __xss?: boolean }).__xss;
+	});
+
+	// Flush bits-ui PresenceManager's rAF-based animation callbacks before
+	// @testing-library cleanup destroys the component (describe-scope runs first).
+	afterEach(async () => {
+		await new Promise<void>((r) => requestAnimationFrame(() => r()));
+		await tick();
 	});
 
 	function createDialog(overrides: Partial<ConfirmOptions> = {}): ConfirmOptions {

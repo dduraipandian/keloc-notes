@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { tick } from 'svelte';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import Settings from '../../../src/lib/components/Settings.svelte';
@@ -16,6 +17,13 @@ describe('Settings component', () => {
 		vi.spyOn(mockPreferencesStore, 'setFolderAccentColor').mockImplementation(async () => {});
 		vi.spyOn(mockThemeStore, 'setTheme').mockImplementation(async () => {});
 		vi.clearAllMocks();
+	});
+
+	// Flush bits-ui PresenceManager's rAF-based animation callbacks before
+	// @testing-library cleanup destroys the component (describe-scope runs first).
+	afterEach(async () => {
+		await new Promise<void>((r) => requestAnimationFrame(() => r()));
+		await tick();
 	});
 
 	function renderSettings(props: { open?: boolean; onClose?: () => void } = { open: true }) {
