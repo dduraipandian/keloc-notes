@@ -9,6 +9,8 @@ export function ExportNotesZip(arg1:Array<exporter.NoteDTO>):Promise<void>;
 
 export function ImportNotesZip():Promise<Array<exporter.ImportedNoteDTO>>;
 
+export function OnCloseWindow():Promise<void>;
+
 export function OnDeleteNote():Promise<void>;
 
 export function OnEmptyTrash():Promise<void>;
@@ -36,6 +38,8 @@ export function OnOpenAbout():Promise<void>;
 export function OnOpenPreferences():Promise<void>;
 
 export function OnSetTheme(arg1:string):Promise<void>;
+
+export function OnToggleFullscreen():Promise<void>;
 
 export function OnToggleNoteList():Promise<void>;
 

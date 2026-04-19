@@ -14,6 +14,10 @@ export function ImportNotesZip() {
   return window['go']['main']['App']['ImportNotesZip']();
 }
 
+export function OnCloseWindow() {
+  return window['go']['main']['App']['OnCloseWindow']();
+}
+
 export function OnDeleteNote() {
   return window['go']['main']['App']['OnDeleteNote']();
 }
@@ -68,6 +72,10 @@ export function OnOpenPreferences() {
 
 export function OnSetTheme(arg1) {
   return window['go']['main']['App']['OnSetTheme'](arg1);
+}
+
+export function OnToggleFullscreen() {
+  return window['go']['main']['App']['OnToggleFullscreen']();
 }
 
 export function OnToggleNoteList() {
