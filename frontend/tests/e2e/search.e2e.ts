@@ -15,13 +15,20 @@ test.describe('Search Functionality', () => {
 
 		// 1. Create a note with unique content
 		await page.getByTitle('New Note').click();
-		await page.waitForTimeout(300); // Wait for editor to mount
-		await page.getByPlaceholder('Note Title').fill('Science Note');
+		await page.waitForTimeout(100);
+
+		// Wait for textarea to appear
+		const titleInput = page.locator('textarea[placeholder="Note Title"]').first();
+		await titleInput.waitFor({ state: 'visible', timeout: 10000 });
+
+		await titleInput.focus();
+		await titleInput.fill('Science Note');
 
 		const editor = page.locator('.ProseMirror').first();
-		await editor.click();
+		await editor.waitFor({ state: 'visible', timeout: 5000 });
+		await editor.focus();
 		await editor.type('The study of thermodynamics is fascinating.');
-		
+
 		// Ensure persistence (400ms debounce + buffer)
 		await page.waitForTimeout(600);
 
@@ -60,12 +67,16 @@ test.describe('Search Functionality', () => {
 		await page.waitForTimeout(500);
 
 		await page.getByTitle('New Note').click();
-		await page.waitForTimeout(300); // Wait for editor to mount
-		await page.getByPlaceholder('Note Title').fill('Note in A');
+		await page.waitForTimeout(100);
+		const titleInput1 = page.locator('textarea[placeholder="Note Title"]').first();
+		await titleInput1.waitFor({ state: 'visible', timeout: 10000 });
+		await titleInput1.focus();
+		await titleInput1.fill('Note in A');
 		const editor1 = page.locator('.ProseMirror').first();
-		await editor1.click();
+		await editor1.waitFor({ state: 'visible', timeout: 5000 });
+		await editor1.focus();
 		await editor1.type('UniqueKeyA');
-		await page.waitForTimeout(800);
+		await page.waitForTimeout(300);
 
 		// 2. Create Folder B (at Root/Home)
 		await page.locator('div[data-sidebar="header"]').getByText('Home').click();
@@ -78,12 +89,16 @@ test.describe('Search Functionality', () => {
 		await page.waitForTimeout(500);
 
 		await page.getByTitle('New Note').click();
-		await page.waitForTimeout(300); // Wait for editor to mount
-		await page.getByPlaceholder('Note Title').fill('Note in B');
+		await page.waitForTimeout(100);
+		const titleInput2 = page.locator('textarea[placeholder="Note Title"]').first();
+		await titleInput2.waitFor({ state: 'visible', timeout: 10000 });
+		await titleInput2.focus();
+		await titleInput2.fill('Note in B');
 		const editor2 = page.locator('.ProseMirror').first();
-		await editor2.click();
+		await editor2.waitFor({ state: 'visible', timeout: 5000 });
+		await editor2.focus();
 		await editor2.type('UniqueKeyA');
-		await page.waitForTimeout(800);
+		await page.waitForTimeout(300);
 
 		// 3. Search for the word while in Folder B
 		const searchInput = page.getByPlaceholder('Search notes...');

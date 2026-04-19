@@ -45,9 +45,9 @@ describe('Editor.svelte', () => {
 	it('should render editor root', () => {
 		const { container } = render(Editor, {
 			props: { note: createNote(), readonly: false },
-			context: new Map([
-				['noteService', mockNoteService],
-				['preferencesStore', mockPreferencesStore]
+			context: new Map<unknown, unknown>([
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.PREFERENCES, mockPreferencesStore]
 			])
 		});
 
@@ -58,9 +58,9 @@ describe('Editor.svelte', () => {
 	it('should have editor-root with textbox role', () => {
 		const { container } = render(Editor, {
 			props: { note: createNote(), readonly: false },
-			context: new Map([
-				['noteService', mockNoteService],
-				['preferencesStore', mockPreferencesStore]
+			context: new Map<unknown, unknown>([
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.PREFERENCES, mockPreferencesStore]
 			])
 		});
 
@@ -71,9 +71,9 @@ describe('Editor.svelte', () => {
 	it('should render bubble menu element', () => {
 		const { container } = render(Editor, {
 			props: { note: createNote(), readonly: false },
-			context: new Map([
-				['noteService', mockNoteService],
-				['preferencesStore', mockPreferencesStore]
+			context: new Map<unknown, unknown>([
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.PREFERENCES, mockPreferencesStore]
 			])
 		});
 
@@ -84,9 +84,9 @@ describe('Editor.svelte', () => {
 	it('should render editor content area', () => {
 		const { container } = render(Editor, {
 			props: { note: createNote(), readonly: false },
-			context: new Map([
-				['noteService', mockNoteService],
-				['preferencesStore', mockPreferencesStore]
+			context: new Map<unknown, unknown>([
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.PREFERENCES, mockPreferencesStore]
 			])
 		});
 
@@ -98,9 +98,9 @@ describe('Editor.svelte', () => {
 	it('should set editor to readonly mode when note is deleted', () => {
 		const { container } = render(Editor, {
 			props: { note: createNote({ deletedAt: '2026-04-20T00:00:00Z' }), readonly: true },
-			context: new Map([
-				['noteService', mockNoteService],
-				['preferencesStore', mockPreferencesStore]
+			context: new Map<unknown, unknown>([
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.PREFERENCES, mockPreferencesStore]
 			])
 		});
 
@@ -111,9 +111,9 @@ describe('Editor.svelte', () => {
 	it('should accept empty content string', () => {
 		const { container } = render(Editor, {
 			props: { note: createNote({ content: '' }), readonly: false },
-			context: new Map([
-				['noteService', mockNoteService],
-				['preferencesStore', mockPreferencesStore]
+			context: new Map<unknown, unknown>([
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.PREFERENCES, mockPreferencesStore]
 			])
 		});
 
@@ -129,9 +129,9 @@ describe('Editor.svelte', () => {
 				}),
 				readonly: false
 			},
-			context: new Map([
-				['noteService', mockNoteService],
-				['preferencesStore', mockPreferencesStore]
+			context: new Map<unknown, unknown>([
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.PREFERENCES, mockPreferencesStore]
 			])
 		});
 
@@ -142,9 +142,9 @@ describe('Editor.svelte', () => {
 	it('should have handlers for drop and paste', () => {
 		const { container } = render(Editor, {
 			props: { note: createNote(), readonly: false },
-			context: new Map([
-				['noteService', mockNoteService],
-				['preferencesStore', mockPreferencesStore]
+			context: new Map<unknown, unknown>([
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.PREFERENCES, mockPreferencesStore]
 			])
 		});
 
@@ -157,9 +157,9 @@ describe('Editor.svelte', () => {
 		const preferences = { ...mockPreferencesStore, enabledLanguages: null };
 		const { container } = render(Editor, {
 			props: { note: createNote(), readonly: false },
-			context: new Map([
-				['noteService', mockNoteService],
-				['preferencesStore', preferences]
+			context: new Map<unknown, unknown>([
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.PREFERENCES, preferences]
 			])
 		});
 

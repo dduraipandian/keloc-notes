@@ -8,16 +8,16 @@ import type { JSONContent } from '@tiptap/core';
 
 describe('serializer', () => {
 	describe('parseContent', () => {
-		it('should return empty doc for empty string', () => {
+		it('should return doc with empty paragraph for empty string', () => {
 			const result = parseContent('');
 			expect(result.type).toBe('doc');
-			expect(result.content).toEqual([]);
+			expect(result.content).toEqual([{ type: 'paragraph' }]);
 		});
 
-		it('should return empty doc for whitespace-only string', () => {
+		it('should return doc with empty paragraph for whitespace-only string', () => {
 			const result = parseContent('   \n  ');
 			expect(result.type).toBe('doc');
-			expect(result.content).toEqual([]);
+			expect(result.content).toEqual([{ type: 'paragraph' }]);
 		});
 
 		it('should parse valid JSON', () => {

@@ -26,7 +26,7 @@ function getNotePaneTitle(page: import('@playwright/test').Page, title: string) 
 }
 
 function getNoteEditorTitle(page: import('@playwright/test').Page) {
-	return page.getByRole('textbox', { name: 'Note Title' });
+	return page.locator('textarea[placeholder="Note Title"]');
 }
 
 function getSideBarFolderByLabel(page: import('@playwright/test').Page, label: string) {
@@ -49,16 +49,24 @@ async function createFolder(page: import('@playwright/test').Page, title: string
 }
 
 async function createNote(page: import('@playwright/test').Page, title: string, content?: string) {
+	// Click New Note button
 	await page.getByTitle('New Note').click();
-	await page.waitForTimeout(300); // Wait for editor to mount
-	const titleInput = page.getByPlaceholder('Note Title');
-	await expect(titleInput).toBeVisible({ timeout: 5000 });
+	await page.waitForTimeout(100);
+
+	// Wait for the note to be created and selected by checking if textarea becomes available
+	const titleInput = page.locator('textarea[placeholder="Note Title"]').first();
+	await titleInput.waitFor({ state: 'visible', timeout: 10000 });
+
+	await titleInput.focus();
 	await titleInput.fill(title);
+	await page.waitForTimeout(200);
+
 	if (content) {
 		const bodyInput = page.locator('.ProseMirror').first();
-		await expect(bodyInput).toBeVisible();
-		await bodyInput.click();
+		await bodyInput.waitFor({ state: 'visible', timeout: 5000 });
+		await bodyInput.focus();
 		await bodyInput.type(content);
+		await page.waitForTimeout(200);
 	}
 }
 

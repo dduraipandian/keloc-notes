@@ -14,17 +14,24 @@ async function gotoApp(page: import('@playwright/test').Page) {
 }
 
 async function createAndSelectNote(page: import('@playwright/test').Page) {
+	// Click New Note button
 	await page.getByTitle('New Note').click();
-	await page.waitForTimeout(300); // Wait for editor to mount
-	const titleInput = page.getByPlaceholder('Note Title');
-	await expect(titleInput).toBeVisible({ timeout: 5000 });
+	await page.waitForTimeout(100);
+
+	// Wait for the note to be created and selected by checking if textarea becomes available
+	const titleInput = page.locator('textarea[placeholder="Note Title"]').first();
+	await titleInput.waitFor({ state: 'visible', timeout: 10000 });
+
+	await titleInput.focus();
 	await titleInput.fill('Test Note');
+	await page.waitForTimeout(200);
+
 	const bodyInput = page.locator('.ProseMirror').first();
-	await expect(bodyInput).toBeVisible();
-	await bodyInput.click();
+	await bodyInput.waitFor({ state: 'visible', timeout: 5000 });
+	await bodyInput.focus();
 	await bodyInput.type('Test content');
-	await bodyInput.blur(); // Ensure focus leaves the input
-	await page.waitForTimeout(100); // Wait a moment for UI to settle
+	await bodyInput.blur();
+	await page.waitForTimeout(200);
 }
 
 async function triggerDeleteDialog(page: import('@playwright/test').Page) {

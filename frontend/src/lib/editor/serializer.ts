@@ -7,7 +7,7 @@ import type { JSONContent } from '@tiptap/core';
  */
 export function parseContent(raw: string): JSONContent {
 	if (!raw || raw.trim() === '') {
-		return { type: 'doc', content: [] };
+		return { type: 'doc', content: [{ type: 'paragraph' }] };
 	}
 	try {
 		return JSON.parse(raw) as JSONContent;

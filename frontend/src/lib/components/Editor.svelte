@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { untrack } from 'svelte';
 	import { Editor } from '@tiptap/core';
 	import { BubbleMenu } from '@tiptap/extension-bubble-menu';
 	import type { NoteItem } from '$lib/stores/notes.svelte';
-	import type { NoteService } from '$lib/stores/services/noteService';
-	import type { PreferencesStore } from '$lib/stores/preferences.svelte';
+	import { getNoteService, getPreferencesStore } from '$lib/stores/context';
 	import { buildExtensions } from '$lib/editor/extensions';
 	import { parseContent } from '$lib/editor/serializer';
 	import { storeImageAsset } from '$lib/editor/imageHandler';
@@ -22,8 +21,8 @@
 	let bubbleMenuEl: HTMLElement | undefined = $state();
 	let editor = $state<Editor | null>(null);
 
-	const noteService: NoteService = getContext('noteService');
-	const preferencesStore: PreferencesStore = getContext('preferencesStore');
+	const noteService = getNoteService();
+	const preferencesStore = getPreferencesStore();
 
 	const showFixedToolbar = $derived(
 		['fixed', 'both'].includes(preferencesStore.editorToolbar ?? 'fixed')
@@ -78,22 +77,29 @@
 	$effect(() => {
 		if (!editorContainer) return;
 
+		const { initialContent, noteId, isReadonly, bubbleEl } = untrack(() => ({
+			initialContent: parseContent(note.content),
+			noteId: note.id,
+			isReadonly: readonly,
+			bubbleEl: bubbleMenuEl
+		}));
+
 		const extensions = [
 			...buildExtensions({
 				placeholder: 'Start writing…',
-				readonly
+				readonly: isReadonly
 			}),
-			BubbleMenu.configure({ element: bubbleMenuEl ?? undefined })
+			BubbleMenu.configure({ element: bubbleEl ?? undefined })
 		];
 
 		const instance = new Editor({
 			element: editorContainer,
 			extensions,
-			content: parseContent(note.content),
-			editable: !readonly,
+			content: initialContent,
+			editable: !isReadonly,
 			onUpdate({ editor: e }) {
 				const json = JSON.stringify(e.getJSON());
-				noteService.update(note.id, { content: json });
+				noteService.update(noteId, { content: json });
 			}
 		});
 

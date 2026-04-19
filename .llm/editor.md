@@ -1,17 +1,23 @@
 # Rich Text Editor — Implementation Spec
 
-## ✅ IMPLEMENTATION COMPLETE
+## ✅ IMPLEMENTATION COMPLETE + BUGS FIXED
 
-All 6 implementation phases are complete as of 2026-04-20:
+All 6 implementation phases complete as of 2026-04-20. Critical bugs discovered & fixed on 2026-04-21:
 
 - **Phase 1** ✅ Database & Infrastructure (idbr.ts, repositories.ts, SettingsState)
 - **Phase 2** ✅ Core Libraries (serializer.ts, imageHandler.ts, extensions.ts)
 - **Phase 3** ✅ UI Components (EditorToolbar.svelte, BubbleToolbar.svelte, Editor.svelte)
 - **Phase 4** ✅ System Integration (+page.svelte, NotesStore, SearchService, NoteService)
 - **Phase 5** ✅ Settings UI (Editor tab with toolbar style & language selection)
-- **Phase 6** ✅ E2E Tests (14 comprehensive editor workflow tests)
+- **Phase 6** ✅ E2E Tests (37 comprehensive editor workflow tests)
 
-**Test Status**: All 341 unit tests passing. Editor E2E tests cover:
+**Bug Fixes (2026-04-21)**:
+1. **Context key mismatch** — Editor.svelte used `getContext('string-key')` but context registered with `STORE_KEYS.Symbol`. Fixed: import `getNoteService`, `getPreferencesStore` from context helpers.
+2. **Invalid empty doc schema** — `parseContent('')` returned `{ type: 'doc', content: [] }`, violating ProseMirror's `block+` requirement. Fixed: return `{ type: 'doc', content: [{ type: 'paragraph' }] }`.
+3. **Reactive loop rebuilding editor** — `$effect` tracked `note.content`, rebuilding Tiptap on every keystroke. Fixed: wrap reads in `untrack()`.
+4. **Test placeholder selectors** — E2E tests used `getByPlaceholder('Start writing...')` against CSS pseudo-element. Fixed: use `.ProseMirror` locator instead.
+
+**Test Status**: All 341 unit tests + 37 E2E tests passing (2026-04-21). Editor E2E tests cover:
 - Basic editor rendering and content loading
 - Text formatting (bold, italic, strikethrough, headings)
 - List insertion (bullet and ordered)

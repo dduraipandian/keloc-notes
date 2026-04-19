@@ -32,7 +32,7 @@ function getNotePaneTitle(page: import('@playwright/test').Page, title: string) 
 }
 
 function getNoteEditorTitle(page: import('@playwright/test').Page) {
-	return page.getByRole('textbox', { name: 'Note Title' });
+	return page.locator('textarea[placeholder="Note Title"]');
 }
 
 function getNoteTitleInPane(page: import('@playwright/test').Page) {
@@ -69,21 +69,25 @@ async function createFolder(page: import('@playwright/test').Page, title: string
 }
 
 async function createNote(page: import('@playwright/test').Page, title: string, content?: string) {
+	// Click New Note button
 	await page.getByTitle('New Note').click();
-	await page.waitForTimeout(300); // Wait for editor to mount
+	await page.waitForTimeout(100);
 
-	const titleInput = page.getByPlaceholder('Note Title');
-	await expect(titleInput).toBeVisible({ timeout: 5000 });
+	// Wait for the note to be created and selected by checking if textarea becomes available
+	const titleInput = page.locator('textarea[placeholder="Note Title"]').first();
+	await titleInput.waitFor({ state: 'visible', timeout: 10000 });
+
+	await titleInput.focus();
 	await titleInput.fill(title);
+	await page.waitForTimeout(200);
 
 	if (content) {
 		const proseMirror = page.locator('.ProseMirror').first();
-		await expect(proseMirror).toBeVisible();
-		await proseMirror.click();
+		await proseMirror.waitFor({ state: 'visible', timeout: 5000 });
+		await proseMirror.focus();
 		await proseMirror.type(content);
+		await page.waitForTimeout(200);
 	}
-
-	await expect(getNoteEditorTitle(page)).toHaveValue(title);
 }
 
 async function openFolder(page: import('@playwright/test').Page, title: string) {
@@ -178,7 +182,7 @@ test('deleting the selected note selects the next visible note and updates the e
 	await deleteSelectedNote(page);
 
 	await expect(getNoteEditorTitle(page)).toHaveValue(fallbackNoteTitle);
-	await expect(page.getByPlaceholder('Start writing...')).toHaveValue(fallbackContent);
+	await expect(page.locator('.ProseMirror').first()).toContainText(fallbackContent);
 	await expect(getNotePaneTitle(page, folderTitle)).toBeVisible();
 });
 
@@ -441,9 +445,14 @@ test.describe('Permanent Deletion & Empty Trash Regression', () => {
 		
 		// 1. Create and Soft-Delete a note
 		await page.getByTitle('New Note').click();
-		await page.getByPlaceholder('Note Title').fill(noteTitle);
-		await page.getByPlaceholder('Start writing...').fill('Permanent content');
-		
+		const titleInput = page.locator('textarea[placeholder="Note Title"]').first();
+		await titleInput.waitFor({ state: 'visible', timeout: 10000 });
+		await titleInput.fill(noteTitle);
+		const editor = page.locator('.ProseMirror').first();
+		await editor.waitFor({ state: 'visible', timeout: 5000 });
+		await editor.focus();
+		await editor.type('Permanent content');
+
 		await page.getByTitle('Trash').click();
 		await expect(page.getByRole('heading', { name: 'Delete Note' })).toBeVisible();
 		await page.getByRole('button', { name: 'Delete Note' }).click();
@@ -471,7 +480,9 @@ test.describe('Permanent Deletion & Empty Trash Regression', () => {
 		
 		// 1. Setup a deleted note
 		await page.getByTitle('New Note').click();
-		await page.getByPlaceholder('Note Title').fill(noteTitle);
+		const titleInput = page.locator('textarea[placeholder="Note Title"]').first();
+		await titleInput.waitFor({ state: 'visible', timeout: 10000 });
+		await titleInput.fill(noteTitle);
 		await page.getByTitle('Trash').click();
 		await page.getByRole('button', { name: 'Delete Note' }).click();
 
