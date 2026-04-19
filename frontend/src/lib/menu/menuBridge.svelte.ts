@@ -1,5 +1,12 @@
 import { EventsOn } from '$lib/wailsjs/runtime/runtime';
-import { UpdateMenuState } from '$lib/wailsjs/go/main/App';
+import {
+	UpdateMenuState,
+	ExportNoteToFile,
+	ExportNotesZip,
+	ImportNotesZip,
+	SaveBackupFile,
+	ReadBackupFile
+} from '$lib/wailsjs/go/main/App';
 import { menu } from '$lib/wailsjs/go/models';
 import { noteService, folderService, trashService } from '$lib/stores/services';
 import { uiStore } from '$lib/stores/dialog.svelte';
@@ -9,6 +16,7 @@ import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStateStore } from '$lib/stores/uiState.svelte';
 import { themeStore } from '$lib/stores/theme.svelte';
 import { hasWailsRuntime } from '$lib/wails.svelte';
+import { exportBackup, importBackup } from '$lib/backup/backup';
 
 /**
  * Initialize menu event listeners and wire them to store actions.
@@ -102,10 +110,7 @@ export function initMenuBridge(callbacks?: {
 			const noteId = notesStore.selectedNoteID;
 			if (noteId) {
 				try {
-					const { ExportNoteToFile } = await import('$lib/wailsjs/go/main/App');
-					const { noteService } = await import('$lib/stores/services');
-					const harvested = await noteService.getExportData([noteId]);
-
+					const harvested = await noteService.getNotesForExport([noteId]);
 					if (harvested.length > 0) {
 						await ExportNoteToFile(harvested[0].title, harvested[0].content);
 					}
@@ -119,33 +124,12 @@ export function initMenuBridge(callbacks?: {
 	unsubscribers.push(
 		EventsOn('menu:export-all-markdown', async () => {
 			try {
-				const { ExportNotesZip } = await import('$lib/wailsjs/go/main/App');
-				const { noteService } = await import('$lib/stores/services');
-
 				// Collect all active (non-deleted) notes
 				const activeNoteIds = Array.from(notesStore.notes.values())
 					.filter((n) => !n.deletedAt)
 					.map((n) => n.id);
 
-				const harvestedNotes = await noteService.getExportData(activeNoteIds);
-
-				const notesToExport = harvestedNotes.map((note) => {
-					let folderPath = '';
-					if (note.folderId) {
-						const folder = folderStore.findItemById(note.folderId);
-						if (folder) {
-							folderPath = folderStore.getPathForFolder(folder);
-						}
-					}
-
-					return {
-						title: note.title,
-						content: note.content,
-						folderPath,
-						updatedAt: new Date(note.updatedAt ?? 0).toISOString()
-					};
-				});
-
+				const notesToExport = await noteService.getNotesForExport(activeNoteIds);
 				await (ExportNotesZip as any)(notesToExport);
 			} catch (err) {
 				console.error('Failed to export notes:', err);
@@ -156,11 +140,7 @@ export function initMenuBridge(callbacks?: {
 	unsubscribers.push(
 		EventsOn('menu:export-backup', async () => {
 			try {
-				const appModule = await import('$lib/wailsjs/go/main/App');
-				const { exportBackup } = await import('$lib/backup/backup');
-
 				const json = exportBackup();
-				const SaveBackupFile = (appModule as any).SaveBackupFile;
 				await SaveBackupFile(json);
 			} catch (err) {
 				console.error('Failed to export backup:', err);
@@ -171,7 +151,6 @@ export function initMenuBridge(callbacks?: {
 	unsubscribers.push(
 		EventsOn('menu:import-markdown', async () => {
 			try {
-				const { ImportNotesZip } = await import('$lib/wailsjs/go/main/App');
 				const importedNotes = await ImportNotesZip();
 
 				if (!importedNotes || importedNotes.length === 0) {
@@ -180,38 +159,8 @@ export function initMenuBridge(callbacks?: {
 
 				// Create folders and notes
 				for (const importedNote of importedNotes) {
-					let targetFolderId: string | null = null;
-
-					// Create folders if needed with { silent: true } to avoid selection churn
-					if (importedNote.FolderPath) {
-						const pathParts = importedNote.FolderPath.split('/');
-						let parentId: string | null = null;
-
-						for (const part of pathParts) {
-							// Find or create folder
-							let folderId: string | null = null;
-							for (const [id, folder] of folderStore.folders) {
-								if (folder.title === part && folder.parentId === parentId && !folder.deletedAt) {
-									folderId = id;
-									break;
-								}
-							}
-
-							if (!folderId) {
-								// Create new folder in parent with silent: true
-								folderId = (folderService.create(parentId, { silent: true }) as any) ?? null;
-
-								// Rename newly created folder
-								if (folderId) {
-									folderService.rename(folderId, part);
-								}
-							}
-
-							parentId = folderId ?? null;
-						}
-
-						targetFolderId = parentId;
-					}
+					// Use the logic-encapsulated ensurePath in FolderService
+					const targetFolderId = folderService.ensurePath(importedNote.FolderPath);
 
 					// Create note with silent: true and extract its id for updating
 					const newNote = noteService.create(targetFolderId, { silent: true });
@@ -231,10 +180,6 @@ export function initMenuBridge(callbacks?: {
 	unsubscribers.push(
 		EventsOn('menu:import-backup', async () => {
 			try {
-				const appModule = await import('$lib/wailsjs/go/main/App');
-				const { importBackup } = await import('$lib/backup/backup');
-
-				const ReadBackupFile = (appModule as any).ReadBackupFile;
 				const json = await ReadBackupFile();
 				if (json) {
 					await importBackup(json);

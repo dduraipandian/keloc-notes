@@ -191,6 +191,55 @@ describe('FolderService', () => {
 		expect(selection.selectFolder).toHaveBeenCalledWith(null);
 		expect(notes.selectNote).toHaveBeenCalledWith(null);
 	});
+
+	describe('ensurePath', () => {
+		it('should create missing folders in a path and return the leaf ID', () => {
+			const folders = {
+				folders: new Map(),
+				createFolder: vi.fn().mockImplementation((parentId) => {
+					const id = `new-id-${parentId ?? 'root'}`;
+					folders.folders.set(id, { id, title: 'temp', parentId });
+					return id;
+				}),
+				renameFolder: vi.fn().mockImplementation((id, title) => {
+					folders.folders.get(id).title = title;
+				})
+			};
+			const selection = { selectFolder: vi.fn() };
+			const service = new FolderService(folders as any, {} as any, selection as any);
+
+			const result = service.ensurePath('Work/Design');
+
+			expect(folders.createFolder).toHaveBeenCalledTimes(2);
+			expect(folders.renameFolder).toHaveBeenCalledWith('new-id-root', 'Work');
+			expect(folders.renameFolder).toHaveBeenCalledWith('new-id-new-id-root', 'Design');
+			expect(result).toBe('new-id-new-id-root');
+		});
+
+		it('should reuse existing folders in a path', () => {
+			const folders = {
+				folders: new Map([
+					['work-id', { id: 'work-id', title: 'Work', parentId: null, deletedAt: null }]
+				]),
+				createFolder: vi.fn().mockReturnValue('design-id'),
+				renameFolder: vi.fn()
+			};
+			const selection = { selectFolder: vi.fn() };
+			const service = new FolderService(folders as any, {} as any, selection as any);
+
+			const result = service.ensurePath('Work/Design');
+
+			expect(folders.createFolder).toHaveBeenCalledTimes(1);
+			expect(folders.createFolder).toHaveBeenCalledWith('work-id');
+			expect(folders.renameFolder).toHaveBeenCalledWith('design-id', 'Design');
+			expect(result).toBe('design-id');
+		});
+
+		it('should return null for empty path', () => {
+			const service = new FolderService({} as any, {} as any, {} as any);
+			expect(service.ensurePath('')).toBe(null);
+		});
+	});
 });
 
 describe('NoteService', () => {
@@ -432,6 +481,29 @@ describe('NoteService', () => {
 		const result = new NoteService(folders as any, notes as any).getNotesForFolder('A');
 
 		expect(result.map((note: any) => note.id)).toEqual(['note-x']);
+	});
+
+	it('should return notes enriched for export', async () => {
+		const folders = {
+			findItemById: vi.fn().mockReturnValue({ id: 'f1', title: 'Work', parentId: null })
+		};
+		const notes = {
+			getNote: vi.fn().mockReturnValue({ id: 'n1', title: 'T1', folderId: 'f1', updatedAt: 1000 }),
+			getBulkNoteContents: vi.fn().mockResolvedValue({ 'n1': 'Content' })
+		};
+		const service = new NoteService(folders as any, notes as any, {} as any);
+		// Mock getFolderPath manually for simplicity in this unit test
+		(service as any).getFolderPath = vi.fn().mockReturnValue('Work');
+
+		const result = await service.getNotesForExport(['n1']);
+
+		expect(result).toHaveLength(1);
+		expect(result[0]).toEqual({
+			title: 'T1',
+			content: 'Content',
+			folderPath: 'Work',
+			updatedAt: new Date(1000).toISOString()
+		});
 	});
 });
 

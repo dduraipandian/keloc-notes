@@ -1,32 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { notesStore } from '../../src/lib/stores/notes.svelte';
-import { folderStore } from '../../src/lib/stores/folders.svelte';
-import { folderService, noteService } from '../../src/lib/stores/services';
-import { EventsOn } from '../../src/lib/wailsjs/runtime/runtime';
+import { initMenuBridge } from '$lib/menu/menuBridge.svelte';
+import { EventsOn } from '$lib/wailsjs/runtime/runtime';
+import { folderService, noteService } from '$lib/stores/services';
+import { ImportNotesZip } from '$lib/wailsjs/go/main/App';
 
-vi.mock('../../src/lib/wailsjs/runtime/runtime', () => ({
+vi.mock('$lib/wailsjs/runtime/runtime', () => ({
 	EventsOn: vi.fn(),
 	EventsEmit: vi.fn()
 }));
 
-vi.mock('../../src/lib/stores/services', () => ({
+vi.mock('$lib/stores/services', () => ({
 	folderService: {
 		create: vi.fn(),
-		rename: vi.fn()
+		rename: vi.fn(),
+		ensurePath: vi.fn()
 	},
 	noteService: {
 		create: vi.fn(),
-		update: vi.fn()
+		update: vi.fn(),
+		getNotesForExport: vi.fn()
 	},
 	trashService: {}
 }));
 
-vi.mock('../../src/lib/stores/folders.svelte', () => ({
-	folderStore: {
-		folders: new Map(),
-		findItemById: vi.fn(),
-		getPathForFolder: vi.fn()
-	}
+vi.mock('$lib/wailsjs/go/main/App', () => ({
+	ImportNotesZip: vi.fn(),
+	ExportNoteToFile: vi.fn(),
+	ExportNotesZip: vi.fn(),
+	UpdateMenuState: vi.fn(),
+	SaveBackupFile: vi.fn(),
+	ReadBackupFile: vi.fn()
 }));
 
 describe('Import Mismatch Bug (RED)', () => {
@@ -37,29 +40,26 @@ describe('Import Mismatch Bug (RED)', () => {
 			return () => {};
 		});
 
-		// Mock the App.ImportNotesZip import
-		vi.doMock('../../src/lib/wailsjs/go/main/App', () => ({
-			ImportNotesZip: vi.fn().mockResolvedValue([
-				{
-					Title: 'Imported Note',
-					Content: 'Imported Content',
-					FolderPath: ''
-				}
-			])
-		}));
+		vi.mocked(ImportNotesZip).mockResolvedValue([
+			{
+				Title: 'Imported Note',
+				Content: 'Imported Content',
+				FolderPath: ''
+			}
+		]);
+
+		vi.mocked(folderService.ensurePath).mockReturnValue(null);
 
 		// Mock NoteService.create to return an OBJECT (as it currently does in real implementation)
 		const mockNote = { id: 'new-id-123', title: 'Untitled Note' };
 		vi.mocked(noteService.create).mockReturnValue(mockNote as any);
 
-		const { initMenuBridge } = await import('../../src/lib/menu/menuBridge.svelte');
 		initMenuBridge();
 
 		// Trigger import
 		await handlers['menu:import-markdown']();
 
 		// EXPECTATION: The bug is that we pass mockNote (object) instead of mockNote.id (string)
-		// This assertion is designed to fail if the bug is present.
 		expect(noteService.update).toHaveBeenCalledWith('new-id-123', expect.objectContaining({
 			title: 'Imported Note'
 		}));

@@ -104,4 +104,21 @@ export class NoteService {
 
 		return results;
 	}
+
+	async getNotesForExport(ids: NoteID[]) {
+		const harvested = await this.getExportData(ids);
+		return harvested.map((note) => {
+			let folderPath = '';
+			if (note.folderId) {
+				folderPath = this.tree.getPlainFolderPath(note.folderId);
+			}
+
+			return {
+				title: note.title,
+				content: note.content,
+				folderPath,
+				updatedAt: new Date(note.updatedAt ?? 0).toISOString()
+			};
+		});
+	}
 }

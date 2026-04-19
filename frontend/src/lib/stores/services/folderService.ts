@@ -65,6 +65,40 @@ export class FolderService {
 		return this.tree.getFolderPath(folderId);
 	}
 
+	getPlainFolderPath(folderId: FolderID): string {
+		return this.tree.getPlainFolderPath(folderId);
+	}
+
+	ensurePath(path: string): FolderID | null {
+		if (!path) return null;
+
+		const parts = path.split('/').filter(Boolean);
+		let parentId: FolderID | null = null;
+
+		for (const part of parts) {
+			let folderId: FolderID | null = null;
+			// Normalizing root to null
+			const currentParentId = parentId === 'home' ? null : parentId;
+
+			for (const [id, folder] of this.folders.folders) {
+				if (folder.title === part && folder.parentId === currentParentId && !folder.deletedAt) {
+					folderId = id;
+					break;
+				}
+			}
+
+			if (!folderId) {
+				// Use create with silent: true to avoid selection churn
+				folderId = this.create(currentParentId, { silent: true }) as FolderID;
+				this.rename(folderId, part);
+			}
+
+			parentId = folderId;
+		}
+
+		return parentId;
+	}
+
 	collectFolderSubtree(folderId: FolderID): FolderItem[] {
 		return this.tree.collectFolderSubtree(folderId);
 	}

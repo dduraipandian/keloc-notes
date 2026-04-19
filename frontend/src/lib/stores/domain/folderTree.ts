@@ -21,6 +21,16 @@ export class FolderTreeHelper {
 		return parentPath ? `${parentPath}/${segment}` : segment;
 	}
 
+	getPlainFolderPath(folderId: FolderID): string {
+		const folder = this.folders.findItemById(folderId);
+		if (!folder) return '';
+
+		if (!folder.parentId) return folder.title;
+
+		const parentPath = this.getPlainFolderPath(folder.parentId);
+		return parentPath ? `${parentPath}/${folder.title}` : folder.title;
+	}
+
 	collectFolderSubtree(folderId: FolderID): FolderItem[] {
 		const folder = this.folders.findItemById(folderId);
 		if (!folder) return [];
