@@ -29,6 +29,14 @@ To ensure standard macOS behaviors (Undo, Redo, Copy, Paste, Select All) work wi
 ### Menu Event Bridging
 For non-standard actions (e.g., "New Note" or "Export"), the Go menu items trigger specific Wails events. A frontend **Menu Bridge** ($effect.root) listens for these events and routes them to the appropriate Svelte services.
 
+### Native Menu Completeness
+The macOS menu bar is no longer only structural; previously placeholder actions are now wired:
+- **File > Close Window** delegates to `OnCloseWindow()`.
+- **View > Enter Full Screen** delegates to `OnToggleFullscreen()`.
+- **Help > mdnotes Help** and **Help > Report a Bug** delegate to `OnHelp(...)`.
+
+This matters for release readiness because menu presence without real behavior reads as unfinished desktop software.
+
 ## Safe Shutdown & Data Integrity
 To prevent data loss during rapid exits (e.g., Cmd+Q while typing), the backend implements a "Graceful Flush" protocol:
 1.  **BeforeClose Hook**: When a quit is initiated, Go intercepts the close and emits an `app:before-close` event.
@@ -46,4 +54,4 @@ As the app matures, the Go side is expected to take on:
 - **Avoid Logic Heavy Go**: Keep the backend "thin" unless direct OS access is required.
 - **Prefer Bindings over Events**: For request/response flows, use bound methods on `App`. Use Events only for one-way OS -> Frontend notifications.
 - **Check menu_darwin.go**: When adding new keyboard shortcuts, verify they don't conflict with native roles.
-
+- **Release Readiness**: For macOS-specific polish items, verify both the Go menu definition and the `App` handlers. A menu item being present is not evidence that the platform feature is actually complete.

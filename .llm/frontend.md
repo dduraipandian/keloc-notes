@@ -16,6 +16,7 @@ Stores are the "source of truth" for the application's state. In Svelte 5, these
 - **Responsibility**: Manages note metadata and selection.
 - **Performance**: Note content is *not* stored here; it is fetched on-demand from IndexedDB to keep the store lightweight.
 - **Dependency**: Uses **Setter-based Dependency Injection** to receive the `SearchService` and `NoteService` at runtime, avoiding circular top-level imports.
+- **Trash Model**: Notes are soft-deleted via `deletedAt`/`deletedBatchId`, so any derived cache that exposes note visibility must react to soft-delete and restore transitions, not just hard removals.
 
 ## 2. Business Logic (Service Layer)
 Services coordinate actions across multiple stores. Components should almost never mutate stores directly; they should invoke methods on services.
@@ -24,6 +25,7 @@ Services coordinate actions across multiple stores. Components should almost nev
 - **`NoteService`**: Manages note creation, soft-deletes, and harvesting data for bulk exports.
 - **`TrashService`**: Orchestrates the restoration of items, ensuring they are "re-homed" to root if their original parents are missing.
 - **`SearchService`**: Manages the `MiniSearch` index. It handles incremental indexing during note persistence and on-demand indexing for active folder trees.
+- **Operational Rule**: Search results should always be treated as candidate IDs, then validated against canonical note state (`deletedAt`, folder scope, profile visibility) before rendering.
 
 ## 3. Projection Layer (View Models)
 To keep Svelte components thin and focused on rendering, we use **View Model** classes (Projections). These classes subscribe to stores and "project" the data into a format optimized for specific UI components.
@@ -39,10 +41,20 @@ We use IndexedDB for local-first storage, wrapped in repository patterns.
     - `notes_contents`: Stores the full markdown body. Loaded only when a note is opened or indexed.
 - **Atomic Operations**: Deletion batches and cascades are grouped by unique UUIDs to ensure data integrity during bulk actions.
 
+## 4.1 Backup & Import Reliability
+- **Transactional Restore**: Backup imports restore folders, note metadata, note contents, and settings transactionally into IndexedDB before the app reloads.
+- **Authoritative Export Source**: Backups are exported from repositories / IndexedDB-backed state, not from incidental UI-only state like `localStorage`.
+- **User-visible Failure Paths**: Import/export flows are expected to surface actionable UI errors rather than console-only failures.
+
 ## 5. Reactivity Patterns (Svelte 5 Runes)
 - **`$state.snapshot()`**: Used heavily before sending data to the Go backend or IndexedDB to strip reactive proxies.
 - **`$effect.root`**: Used in utility modules like the **Menu Bridge** to create global observers that don't get destroyed by component unmounts.
 - **`$derived.by`**: Utilized for complex computations in View Models to ensure caching and efficient re-evaluations.
+
+## 5.1 Search-Specific Reactivity
+- Search input is debounced in `NoteListView` by 150 ms to protect list rendering from per-keystroke recomputation.
+- MiniSearch indexing is on-demand per folder subtree via `ensureFolderIndexed`.
+- Soft-delete / restore flows must be treated as index mutations. The current implementation protects correctness in two layers: it removes or re-adds notes during trash lifecycle changes, and it filters final search results against canonical `deletedAt` state.
 
 ## 6. CSS & Design System
 - **Framework**: Tailwind CSS v4.
@@ -58,4 +70,4 @@ We use IndexedDB for local-first storage, wrapped in repository patterns.
 - **Circular Dependencies**: If you need a store in a service that is already used by that store, use a setter or a registry pattern in `services.ts`.
 - **TDD Requirement**: New store/service logic **must** have a corresponding unit test in `tests/unit`.
 - **Performance**: Always consider the impact of large note collections. Prefer O(1) or O(log n) lookups over O(n) array scans.
-
+- **Search Bugs**: When debugging search, inspect three layers separately: note query visibility, MiniSearch document lifecycle, and final result filtering in `NoteListView` / `SearchService`. Do not assume the symptom comes from the index alone.

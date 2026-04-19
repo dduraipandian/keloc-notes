@@ -374,6 +374,7 @@ export class NotesStore {
 
 			this.persistNote(id);
 			this.persistSelection();
+			this.searchService?.updateNoteIndex(id, newNote.title, newNote.content);
 		}
 	}
 
@@ -397,6 +398,7 @@ export class NotesStore {
 					selectionChanged = true;
 				}
 				this.persistNote(note.id);
+				this.searchService?.removeNoteIndex(note.id);
 			}
 		}
 		if (selectionChanged) {
@@ -424,6 +426,7 @@ export class NotesStore {
 					if (note.isFavorite) this.favoriteCount++;
 
 					this.persistNote(note.id);
+					this.searchService?.updateNoteIndex(note.id, newNote.title, newNote.content);
 				}
 			}
 		}

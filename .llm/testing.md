@@ -7,6 +7,7 @@
 - **Environment**: JSDOM
 - **Focus**: Domain logic, store reactivity, and service-layer orchestration.
 - **Location**: `frontend/tests/unit/` (broken down by architectural layer).
+- **Known Harness Quirk**: Bits UI body-scroll-lock cleanup can outlive a test. Alert/dialog tests should flush pending timers and call `cleanup()` explicitly to avoid `document is not defined` unhandled exceptions after JSDOM teardown.
 
 ### End-to-End Tests (Playwright)
 
@@ -145,6 +146,7 @@ Avoid repeating selectors. Use functional helpers at the top of E2E files:
 2.  **App Ready Sentinel**: E2E tests must wait for `[data-app-ready="true"]` before interacting.
 3.  **Naming Integrity**: Use `camelCase` for all new test files.
 4.  **No identity Mismatch**: Prefer `$lib` imports. If using relative paths, ensure they are depth-corrected (e.g., `../../../src`) to avoid duplicate store instances.
+5.  **Derived Cache Invariants**: Any feature backed by a derived cache or index, especially MiniSearch, needs tests for add, update, delete, and restore transitions. Happy-path indexing coverage is not enough.
 
 ## Refactoring & Consolidation Protocol
 
@@ -167,3 +169,9 @@ npm run test           # Unit tests
 npm run test:e2e       # E2E tests
 npm run check          # Type checking
 ```
+
+## Recent Regression Areas Worth Guarding
+
+- **Backup persistence**: Export/import tests should verify restart durability, not just DTO generation.
+- **Menu bridge**: Native menu actions need tests for user-visible failure paths and dynamic enablement.
+- **Search**: Folder-scoped search needs explicit coverage for soft-deleted notes, stale index entries, and subtree scoping.

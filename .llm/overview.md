@@ -42,6 +42,7 @@ To maintain a "snappy" feel even with thousands of notes:
 - **On-Demand Indexing**: Content is pulled from IndexedDB and indexed only when a folder tree becomes active or notes are created/updated.
 - **Scoped Search**: Results can be filtered by the active folder subtree, leveraging the `FolderTreeHelper`.
 - **Prefix Matching**: Prioritizes prefix and exact matches over fuzzy search to maintain high precision and predictability.
+- **Deletion Safety**: Search results are validated against canonical note state, and soft-delete / restore flows now synchronize the MiniSearch index so trashed notes do not leak into folder-scoped search.
 
 ## Repository Layout
 - `/main.go` & `/app.go`: Wails entry point and desktop lifecycle hooks.
@@ -58,4 +59,4 @@ When modifying this project:
 1.  **Prioritize Tests**: Add or update unit tests before changing core logic.
 2.  **Respect the Service Layer**: Avoid binding components directly to deep store mutations; use services.
 3.  **Mind the Runes**: Ensure all reactive state uses Svelte 5 runes and verify signal propagation in tests.
-
+4.  **Keep Derived Caches Honest**: MiniSearch and menu enablement are derived state. They must never become the source of truth; final UI behavior must still be validated against canonical store state.

@@ -19,6 +19,7 @@
 - **Indexing Strategy**: 
   - On-demand indexing: Content is loaded from IndexedDB only when a folder tree becomes active.
   - Incremental updates: Notes are added/replaced in the index during the `persistNote` lifecycle.
+- **Incident Resolved**: We hit a real bug where soft-deleted notes could remain searchable inside a folder because MiniSearch and store visibility drifted apart. The implemented fix now updates the index during trash/restore flows and filters final search results against canonical `deletedAt` state.
 
 ## Architectural Stabilization
 
@@ -30,6 +31,7 @@
 
 - **Debounce**: Search recomputes 150ms after typing stops to keep the UI smooth with large note lists.
 - **E2E Scoping**: When testing folder-scoped search, explicitly navigate to "Home" before creating new folders to ensure they are siblings (flat structure) rather than children (nested structure).
+- **Debugging Rule**: If a user reports a search miss or ghost result on existing notes, do not assume edit-index lag. First distinguish whether the problem is stale indexing, subtree filtering, deleted-note leakage, or partial content loading.
 
 ## Persistence And Error Handling
 
@@ -65,6 +67,10 @@
 - **Recursive Path Resolution**: Implemented `FolderService.ensurePath(path: string)`, which recursively finds or creates a nested folder structure for imports.
 - **Import Efficiency**: Implemented a `silent` creation mode in `FolderService` and `NoteService`. During bulk imports, we bypass global selection updates (`selectionStore`) for every note/folder created. This eliminates "UI selection churn" and significantly improves performance.
 - **ID Resolution**: Standardized on extracting the `.id` property from newly created Note objects before passing them to `noteService.update`, resolving a common type-mismatch bug where full objects were passed to the backend-style internal services.
+- **Trustworthiness Work Completed**:
+  - Export now reads from repositories / IndexedDB-backed state, not `localStorage`.
+  - Import restores notes, folders, note contents, and settings transactionally before reload.
+  - Menu-driven import/export failures are surfaced to the user rather than logged silently.
 
 ## macOS Native Text Editing (Undo/Copy/Paste/Select All)
 
@@ -74,3 +80,13 @@
   - On macOS, when a menu item has these roles, Wails tells the native AppKit layer to handle the menu in a standard way. This allows the OS to route shortcuts directly to the `WKWebView`'s first responder (the focused textarea) without Go-side interception.
 - **Limitation**: The native `EditMenuRole` provides a hardcoded list of standard items that cannot be easily extended in Wails v2. Consequently, the **Find** command (Cmd+F) was relocated to the **View** menu to maintain its functionality without breaking the native Edit shortcuts.
 - **Stable Platform**: Reconfirmed **Wails v2** and **Go 1.23.0** as the production target for this release.
+
+## Native Menu Completion
+
+- `Native menu completeness` is completed in the roadmap and reflected in `CHECKLIST.md`.
+- Implemented macOS menu actions now include:
+  - `Close Window`
+  - `Enter Full Screen`
+  - `mdnotes Help`
+  - `Report a Bug`
+- When auditing release-readiness items, check the actual menu handlers in Go, not just the checklist state.

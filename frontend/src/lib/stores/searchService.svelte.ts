@@ -94,7 +94,11 @@ export class SearchService {
 		return results
 			.filter((result) => {
 				const note = this.notes.getNote(result.id);
-				return note && (allowedFolderIds.has(note.folderId || 'root') || rootFolderId === null);
+				return (
+					note != null &&
+					note.deletedAt == null &&
+					(allowedFolderIds.has(note.folderId || 'root') || rootFolderId === null)
+				);
 			})
 			.map((r) => r.id);
 	}
