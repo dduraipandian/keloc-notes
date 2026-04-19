@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FolderService, NoteService, TrashService } from '../../src/lib/stores/services';
-import { trashRepository } from '../../src/lib/stores/repositories';
+import { FolderService, NoteService, TrashService } from '../../../src/lib/stores/services';
+import { trashRepository } from '../../../src/lib/stores/repositories';
 
-vi.mock('../../src/lib/stores/repositories', () => ({
+vi.mock('../../../src/lib/stores/repositories', () => ({
 	trashRepository: {
 		permanentlyDeleteFolderTree: vi.fn(),
 		permanentlyDeleteNote: vi.fn()

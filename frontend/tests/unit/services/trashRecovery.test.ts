@@ -8,7 +8,7 @@ import {
 	getNoteContent, 
 	permanentDeleteNoteTransactionally,
 	permanentDeleteFolderTransactionally
-} from '../../src/lib/stores/idbr';
+} from '../../../src/lib/stores/idbr';
 
 describe('Recovery Architecture Integrity (idbr.ts)', () => {
 	beforeEach(async () => {

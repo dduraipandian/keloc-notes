@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { uiStateStore } from '../../src/lib/stores/uiState.svelte';
+import { uiStateStore } from '../../../src/lib/stores/uiState.svelte';
 
 describe('UIStateStore', () => {
 	beforeEach(() => {

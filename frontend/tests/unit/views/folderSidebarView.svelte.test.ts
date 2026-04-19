@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { FolderSidebarView } from '../../src/lib/views/folderSidebarView.svelte';
+import { FolderSidebarView } from '../../../src/lib/views/folderSidebarView.svelte';
 
 // Re-usable mock factory
 function createView(opts: {

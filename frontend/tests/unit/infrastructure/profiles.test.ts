@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveProfile, PROFILE_REGISTRY } from '../../src/lib/stores/domain/profiles';
+import { resolveProfile, PROFILE_REGISTRY } from '../../../src/lib/stores/domain/profiles';
 
 describe('Folder Profiles', () => {
 	it('should resolve the correct profile based on deletedAt', () => {

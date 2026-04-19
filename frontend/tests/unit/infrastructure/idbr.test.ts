@@ -17,8 +17,8 @@ import {
 	getSetting, 
 	getAllSettings,
 	permanentDeleteNoteTransactionally
-} from '../../src/lib/stores/idbr';
-import { uiStore } from '../../src/lib/stores/dialog.svelte';
+} from '../../../src/lib/stores/idbr';
+import { uiStore } from '../../../src/lib/stores/dialog.svelte';
 
 describe('IndexedDB Wrapper (idbr.ts)', () => {
 	beforeEach(async () => {

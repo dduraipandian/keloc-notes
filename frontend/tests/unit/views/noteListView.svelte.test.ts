@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NoteListView } from '../../src/lib/views/noteListView.svelte';
+import { NoteListView } from '../../../src/lib/views/noteListView.svelte';
 
 const NOW = new Date().toISOString();
 

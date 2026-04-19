@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { folderStore, type FolderItem } from '../../src/lib/stores/folders.svelte';
+import { folderStore, type FolderItem } from '../../../src/lib/stores/folders.svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { foldersRepository } from '../../src/lib/stores/repositories';
+import { foldersRepository } from '../../../src/lib/stores/repositories';
 
 // Mock repositories to avoid IndexedDB errors
-vi.mock('../../src/lib/stores/repositories', () => ({
+vi.mock('../../../src/lib/stores/repositories', () => ({
 	foldersRepository: {
 		list: vi.fn(),
 		save: vi.fn()

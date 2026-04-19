@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { notesStore, type NoteItem } from '../../src/lib/stores/notes.svelte';
-import { folderStore, type FolderItem } from '../../src/lib/stores/folders.svelte';
-import { trashService } from '../../src/lib/stores/services';
-import { selectionStore } from '../../src/lib/stores/selection.svelte';
+import { notesStore, type NoteItem } from '../../../src/lib/stores/notes.svelte';
+import { folderStore, type FolderItem } from '../../../src/lib/stores/folders.svelte';
+import { trashService } from '../../../src/lib/stores/services';
+import { selectionStore } from '../../../src/lib/stores/selection.svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { notesRepository, settingsRepository } from '../../src/lib/stores/repositories';
+import { notesRepository, settingsRepository } from '../../../src/lib/stores/repositories';
 
 // Mock repositories module
-vi.mock('../../src/lib/stores/repositories', () => ({
+vi.mock('../../../src/lib/stores/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
 	notesRepository: { 
 		list: vi.fn(), 

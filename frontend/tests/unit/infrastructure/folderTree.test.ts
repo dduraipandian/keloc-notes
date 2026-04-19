@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { FolderTreeHelper } from '../../src/lib/stores/domain/folderTree';
-import type { FolderItem, FolderID } from '../../src/lib/stores/folders.svelte';
+import { FolderTreeHelper } from '../../../src/lib/stores/domain/folderTree';
+import type { FolderItem, FolderID } from '../../../src/lib/stores/folders.svelte';
 import { SvelteMap } from 'svelte/reactivity';
 
 describe('FolderTreeHelper (Flat Model)', () => {

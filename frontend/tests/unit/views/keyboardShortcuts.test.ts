@@ -5,7 +5,7 @@ import {
 	handleEscapeShortcut,
 	handleNotesPaneShortcut,
 	isEditableTarget
-} from '../../src/lib/keyboard/shortcuts';
+} from '../../../src/lib/keyboard/shortcuts';
 
 describe('keyboard shortcuts helper', () => {
 	it('treats input elements as editable targets', () => {
