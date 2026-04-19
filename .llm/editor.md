@@ -1159,14 +1159,17 @@ Track progress through each phase. Do not proceed to the next item until the cur
 │   └─ Update getAllSettings() to handle new settings keys
 └─ [x] Commit: "feat: add note_assets IndexedDB store + settings" (bce229a)
 
-PENDING: Phase 1 — Step 2
-├─ [ ] tests/unit/infrastructure/assetsRepository.test.ts
-│   └─ Tests for repository delegation to idbr (mock idbr)
-├─ [ ] infrastructure/assetsRepository.ts (or add to repositories.ts)
-│   └─ assetsRepository export with save(), get(), delete(), deleteByNoteId()
-└─ [ ] Commit: "feat: add assetsRepository"
+✅ COMPLETE: Phase 1 — Step 2
+├─ [x] tests/unit/infrastructure/assetsRepository.test.ts (7 tests)
+├─ [x] infrastructure/assetsRepository.ts (delegation pattern)
+└─ [x] Commit: "feat: add assetsRepository" (bb26ed8)
 
-PENDING: Phase 2 — Core Editor Modules
+✅ COMPLETE: Phase 2 — Step 1
+├─ [x] tests/unit/editor/serializer.test.ts (22 tests)
+├─ [x] editor/serializer.ts (parseContent, extractTextFromJSON, jsonToMarkdown)
+└─ [x] Commit: "feat: add serializer" (53722d9)
+
+PENDING: Phase 2 — Step 2
 ├─ [ ] tests/unit/editor/serializer.test.ts
 │   ├─ parseContent('') → empty doc
 │   ├─ parseContent(invalid JSON) → wraps as plain text
