@@ -5,8 +5,7 @@
 		AlertDialogHeader,
 		AlertDialogTitle
 	} from './ui/alert-dialog';
-	import { preferencesStore } from '$lib/stores/preferences.svelte';
-	import { themeStore } from '$lib/stores/theme.svelte';
+	import { getPreferencesStore, getThemeStore } from '$lib/stores/context';
 	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import Palette from '@lucide/svelte/icons/palette';
 
@@ -16,6 +15,9 @@
 	}
 
 	let { open = $bindable(false), onClose }: Props = $props();
+
+	const preferencesStore = getPreferencesStore();
+	const themeStore = getThemeStore();
 
 	let activeTab = $state<'general' | 'appearance'>('general');
 

@@ -22,7 +22,7 @@ export type NoteItem = NoteMeta & {
 	isContentLoaded: boolean;
 };
 
-class NotesStore {
+export class NotesStore {
 	notes = new SvelteMap<NoteID, NoteItem>();
 	private isInitialized = false;
 	selectedNoteID = $state<NoteID | null>(null);

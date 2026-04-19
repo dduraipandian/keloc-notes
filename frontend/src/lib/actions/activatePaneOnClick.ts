@@ -1,6 +1,8 @@
-import { uiStateStore, type ActivePane } from '$lib/stores/uiState.svelte';
+import { getUIStateStore } from '$lib/stores/context';
+import type { ActivePane } from '$lib/stores/uiState.svelte';
 
 export function activatePaneOnClick(node: HTMLElement, pane: ActivePane) {
+	const uiStateStore = getUIStateStore();
 	const activate = () => {
 		uiStateStore.setActivePane(pane);
 	};

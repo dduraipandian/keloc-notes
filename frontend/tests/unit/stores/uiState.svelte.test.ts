@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { uiStateStore } from '../../../src/lib/stores/uiState.svelte';
+import { UIStateStore } from '../../../src/lib/stores/uiState.svelte';
 
 describe('UIStateStore', () => {
+	let uiStateStore: UIStateStore;
+
 	beforeEach(() => {
-		uiStateStore.__resetForTest();
+		uiStateStore = new UIStateStore();
 	});
 
 	it('defaults activePane to folders', () => {

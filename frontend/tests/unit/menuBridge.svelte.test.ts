@@ -4,7 +4,8 @@ import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte
 import { EventsOn } from '$lib/wailsjs/runtime/runtime';
 import { folderService, noteService } from '$lib/stores/services';
 import { notesStore } from '$lib/stores/notes.svelte';
-import { themeStore } from '$lib/stores/theme.svelte';
+import { ThemeStore } from '$lib/stores/theme.svelte';
+import { UIStateStore } from '$lib/stores/uiState.svelte';
 import * as AppModule from '$lib/wailsjs/go/main/App';
 
 // --- Mocks ---
@@ -60,12 +61,13 @@ describe('Menu Bridge System', () => {
 		notesStore.notes.clear();
 		notesStore.selectedNoteID = null;
 		notesStore.trashCount = 0;
-		themeStore.init('system');
 	});
 
 	describe('Initialization', () => {
 		it('should initialize the bridge and register handlers', () => {
-			initMenuBridge();
+			const theme = new ThemeStore();
+			const uiState = new UIStateStore();
+			initMenuBridge({ theme, uiState });
 			expect(EventsOn).toHaveBeenCalled();
 		});
 	});
@@ -91,7 +93,9 @@ describe('Menu Bridge System', () => {
 			vi.mocked(folderService.ensurePath).mockReturnValue('target-folder-id');
 			vi.mocked(noteService.create).mockReturnValue({ id: 'new-note-id' } as any);
 
-			initMenuBridge();
+			const theme = new ThemeStore();
+			const uiState = new UIStateStore();
+			initMenuBridge({ theme, uiState });
 			await importHandler();
 
 			expect(folderService.ensurePath).toHaveBeenCalledWith('Folder A/Sub B');
@@ -118,7 +122,9 @@ describe('Menu Bridge System', () => {
 				{ title: 'T1', content: 'C1', folderPath: '', updatedAt: '' }
 			]);
 
-			initMenuBridge();
+			const theme = new ThemeStore();
+			const uiState = new UIStateStore();
+			initMenuBridge({ theme, uiState });
 			await exportNoteHandler();
 
 			expect(noteService.getNotesForExport).toHaveBeenCalledWith(['n1']);
@@ -140,7 +146,9 @@ describe('Menu Bridge System', () => {
 			const exportDtos = [{ title: 'Note 1', content: 'C1', folderPath: 'F1', updatedAt: '' }];
 			vi.mocked(noteService.getNotesForExport).mockResolvedValue(exportDtos);
 
-			initMenuBridge();
+			const theme = new ThemeStore();
+			const uiState = new UIStateStore();
+			initMenuBridge({ theme, uiState });
 			await exportAllHandler();
 
 			expect(noteService.getNotesForExport).toHaveBeenCalledWith(['1']);
@@ -159,7 +167,8 @@ describe('Menu Bridge System', () => {
 		});
 
 		it('calls UpdateMenuState with HasSelectedNote false when no note selected', async () => {
-			cleanup = initMenuStateEffect();
+			const theme = new ThemeStore();
+		cleanup = initMenuStateEffect({ theme });
 			flushSync();
 
 			expect(AppModule.UpdateMenuState).toHaveBeenCalled();
@@ -173,7 +182,8 @@ describe('Menu Bridge System', () => {
 			notesStore.notes.set('note-1', testNote as any);
 			notesStore.selectedNoteID = 'note-1';
 
-			cleanup = initMenuStateEffect();
+			const theme = new ThemeStore();
+		cleanup = initMenuStateEffect({ theme });
 			flushSync();
 
 			expect(AppModule.UpdateMenuState).toHaveBeenCalled();
@@ -189,7 +199,8 @@ describe('Menu Bridge System', () => {
 			notesStore.selectedNoteID = 'note-1';
 			notesStore.trashCount = 1;
 
-			cleanup = initMenuStateEffect();
+			const theme = new ThemeStore();
+		cleanup = initMenuStateEffect({ theme });
 			flushSync();
 
 			const calls = (AppModule.UpdateMenuState as any).mock.calls;
@@ -200,7 +211,8 @@ describe('Menu Bridge System', () => {
 		it('calls UpdateMenuState with TrashHasItems true when trash count > 0', async () => {
 			notesStore.trashCount = 2;
 
-			cleanup = initMenuStateEffect();
+			const theme = new ThemeStore();
+		cleanup = initMenuStateEffect({ theme });
 			flushSync();
 
 			const calls = (AppModule.UpdateMenuState as any).mock.calls;
@@ -209,9 +221,10 @@ describe('Menu Bridge System', () => {
 		});
 
 		it('calls UpdateMenuState with correct theme', async () => {
-			themeStore.init('dark');
+			const theme = new ThemeStore();
+			theme.init('dark');
 
-			cleanup = initMenuStateEffect();
+			cleanup = initMenuStateEffect({ theme });
 			flushSync();
 
 			const calls = (AppModule.UpdateMenuState as any).mock.calls;

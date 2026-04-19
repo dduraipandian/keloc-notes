@@ -13,8 +13,8 @@ import { uiStore } from '$lib/stores/dialog.svelte';
 import { notesStore } from '$lib/stores/notes.svelte';
 import { folderStore } from '$lib/stores/folders.svelte';
 import { selectionStore } from '$lib/stores/selection.svelte';
-import { uiStateStore } from '$lib/stores/uiState.svelte';
-import { themeStore } from '$lib/stores/theme.svelte';
+import { ThemeStore } from '$lib/stores/theme.svelte';
+import { UIStateStore } from '$lib/stores/uiState.svelte';
 import { hasWailsRuntime } from '$lib/wails.svelte';
 import { exportBackup, importBackup } from '$lib/backup/backup';
 
@@ -22,10 +22,17 @@ import { exportBackup, importBackup } from '$lib/backup/backup';
  * Initialize menu event listeners and wire them to store actions.
  * Returns an unsubscribe function for cleanup.
  */
-export function initMenuBridge(callbacks?: {
-	onOpenAbout?: () => void;
-	onOpenPreferences?: () => void;
-}): () => void {
+export function initMenuBridge(
+	stores: {
+		uiState: UIStateStore;
+		theme: ThemeStore;
+	},
+	callbacks?: {
+		onOpenAbout?: () => void;
+		onOpenPreferences?: () => void;
+	}
+): () => void {
+	const { uiState, theme } = stores;
 	const unsubscribers: Array<() => void> = [];
 
 	// File menu events
@@ -63,7 +70,7 @@ export function initMenuBridge(callbacks?: {
 	// Edit menu events
 	unsubscribers.push(
 		EventsOn('menu:focus-search', () => {
-			uiStateStore.setActivePane('notes');
+			uiState.setActivePane('notes');
 			// Focus the search input after pane change
 			setTimeout(() => {
 				const input = document.querySelector('[data-testid="notes-pane"] input') as HTMLInputElement;
@@ -75,19 +82,19 @@ export function initMenuBridge(callbacks?: {
 	// View menu events
 	unsubscribers.push(
 		EventsOn('menu:toggle-sidebar', () => {
-			uiStateStore.toggleSidebar();
+			uiState.toggleSidebar();
 		})
 	);
 
 	unsubscribers.push(
 		EventsOn('menu:toggle-note-list', () => {
-			uiStateStore.toggleNoteList();
+			uiState.toggleNoteList();
 		})
 	);
 
 	unsubscribers.push(
-		EventsOn('menu:set-theme', (theme: string) => {
-			themeStore.setTheme(theme as 'light' | 'dark' | 'system');
+		EventsOn('menu:set-theme', (themeMode: string) => {
+			theme.setTheme(themeMode as 'light' | 'dark' | 'system');
 		})
 	);
 
@@ -209,7 +216,10 @@ export function initMenuBridge(callbacks?: {
  * Monitors store state and updates the native menu dynamically.
  * Returns a cleanup function to destroy the effect.
  */
-export function initMenuStateEffect(): () => void {
+export function initMenuStateEffect(stores: {
+	theme: ThemeStore;
+}): () => void {
+	const { theme } = stores;
 	return $effect.root(() => {
 		$effect(() => {
 			// Explicitly access reactive states to ensure tracking
@@ -220,11 +230,11 @@ export function initMenuStateEffect(): () => void {
 				HasSelectedNote: hasSelected,
 				SelectedNoteInTrash: selectedNote?.deletedAt != null,
 				TrashHasItems: notesStore.trashCount > 0,
-				Theme: themeStore.theme
+				Theme: theme.theme
 			});
 
 			console.log(
-				`[MENU] MenuState: noteId=${noteId}, hasSelected=${hasSelected}, trashCount=${notesStore.trashCount}, theme=${themeStore.theme}`
+				`[MENU] MenuState: noteId=${noteId}, hasSelected=${hasSelected}, trashCount=${notesStore.trashCount}, theme=${theme.theme}`
 			);
 
 			// Update the native menu with current state

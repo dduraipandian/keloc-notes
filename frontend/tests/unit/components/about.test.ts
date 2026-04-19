@@ -2,28 +2,49 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import About from '../../../src/lib/components/About.svelte';
+import { ThemeStore } from '../../../src/lib/stores/theme.svelte';
+import { UIStateStore } from '../../../src/lib/stores/uiState.svelte';
+import { STORE_KEYS } from '../../../src/lib/stores/context';
+import { beforeEach } from 'vitest';
 
 describe('About component', () => {
+    let mockThemeStore: ThemeStore;
+    let mockUIStateStore: UIStateStore;
+
+    beforeEach(() => {
+        mockThemeStore = new ThemeStore();
+        mockUIStateStore = new UIStateStore();
+    });
+
+    function renderAbout(props: { open?: boolean; onClose?: () => void } = { open: true }) {
+        return render(About, {
+            props,
+            context: new Map<any, any>([
+                [STORE_KEYS.THEME, mockThemeStore],
+                [STORE_KEYS.UI_STATE, mockUIStateStore]
+            ])
+        });
+    }
 	it('renders app name', () => {
-		render(About, { props: { open: true } });
+		renderAbout();
 		expect(screen.getByText('mdnotes')).toBeTruthy();
 	});
 
 	it('renders version', () => {
-		render(About, { props: { open: true } });
+		renderAbout();
 		const versionElement = screen.getByText(/Version/);
 		expect(versionElement).toBeTruthy();
 	});
 
 	it('renders copyright line', () => {
-		render(About, { props: { open: true } });
+		renderAbout();
 		expect(screen.getByText(/©.*2025/)).toBeTruthy();
 	});
 
 	it('calls onClose when close button is clicked', async () => {
 		const onClose = vi.fn();
 		const user = userEvent.setup();
-		render(About, { props: { open: true, onClose } });
+		renderAbout({ open: true, onClose });
 
 		const closeButton = screen.getByRole('button', { name: /close/i });
 		await user.click(closeButton);
@@ -32,7 +53,7 @@ describe('About component', () => {
 	});
 
 	it('does not show when open is false', () => {
-		const { container } = render(About, { props: { open: false } });
+		const { container } = renderAbout({ open: false });
 		const dialog = container.querySelector('[role="dialog"]');
 		expect(dialog).toBeNull();
 	});

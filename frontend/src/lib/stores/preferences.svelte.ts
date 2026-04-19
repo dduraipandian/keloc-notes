@@ -28,4 +28,4 @@ export class PreferencesStore {
 	}
 }
 
-export const preferencesStore = new PreferencesStore();
+

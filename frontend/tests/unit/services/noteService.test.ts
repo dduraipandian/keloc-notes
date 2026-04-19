@@ -4,6 +4,8 @@ import { notesStore } from '../../../src/lib/stores/notes.svelte';
 import { folderStore } from '../../../src/lib/stores/folders.svelte';
 import { selectionStore } from '../../../src/lib/stores/selection.svelte';
 import { initMenuBridge } from '../../../src/lib/menu/menuBridge.svelte';
+import { ThemeStore } from '../../../src/lib/stores/theme.svelte';
+import { UIStateStore } from '../../../src/lib/stores/uiState.svelte';
 import { EventsOn } from '../../../src/lib/wailsjs/runtime/runtime';
 import { ImportNotesZip } from '../../../src/lib/wailsjs/go/main/App';
 import * as Repositories from '../../../src/lib/infrastructure/repositories';
@@ -336,7 +338,9 @@ describe('NoteService', () => {
 			const mockNote = { id: 'new-id-123', title: 'Untitled Note' };
 			mockNoteService.create.mockReturnValue(mockNote as any);
 
-			initMenuBridge();
+			const mockUIStateStore = new UIStateStore();
+			const mockThemeStore = new ThemeStore();
+			initMenuBridge({ uiState: mockUIStateStore, theme: mockThemeStore });
 
 			// Trigger import
 			await handlers['menu:import-markdown']();

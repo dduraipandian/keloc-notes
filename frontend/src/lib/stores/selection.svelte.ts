@@ -1,7 +1,7 @@
 import { settingsRepository } from '../infrastructure/repositories';
 import { folderStore, type FolderID, type FolderItem } from './folders.svelte';
 
-class SelectionStore {
+export class SelectionStore {
 	selectedFolderID = $state<FolderID | null>(null);
 	private isInitialized = false;
 	onPersistError = $state<((err: unknown, key: string) => void) | null>(null);

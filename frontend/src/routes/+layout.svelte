@@ -5,7 +5,9 @@
 	import { notesStore } from '$lib/stores/notes.svelte';
 	import { selectionStore } from '$lib/stores/selection.svelte';
 	import { settingsRepository } from '$lib/infrastructure/repositories';
-	import { themeStore } from '$lib/stores/theme.svelte';
+	import { ThemeStore } from '$lib/stores/theme.svelte';
+	import { UIStateStore } from '$lib/stores/uiState.svelte';
+	import { setThemeStore, setUIStateStore, setPreferencesStore } from '$lib/stores/context';
 	import {
 		handleEscapeShortcut,
 		handleFoldersPaneShortcut,
@@ -21,14 +23,20 @@
 	import { folderService, noteService, trashService } from '$lib/stores/services';
 	import { FolderSidebarView } from '$lib/views/folderSidebarView.svelte';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
-	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
 	import About from '$lib/components/About.svelte';
 	import Settings from '$lib/components/Settings.svelte';
-	import { preferencesStore } from '$lib/stores/preferences.svelte';
+	import { PreferencesStore } from '$lib/stores/preferences.svelte';
 import { hasWailsRuntime } from '$lib/wails.svelte';
 	import { UpdateMenuState } from '$lib/wailsjs/go/main/App';
 	import { menu } from '$lib/wailsjs/go/models';
+
+	const themeStore = new ThemeStore();
+	const uiStateStore = new UIStateStore();
+	const preferencesStore = new PreferencesStore();
+	setThemeStore(themeStore);
+	setUIStateStore(uiStateStore);
+	setPreferencesStore(preferencesStore);
 
 	const folderSidebarView = new FolderSidebarView();
 	const noteListView = new NoteListView();
@@ -320,7 +328,9 @@ import { hasWailsRuntime } from '$lib/wails.svelte';
 			: () => {};
 
 		const offMenuBridge = hasWailsRuntime()
-			? initMenuBridge({
+			? initMenuBridge(
+					{ uiState: uiStateStore, theme: themeStore },
+					{
 					onOpenAbout: () => {
 						showAbout = true;
 					},
@@ -330,7 +340,7 @@ import { hasWailsRuntime } from '$lib/wails.svelte';
 				})
 			: () => {};
 
-		const offMenuState = hasWailsRuntime() ? initMenuStateEffect() : () => {};
+		const offMenuState = hasWailsRuntime() ? initMenuStateEffect({ theme: themeStore }) : () => {};
 
 		void (async () => {
 			try {

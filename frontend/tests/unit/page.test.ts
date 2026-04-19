@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import Page from '../../src/routes/+page.svelte';
 import { notesStore } from '../../src/lib/stores/notes.svelte';
-import { uiStateStore } from '../../src/lib/stores/uiState.svelte';
+import { UIStateStore } from '../../src/lib/stores/uiState.svelte';
+import { ThemeStore } from '../../src/lib/stores/theme.svelte';
+import { STORE_KEYS } from '../../src/lib/stores/context';
 import { SvelteMap } from 'svelte/reactivity';
 
 vi.mock('../../src/lib/stores/services', () => ({
@@ -42,12 +44,26 @@ vi.mock('../../src/lib/components/ui/button/index.js', () => ({
 }));
 
 describe('+page.svelte', () => {
+	let mockUIStateStore: UIStateStore;
+	let mockThemeStore: ThemeStore;
+
 	beforeEach(() => {
+		mockUIStateStore = new UIStateStore();
+		mockThemeStore = new ThemeStore();
 		vi.clearAllMocks();
-		uiStateStore.__resetForTest();
 		(notesStore as any).notes = new SvelteMap();
 		(notesStore as any).selectedNoteID = null;
 	});
+
+	function renderPage(props = {}) {
+		return render(Page, {
+			props,
+			context: new Map<any, any>([
+				[STORE_KEYS.UI_STATE, mockUIStateStore],
+				[STORE_KEYS.THEME, mockThemeStore]
+			])
+		});
+	}
 
 	it('activates the editor pane when the title field is clicked', async () => {
 		const now = new Date().toISOString();
@@ -60,22 +76,22 @@ describe('+page.svelte', () => {
 		} as any);
 		(notesStore as any).selectedNoteID = 'n1';
 
-		render(Page);
-		uiStateStore.setActivePane('notes');
+		renderPage();
+		mockUIStateStore.setActivePane('notes');
 
 		const titleInput = screen.getByPlaceholderText('Note Title');
 		await fireEvent.click(titleInput);
 
-		expect(uiStateStore.activePane).toBe('editor');
+		expect(mockUIStateStore.activePane).toBe('editor');
 	});
 
 	it('activates the editor pane when editor empty space is clicked', async () => {
-		render(Page);
-		uiStateStore.setActivePane('folders');
+		renderPage();
+		mockUIStateStore.setActivePane('folders');
 
 		const pane = screen.getByTestId('editor-pane');
 		await fireEvent.click(pane);
 
-		expect(uiStateStore.activePane).toBe('editor');
+		expect(mockUIStateStore.activePane).toBe('editor');
 	});
 });

@@ -6,7 +6,7 @@
 	import { uiStore } from '$lib/stores/dialog.svelte';
 	import { noteService, trashService } from '$lib/stores/services';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
-	import { uiStateStore } from '$lib/stores/uiState.svelte';
+
 	import Alert from './alert.svelte';
 
 	let selectedNote = $derived(notesStore.selectedNote);

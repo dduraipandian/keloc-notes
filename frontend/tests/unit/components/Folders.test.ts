@@ -5,7 +5,9 @@ import Folders from '$lib/components/Folders.svelte';
 import { folderStore } from '$lib/stores/folders.svelte';
 import { FolderSidebarView } from '$lib/views/folderSidebarView.svelte';
 import { folderService } from '$lib/stores/services';
-import { uiStateStore } from '$lib/stores/uiState.svelte';
+import { UIStateStore } from '$lib/stores/uiState.svelte';
+import { ThemeStore } from '$lib/stores/theme.svelte';
+import { STORE_KEYS } from '$lib/stores/context';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock Lucide icons to avoid rendering complexities in unit tests
@@ -54,9 +56,13 @@ vi.mock('$lib/stores/services', () => ({
 }));
 
 describe('Folders.svelte Component', () => {
+    let mockUIStateStore: UIStateStore;
+    let mockThemeStore: ThemeStore;
+
     beforeEach(() => {
+        mockUIStateStore = new UIStateStore();
+        mockThemeStore = new ThemeStore();
         vi.clearAllMocks();
-        uiStateStore.__resetForTest();
         
         // Setup folderStore state
         (folderStore as any).folders = new SvelteMap();
@@ -76,37 +82,46 @@ describe('Folders.svelte Component', () => {
         folderStore.folders.set('trash', { id: 'trash', title: 'Trash', items: [] });
     });
 
+    function renderFolders() {
+        return render(Folders, {
+            context: new Map<any, any>([
+                [STORE_KEYS.UI_STATE, mockUIStateStore],
+                [STORE_KEYS.THEME, mockThemeStore]
+            ])
+        });
+    }
+
     it('should render folder names from the store', () => {
-        render(Folders);
+        renderFolders();
         
         expect(screen.getByText('Home')).toBeDefined();
         expect(screen.getByText('My Notes')).toBeDefined();
     });
 
     it('should call folderService.select when a folder is clicked', async () => {
-        render(Folders);
+        renderFolders();
         
         const folderItem = screen.getByText('My Notes');
         await fireEvent.click(folderItem);
         
         expect(folderService.select).toHaveBeenCalledWith('f1');
-        expect(uiStateStore.activePane).toBe('folders');
+        expect(mockUIStateStore.activePane).toBe('folders');
     });
 
     it('activates the folders pane when empty space is clicked without changing selection', async () => {
-        render(Folders);
-        uiStateStore.setActivePane('notes');
+        renderFolders();
+        mockUIStateStore.setActivePane('notes');
         await tick();
 
         const pane = screen.getByTestId('folders-pane');
         await fireEvent.click(pane);
 
-        expect(uiStateStore.activePane).toBe('folders');
+        expect(mockUIStateStore.activePane).toBe('folders');
         expect(folderService.select).not.toHaveBeenCalled();
     });
 
     it('should call folderService.create when "New Folder" is clicked', async () => {
-        render(Folders);
+        renderFolders();
         
         const newFolderBtn = screen.getByText('New Folder');
         await fireEvent.click(newFolderBtn);
@@ -119,7 +134,7 @@ describe('Folders.svelte Component', () => {
         (folderStore as any).editingId = 'f1';
         (folderStore as any).editingTitle = 'My Notes';
         
-        render(Folders);
+        renderFolders();
         
         const input = screen.getByDisplayValue('My Notes');
         expect(input).toBeDefined();

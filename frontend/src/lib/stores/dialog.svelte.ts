@@ -12,7 +12,7 @@ export interface ConfirmOptions {
 	cancelLabel?: string;
 }
 
-class UIStore {
+export class UIStore {
 	// Separate state for individual dialog types
 	noteDialog = $state<ConfirmOptions>({
 		open: false,

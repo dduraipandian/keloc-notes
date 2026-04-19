@@ -6,7 +6,9 @@ import { NoteListView } from '$lib/views/noteListView.svelte';
 import { noteService, trashService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStore } from '$lib/stores/dialog.svelte';
-import { uiStateStore } from '$lib/stores/uiState.svelte';
+import { UIStateStore } from '$lib/stores/uiState.svelte';
+import { ThemeStore } from '$lib/stores/theme.svelte';
+import { STORE_KEYS } from '$lib/stores/context';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock Lucide icons
@@ -69,9 +71,13 @@ vi.mock('$lib/views/noteListView.svelte', () => ({
 }));
 
 describe('NoteItems.svelte Component', () => {
+    let mockUIStateStore: UIStateStore;
+    let mockThemeStore: ThemeStore;
+
     beforeEach(() => {
+        mockUIStateStore = new UIStateStore();
+        mockThemeStore = new ThemeStore();
         vi.clearAllMocks();
-        uiStateStore.__resetForTest();
         
         // Setup notesStore state
         (notesStore as any).notes = new SvelteMap();
@@ -96,36 +102,45 @@ describe('NoteItems.svelte Component', () => {
         mockNoteListViewInstance.getSelectedFolderTitle.mockReturnValue('My Notes');
     });
 
+    function renderNoteItems() {
+        return render(NoteItems, {
+            context: new Map<any, any>([
+                [STORE_KEYS.UI_STATE, mockUIStateStore],
+                [STORE_KEYS.THEME, mockThemeStore]
+            ])
+        });
+    }
+
     it('should render the note title and summary snippet', () => {
-        render(NoteItems);
+        renderNoteItems();
         
         expect(screen.getByText('Note 1')).toBeDefined();
         expect(screen.getByText('Summary 1')).toBeDefined();
     });
 
     it('should focus the correct section header', () => {
-        render(NoteItems);
+        renderNoteItems();
         expect(screen.getByText('Today')).toBeDefined();
     });
 
     it('should call noteService.select when a note is clicked', async () => {
-        render(NoteItems);
+        renderNoteItems();
         
         const noteItem = screen.getByText('Note 1');
         await fireEvent.click(noteItem);
         
         expect(noteService.select).toHaveBeenCalledWith('n1');
-        expect(uiStateStore.activePane).toBe('notes');
+        expect(mockUIStateStore.activePane).toBe('notes');
     });
 
     it('activates the notes pane when empty space is clicked without changing note selection', async () => {
-        render(NoteItems);
-        uiStateStore.setActivePane('folders');
+        renderNoteItems();
+        mockUIStateStore.setActivePane('folders');
 
         const pane = screen.getByTestId('notes-pane');
         await fireEvent.click(pane);
 
-        expect(uiStateStore.activePane).toBe('notes');
+        expect(mockUIStateStore.activePane).toBe('notes');
         expect(noteService.select).not.toHaveBeenCalled();
     });
 
@@ -134,7 +149,7 @@ describe('NoteItems.svelte Component', () => {
         mockNoteListViewInstance.canCreateNote.mockReturnValue(true);
         mockNoteListViewInstance.getCreateNoteFolderId.mockReturnValue('f1');
         
-        render(NoteItems);
+        renderNoteItems();
         
         const createBtn = screen.getByTitle('New Note');
         await fireEvent.click(createBtn);

@@ -1,6 +1,6 @@
 export type ActivePane = 'folders' | 'notes' | 'editor';
 
-class UIStateStore {
+export class UIStateStore {
 	activePane = $state<ActivePane>('folders');
 	sidebarVisible = $state(true);
 	noteListVisible = $state(true);
@@ -24,4 +24,4 @@ class UIStateStore {
 	}
 }
 
-export const uiStateStore = new UIStateStore();
+
