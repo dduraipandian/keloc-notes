@@ -130,4 +130,4 @@ export class NoteListView {
 	}
 }
 
-export const noteListView = new NoteListView();
+

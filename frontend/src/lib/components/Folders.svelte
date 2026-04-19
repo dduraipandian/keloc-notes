@@ -10,11 +10,14 @@
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
 	import { themeStore } from '$lib/stores/theme.svelte';
-	import { folderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte';
+	import { FolderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte';
 	import { folderService } from '$lib/stores/services';
 
 	const menuButtonStyle =
 		'h-8 rounded-sm px-3 pr-10 shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';
+
+	const folderSidebarView = new FolderSidebarView();
+
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {

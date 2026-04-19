@@ -101,6 +101,7 @@ const defaultSidebarActionDeps: SidebarActionDeps = {
 	trashEmpty: () => uiStore.confirmEmptyTrash(() => trashService.emptyTrash())
 };
 
+
 export class FolderSidebarView {
 	constructor(
 		private readonly folders = folderStore,
@@ -291,4 +292,4 @@ export class FolderSidebarView {
 	}
 }
 
-export const folderSidebarView = new FolderSidebarView();
+

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import NoteItems from '$lib/components/NoteItems.svelte';
 import { notesStore } from '$lib/stores/notes.svelte';
-import { noteListView } from '$lib/views/noteListView.svelte';
+import { NoteListView } from '$lib/views/noteListView.svelte';
 import { noteService, trashService } from '$lib/stores/services';
 import { selectionStore } from '$lib/stores/selection.svelte';
 import { uiStore } from '$lib/stores/dialog.svelte';
@@ -47,6 +47,27 @@ vi.mock('$lib/stores/services', () => ({
     }
 }));
 
+
+
+const mockNoteListViewInstance = {
+    getSections: vi.fn(),
+    getSelectedFolderTitle: vi.fn(),
+    canCreateNote: vi.fn(),
+    getCreateNoteFolderId: vi.fn(),
+    getSelectedFolderProfileId: vi.fn(),
+    canDeleteSelectedNote: vi.fn(),
+    getSelectedNoteDeleteContext: vi.fn(),
+    setSearchQuery: vi.fn(),
+    isSelectedNote: vi.fn(),
+    getVisibleNoteIds: vi.fn()
+};
+
+vi.mock('$lib/views/noteListView.svelte', () => ({
+    NoteListView: vi.fn().mockImplementation(function () {
+        return mockNoteListViewInstance;
+    })
+}));
+
 describe('NoteItems.svelte Component', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -67,11 +88,12 @@ describe('NoteItems.svelte Component', () => {
                 deletedAt: null
 	        } as any);
         
+        
         // Mock noteListView to return our note
-        vi.spyOn(noteListView, 'getSections').mockReturnValue([
+        mockNoteListViewInstance.getSections.mockReturnValue([
             ['Today', [{ id: 'n1', title: 'Note 1', content: 'Content 1', summary: 'Summary 1', updatedAt: now } as any]]
         ]);
-        vi.spyOn(noteListView, 'getSelectedFolderTitle').mockReturnValue('My Notes');
+        mockNoteListViewInstance.getSelectedFolderTitle.mockReturnValue('My Notes');
     });
 
     it('should render the note title and summary snippet', () => {
@@ -109,8 +131,8 @@ describe('NoteItems.svelte Component', () => {
 
     it('should call noteService.create when the "New Note" button is clicked', async () => {
         // Ensure canCreateNote returns true
-        vi.spyOn(noteListView, 'canCreateNote').mockReturnValue(true);
-        vi.spyOn(noteListView, 'getCreateNoteFolderId').mockReturnValue('f1');
+        mockNoteListViewInstance.canCreateNote.mockReturnValue(true);
+        mockNoteListViewInstance.getCreateNoteFolderId.mockReturnValue('f1');
         
         render(NoteItems);
         

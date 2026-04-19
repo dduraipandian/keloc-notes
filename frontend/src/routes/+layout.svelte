@@ -19,8 +19,8 @@
 	import { EventsEmit, EventsOn, Quit, WindowSetTitle } from '$lib/wailsjs/runtime/runtime';
 	import { uiStore } from '$lib/stores/dialog.svelte';
 	import { folderService, noteService, trashService } from '$lib/stores/services';
-	import { folderSidebarView } from '$lib/views/folderSidebarView.svelte';
-	import { noteListView } from '$lib/views/noteListView.svelte';
+	import { FolderSidebarView } from '$lib/views/folderSidebarView.svelte';
+	import { NoteListView } from '$lib/views/noteListView.svelte';
 	import { uiStateStore } from '$lib/stores/uiState.svelte';
 	import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
 	import About from '$lib/components/About.svelte';
@@ -29,6 +29,10 @@
 import { hasWailsRuntime } from '$lib/wails.svelte';
 	import { UpdateMenuState } from '$lib/wailsjs/go/main/App';
 	import { menu } from '$lib/wailsjs/go/models';
+
+	const folderSidebarView = new FolderSidebarView();
+	const noteListView = new NoteListView();
+
 
 	let { children } = $props();
 

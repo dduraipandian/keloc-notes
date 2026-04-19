@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Folders from '$lib/components/Folders.svelte';
 import { folderStore } from '$lib/stores/folders.svelte';
-import { folderSidebarView } from '$lib/views/folderSidebarView.svelte';
+import { FolderSidebarView } from '$lib/views/folderSidebarView.svelte';
 import { folderService } from '$lib/stores/services';
 import { uiStateStore } from '$lib/stores/uiState.svelte';
 import { SvelteMap } from 'svelte/reactivity';

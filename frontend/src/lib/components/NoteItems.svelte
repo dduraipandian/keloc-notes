@@ -7,12 +7,15 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import type { NoteItem } from '$lib/stores/notes.svelte';
 	import { noteService, trashService } from '$lib/stores/services';
-	import { noteListView } from '$lib/views/noteListView.svelte';
+	import { NoteListView } from '$lib/views/noteListView.svelte';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 
 	import { uiStore } from '$lib/stores/dialog.svelte';
 	import { ICON_REGISTRY } from '$lib/views/folderSidebarView.svelte';
+
+	const noteListView = new NoteListView();
+
 
 	let searchQuery = $state('');
 	const selectedFolderTitle = $derived(noteListView.getSelectedFolderTitle());
