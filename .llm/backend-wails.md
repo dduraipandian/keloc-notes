@@ -1,95 +1,49 @@
-# Backend And Wails Shell
+# Backend & Wails Shell Architecture
 
-## Current role of the backend
+## Role of the Go Backend
+In `mdnotes`, the Go backend serves as the native desktop shell. Most business logic is deferred to the Svelte frontend and IndexedDB, while Go handles OS-level integrations, window management, and native system features.
 
-The backend is intentionally thin right now.
+## Core Backend Components
 
-Most application logic is not in Go. The Go/Wails side currently provides:
+### 1. Application Entry (`main.go`)
+Configures the Wails application instance with:
+- **Single Instance Lock**: Ensures only one instance of the app runs at a time.
+- **Window Management**: Sets initial size, start state (maximized), and disabled default browser context menus.
+- **Menu Configuration**: Connects the custom native menu (see below).
+- **Binding**: Exposes the `App` struct methods to the frontend.
 
-- desktop window creation
-- app lifecycle hooks
-- binding of the Go app object to the frontend
-- second-instance activation behavior
-- access to Wails runtime functions from the frontend
+### 2. The `App` Struct (`app.go`)
+Acts as the central bridge between Go and JS.
+- **Lifecycle Hooks**: Manages `startup` (capturing context) and `beforeClose` (triggering frontend flushes).
+- **Secondary Activation**: If a second instance is launched, the existing window is unminimized and focused, and any launch arguments are emitted as events.
+- **Native Events**: Uses `runtime.EventsEmit` to communicate high-level OS changes to the frontend.
 
-## Main Go files
+## Native macOS Integration
+One of the most critical backend responsibilities is providing a **HIG-compliant Native Menu Bar**.
 
-### `main.go`
+### Native Roles (Darwin)
+To ensure standard macOS behaviors (Undo, Redo, Copy, Paste, Select All) work within the `WKWebView` textareas, `mdnotes` uses native Wails roles:
+- **Edit Menu**: Uses `menu.EditMenu()` (Role 2). This allows the OS to route keyboard shortcuts directly to the focused input field without Go-side interception.
+- **Window Menu**: Uses `menu.WindowMenu()` (Role 3).
 
-[main.go](/Users/dduraipandian/apps/mdnotes/main.go) configures and launches the Wails app.
+### Menu Event Bridging
+For non-standard actions (e.g., "New Note" or "Export"), the Go menu items trigger specific Wails events. A frontend **Menu Bridge** ($effect.root) listens for these events and routes them to the appropriate Svelte services.
 
-Current behavior:
+## Safe Shutdown & Data Integrity
+To prevent data loss during rapid exits (e.g., Cmd+Q while typing), the backend implements a "Graceful Flush" protocol:
+1.  **BeforeClose Hook**: When a quit is initiated, Go intercepts the close and emits an `app:before-close` event.
+2.  **Frontend Acknowledge**: The frontend captures this event, flushes all pending debounced writes to IndexedDB, and then emits `app:flush-complete`.
+3.  **Final Quit**: Go waits (with a timeout) for the flush to settle before allowing the window to close.
 
-- app title is `mdnotes`
-- initial window size is `1024x768`
-- window starts maximized
-- default context menu is disabled
-- built frontend assets are embedded from `frontend/build`
-- single-instance lock is enabled
-- the Go `App` instance is bound into the frontend
+## Next Expansion Points
+As the app matures, the Go side is expected to take on:
+- **Filesystem Access**: Allowing users to save notes as local `.md` files directly.
+- **System Tray / Menu Bar Item**: For quick note-taking.
+- **Deep Linking**: Handling `mdnotes://` protocols.
+- **Advanced Networking**: If a sync engine or web-view bridge for external tools is needed.
 
-### `app.go`
+## Guidance for AI Agents
+- **Avoid Logic Heavy Go**: Keep the backend "thin" unless direct OS access is required.
+- **Prefer Bindings over Events**: For request/response flows, use bound methods on `App`. Use Events only for one-way OS -> Frontend notifications.
+- **Check menu_darwin.go**: When adding new keyboard shortcuts, verify they don't conflict with native roles.
 
-[app.go](/Users/dduraipandian/apps/mdnotes/app.go) defines the bound `App` struct.
-
-Current responsibilities:
-
-- store Wails runtime context on startup
-- handle second-instance launches by unminimizing/showing the window
-- emit `launchArgs` event to the frontend
-
-It also still contains a template-style `Greet()` method that is not part of current app behavior.
-
-## Wails configuration
-
-[wails.json](/Users/dduraipandian/apps/mdnotes/wails.json) is the authoritative Wails config.
-
-Current important settings:
-
-- generated Wails JS lives in `frontend/src/lib`
-- frontend install command is `npm install`
-- frontend build command is `npm run build`
-- frontend dev watcher is `npm run dev`
-- frontend dev server URL is auto-detected
-
-## Frontend bridge
-
-Generated bridge code lives under:
-
-- [frontend/src/lib/wailsjs](/Users/dduraipandian/apps/mdnotes/frontend/src/lib/wailsjs)
-
-There are two main categories here:
-
-- runtime helpers such as `Quit`
-- generated bindings for Go methods on `App`
-
-The frontend currently imports runtime helpers directly, for example from:
-
-- [frontend/src/lib/wailsjs/runtime/runtime.js](/Users/dduraipandian/apps/mdnotes/frontend/src/lib/wailsjs/runtime/runtime.js)
-
-## What is not yet in Go
-
-As of current code, these are not backend responsibilities:
-
-- note CRUD
-- folder CRUD
-- persistence of notes/folders/settings
-- search
-- delete/recover flows
-- backup/archive logic
-- sidebar projection logic
-
-All of those live in the frontend and IndexedDB layer.
-
-## Likely next backend expansion points
-
-This is not a roadmap, just a practical list of places where Go/Wails could grow later if you move logic out of the frontend:
-
-- filesystem-backed note storage
-- native menus and shortcuts
-- OS integrations
-- import/export
-- archival and backup management
-- richer multi-window or second-instance behavior
-
-Right now those are not implemented and should not be assumed.

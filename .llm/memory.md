@@ -49,17 +49,20 @@
 - **Pattern**: 
   ```ts
   $effect.root(() => {
-    $effect(() => {
+    return $effect(() => {
        const noteId = notesStore.selectedNoteID; // Explicit access for tracking
        // update logic...
     });
   });
   ```
-  This allows bridging logic to remain decoupled from the UI (`+layout.svelte`) while maintaining full reactivity. Explicitly reading the reactive primitive (`selectedNoteID`) ensures the effect re-triggers whenever the selection changes.
+- **Lifecycle Management**: Utilities using `$effect.root` (like the `menuBridge`) must **return** the root's cleanup function. This allows the host component (`+layout.svelte`) to properly destroy the observer during unmount, preventing "background leakages" or effect accumulation that can cause stale data processing.
+- **Testing Stability**: Always use `$lib` imports in unit tests for stores and services. Using relative paths (e.g., `../../src/lib/stores/...`) alongside `$lib` can cause Vitest to resolve two separate instances of the same singleton, leading to "identity mismatch" bugs where the test updates one copy but the code is watching another.
 
 ## Bulk Data Integrity (Import/Export)
 
 - **Export Harvesting**: Implemented chunked harvesting (50 notes per batch) in `NoteService.getExportData`. This prevents memory pressure during large exports and ensures that metadata is correctly merged with content from IndexedDB.
+- **Delegated Mapping**: Encapsulated Markdown DTO formatting within `NoteService.getNotesForExport`. This includes clean path resolution (no IDs in paths) via `FolderTreeHelper.getPlainFolderPath`.
+- **Recursive Path Resolution**: Implemented `FolderService.ensurePath(path: string)`, which recursively finds or creates a nested folder structure for imports.
 - **Import Efficiency**: Implemented a `silent` creation mode in `FolderService` and `NoteService`. During bulk imports, we bypass global selection updates (`selectionStore`) for every note/folder created. This eliminates "UI selection churn" and significantly improves performance.
 - **ID Resolution**: Standardized on extracting the `.id` property from newly created Note objects before passing them to `noteService.update`, resolving a common type-mismatch bug where full objects were passed to the backend-style internal services.
 
