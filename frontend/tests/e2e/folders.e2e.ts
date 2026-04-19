@@ -70,9 +70,10 @@ async function createFolder(page: import('@playwright/test').Page, title: string
 
 async function createNote(page: import('@playwright/test').Page, title: string, content?: string) {
 	await page.getByTitle('New Note').click();
+	await page.waitForTimeout(300); // Wait for editor to mount
 
 	const titleInput = page.getByPlaceholder('Note Title');
-	await expect(titleInput).toBeVisible();
+	await expect(titleInput).toBeVisible({ timeout: 5000 });
 	await titleInput.fill(title);
 
 	if (content) {

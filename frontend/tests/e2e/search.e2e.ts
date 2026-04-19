@@ -15,6 +15,7 @@ test.describe('Search Functionality', () => {
 
 		// 1. Create a note with unique content
 		await page.getByTitle('New Note').click();
+		await page.waitForTimeout(300); // Wait for editor to mount
 		await page.getByPlaceholder('Note Title').fill('Science Note');
 
 		const editor = page.locator('.ProseMirror').first();
@@ -59,6 +60,7 @@ test.describe('Search Functionality', () => {
 		await page.waitForTimeout(500);
 
 		await page.getByTitle('New Note').click();
+		await page.waitForTimeout(300); // Wait for editor to mount
 		await page.getByPlaceholder('Note Title').fill('Note in A');
 		const editor1 = page.locator('.ProseMirror').first();
 		await editor1.click();
@@ -76,6 +78,7 @@ test.describe('Search Functionality', () => {
 		await page.waitForTimeout(500);
 
 		await page.getByTitle('New Note').click();
+		await page.waitForTimeout(300); // Wait for editor to mount
 		await page.getByPlaceholder('Note Title').fill('Note in B');
 		const editor2 = page.locator('.ProseMirror').first();
 		await editor2.click();

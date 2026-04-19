@@ -15,8 +15,9 @@ async function gotoApp(page: import('@playwright/test').Page) {
 
 async function createAndSelectNote(page: import('@playwright/test').Page) {
 	await page.getByTitle('New Note').click();
+	await page.waitForTimeout(300); // Wait for editor to mount
 	const titleInput = page.getByPlaceholder('Note Title');
-	await expect(titleInput).toBeVisible();
+	await expect(titleInput).toBeVisible({ timeout: 5000 });
 	await titleInput.fill('Test Note');
 	const bodyInput = page.locator('.ProseMirror').first();
 	await expect(bodyInput).toBeVisible();
