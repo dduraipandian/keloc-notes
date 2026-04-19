@@ -49,7 +49,7 @@ describe('NoteService', () => {
 		vi.clearAllMocks();
         mockFolderStore = new FolderStore();
         selectionStore = new SelectionStore(mockFolderStore);
-        mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
+        mockNotesStore = new NotesStore();
 		
 		(mockNotesStore as any).isInitialized = true;
 		(mockFolderStore as any).isInitialized = true;
@@ -345,6 +345,8 @@ describe('NoteService', () => {
 				theme: mockThemeStore,
 				ui: {} as any,
 				selection: {} as any,
+				folders: mockFolderStore,
+				notes: mockNotesStore,
 				folderService: mockFolderService as any,
 				noteService: mockNoteService as any,
 				trashService: {} as any

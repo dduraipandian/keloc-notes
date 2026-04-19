@@ -32,7 +32,7 @@ describe('Backup & Export Integrity', () => {
 		vi.resetAllMocks();
         mockFolderStore = new FolderStore();
         selectionStore = new SelectionStore(mockFolderStore);
-        mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
+        mockNotesStore = new NotesStore();
 	});
 
 	describe('Note Service Export Harvesting', () => {

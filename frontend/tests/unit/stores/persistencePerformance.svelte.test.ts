@@ -27,7 +27,7 @@ describe('Phase B: Persistence Performance', () => {
 		
         mockFolderStore = new FolderStore();
         selectionStore = new SelectionStore(mockFolderStore);
-        mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
+        mockNotesStore = new NotesStore();
 		(mockNotesStore as any).isInitialized = true;
 		
 		// Setup a test note

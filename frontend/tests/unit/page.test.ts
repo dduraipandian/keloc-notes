@@ -62,7 +62,7 @@ describe('+page.svelte', () => {
 		mockUIStore = new UIStore();
         mockFolderStore = new FolderStore();
 		mockSelectionStore = new SelectionStore(mockFolderStore);
-        mockNotesStore = new NotesStore(mockFolderStore, mockSelectionStore);
+        mockNotesStore = new NotesStore();
 
 		(mockNotesStore as any).notes = new SvelteMap();
 		(mockNotesStore as any).selectedNoteID = null;

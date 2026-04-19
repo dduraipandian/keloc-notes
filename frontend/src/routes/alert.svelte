@@ -47,7 +47,7 @@
 		// Retry with rAF in case the button isn't mounted yet or window just regained focus.
 		let attempts = 0;
 		function tryFocus() {
-			if (attempts++ >= 10) return;
+			if (!isOpen || attempts++ >= 10) return;
 			if (actionBtnRef) {
 				actionBtnRef.focus();
 				if (document.activeElement !== actionBtnRef) {

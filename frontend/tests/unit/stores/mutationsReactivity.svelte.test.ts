@@ -25,7 +25,7 @@ describe('Phase A: Reactivity & Mutation Tests', () => {
 		
         mockFolderStore = new FolderStore();
         selectionStore = new SelectionStore(mockFolderStore);
-        mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
+        mockNotesStore = new NotesStore();
 
 		// Reset store state
 		(mockNotesStore as any).isInitialized = true;

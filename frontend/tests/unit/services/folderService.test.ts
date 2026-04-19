@@ -13,7 +13,7 @@ describe('FolderService', () => {
 		vi.clearAllMocks();
 		folderStore = new FolderStore();
 		selectionStore = new SelectionStore(folderStore);
-		notesStore = new NotesStore(folderStore, selectionStore);
+		notesStore = new NotesStore();
 		
 		(notesStore as any).isInitialized = true;
 		(folderStore as any).isInitialized = true;

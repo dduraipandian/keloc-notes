@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { FolderStore } from '../../../src/lib/stores/folders.svelte';
 import { NotesStore } from '../../../src/lib/stores/notes.svelte';
 import { SelectionStore } from '../../../src/lib/stores/selection.svelte';
@@ -10,7 +11,8 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	notesRepository: { 
 		list: vi.fn(), 
 		saveMeta: vi.fn().mockResolvedValue(undefined),
-		saveContent: vi.fn().mockResolvedValue(undefined)
+		saveContent: vi.fn().mockResolvedValue(undefined),
+		getBulkContents: vi.fn().mockResolvedValue({})
 	},
 	settingsRepository: { getAll: vi.fn(), save: vi.fn() },
 	trashRepository: { permanentlyDeleteNote: vi.fn(), permanentlyDeleteFolderTree: vi.fn() }
@@ -29,13 +31,13 @@ describe('Selection Shifting Behavior', () => {
 		
 		mockFolderStore = new FolderStore();
 		selectionStore = new SelectionStore(mockFolderStore);
-		mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
+		mockNotesStore = new NotesStore();
 		
 		(mockNotesStore as any).isInitialized = true;
 		(mockFolderStore as any).isInitialized = true;
 		
 		noteService = new NoteService(mockFolderStore, mockNotesStore, selectionStore);
-		trashService = new TrashService(mockFolderStore, mockNotesStore, undefined as any, selectionStore);
+		trashService = new TrashService(mockFolderStore, mockNotesStore, selectionStore);
 
 		// Setup mock notes
 		const notes = [

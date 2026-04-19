@@ -19,6 +19,7 @@
 		getFolderSidebarView,
 		getFolderStore
 	} from '$lib/stores/context';
+	import type { SidebarSourceItem } from '$lib/views/folderSidebarView.svelte';
 
 	const menuButtonStyle =
 		'h-8 rounded-sm px-3 pr-10 shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';

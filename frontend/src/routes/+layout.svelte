@@ -52,7 +52,7 @@ import { hasWailsRuntime } from '$lib/wails.svelte';
 	const preferencesStore = new PreferencesStore();
 	const uiStore = new UIStore();
 	const selectionStore = new SelectionStore(folderStore);
-	const notesStore = new NotesStore(folderStore, selectionStore);
+	const notesStore = new NotesStore();
 
 	setFolderStore(folderStore);
 	setNotesStore(notesStore);

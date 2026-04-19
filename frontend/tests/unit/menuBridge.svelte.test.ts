@@ -58,8 +58,8 @@ describe('Menu Bridge System', () => {
 		// Mock Wails runtime for unit tests
 		(window as any).runtime = {};
         mockFolderStore = new FolderStore();
-        mockSelectionStore = new SelectionStore();
-        mockNotesStore = new NotesStore(mockFolderStore, mockSelectionStore);
+        mockSelectionStore = new SelectionStore(mockFolderStore);
+        mockNotesStore = new NotesStore();
 	});
 
 	describe('Initialization', () => {

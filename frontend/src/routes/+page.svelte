@@ -2,7 +2,7 @@
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Info from '@lucide/svelte/icons/info';
-	import { getUIStore, getSelectionStore, getNoteService, getTrashService, getNotesStore } from '$lib/stores/context';
+	import { getUIStore, getSelectionStore, getNoteService, getTrashService, getNotesStore, getFolderStore, getFolderService, getSearchService } from '$lib/stores/context';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
 	import Alert from './alert.svelte';
 
@@ -10,9 +10,19 @@
 	let selectedNote = $derived(notesStore.selectedNote);
 	const uiStore = getUIStore();
 	const selectionStore = getSelectionStore();
+	const folderStore = getFolderStore();
 	const noteService = getNoteService();
+	const folderService = getFolderService();
 	const trashService = getTrashService();
-	const noteListView = new NoteListView({ selection: selectionStore });
+	const searchService = getSearchService();
+	const noteListView = new NoteListView(
+		{ selection: selectionStore },
+		folderStore,
+		notesStore,
+		folderService,
+		noteService,
+		searchService
+	);
 
 	let restoreContext = $derived(noteListView.getRestoreContext(selectedNote));
 

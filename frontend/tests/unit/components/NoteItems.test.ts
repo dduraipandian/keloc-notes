@@ -73,9 +73,9 @@ describe('NoteItems.svelte Component', () => {
         mockUIStateStore = new UIStateStore();
         mockThemeStore = new ThemeStore();
         mockUIStore = new UIStore();
-        mockSelectionStore = new SelectionStore();
+        mockSelectionStore = new SelectionStore(mockFolderStore);
         mockFolderStore = new FolderStore();
-        mockNotesStore = new NotesStore(mockFolderStore, mockSelectionStore);
+        mockNotesStore = new NotesStore();
         vi.clearAllMocks();
         
         // Setup notesStore state

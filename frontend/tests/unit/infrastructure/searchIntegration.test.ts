@@ -19,8 +19,8 @@ describe('Search Integration (Phase 2)', () => {
 
 	beforeEach(() => {
 		mockFolderStore = new FolderStore();
-		mockSelectionStore = new SelectionStore();
-		mockNotesStore = new NotesStore(mockFolderStore, mockSelectionStore);
+		mockSelectionStore = new SelectionStore(mockFolderStore);
+		mockNotesStore = new NotesStore();
 		mockNoteService = new NoteService(mockFolderStore, mockNotesStore, mockSelectionStore);
 		mockSearchService = new SearchService(mockFolderStore, mockNotesStore, mockNoteService);
 		noteListView = new NoteListView(

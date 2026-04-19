@@ -34,7 +34,7 @@ describe('NotesStore (Flat Recovery)', () => {
         
         mockFolderStore = new FolderStore();
         selectionStore = new SelectionStore(mockFolderStore);
-        mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
+        mockNotesStore = new NotesStore();
 
 		(mockNotesStore as any).isInitialized = true;
 		(mockFolderStore as any).isInitialized = true;
@@ -149,7 +149,7 @@ describe('NotesStore (Flat Recovery)', () => {
 		it('does not invoke onPersistError for successful saves', async () => {
 			const onPersistError = vi.fn();
 			(mockNotesStore as any).onPersistError = onPersistError;
-			vi.mocked(notesRepository.saveMeta).mockResolvedValueOnce(undefined);
+			vi.mocked(notesRepository.saveMeta).mockResolvedValueOnce('n1' as any);
 
 			addNoteToStore({ id: 'n1', title: 'Old' });
 			mockNotesStore.updateNote('n1', { title: 'New' });
