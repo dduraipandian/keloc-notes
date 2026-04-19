@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import NoteItems from '$lib/components/NoteItems.svelte';
-import { notesStore } from '$lib/stores/notes.svelte';
-import { NoteListView } from '$lib/views/noteListView.svelte';
-import { noteService, trashService } from '$lib/stores/services';
-import { selectionStore } from '$lib/stores/selection.svelte';
-import { uiStore } from '$lib/stores/dialog.svelte';
+import { FolderStore } from '$lib/stores/folders.svelte';
+import { NotesStore } from '$lib/stores/notes.svelte';
 import { UIStateStore } from '$lib/stores/uiState.svelte';
 import { ThemeStore } from '$lib/stores/theme.svelte';
+import { SelectionStore } from '$lib/stores/selection.svelte';
+import { UIStore } from '$lib/stores/dialog.svelte';
 import { STORE_KEYS } from '$lib/stores/context';
 import { SvelteMap } from 'svelte/reactivity';
 
@@ -28,26 +27,18 @@ vi.mock('$lib/components/ui/input/index.js', () => ({
 }));
 
 // Mock services
-vi.mock('$lib/stores/services', () => ({
-    folderService: {
-        select: vi.fn(),
-        create: vi.fn(),
-        rename: vi.fn(),
-        cancelRename: vi.fn(),
-        toggle: vi.fn()
-    },
-    noteService: {
-        select: vi.fn(),
-        create: vi.fn(),
-        delete: vi.fn(),
-        setFavorite: vi.fn(),
-        getNoteCountForFolder: vi.fn(() => 0)
-    },
-    trashService: {
-        recoverNote: vi.fn(),
-        permanentlyDeleteNote: vi.fn()
-    }
-}));
+const mockNoteService = {
+    select: vi.fn(),
+    create: vi.fn(),
+    delete: vi.fn(),
+    setFavorite: vi.fn(),
+    getNoteCountForFolder: vi.fn(() => 0)
+};
+
+const mockTrashService = {
+    recoverNote: vi.fn(),
+    permanentlyDeleteNote: vi.fn()
+};
 
 
 
@@ -73,16 +64,24 @@ vi.mock('$lib/views/noteListView.svelte', () => ({
 describe('NoteItems.svelte Component', () => {
     let mockUIStateStore: UIStateStore;
     let mockThemeStore: ThemeStore;
+    let mockUIStore: UIStore;
+    let mockSelectionStore: SelectionStore;
+    let mockFolderStore: FolderStore;
+    let mockNotesStore: NotesStore;
 
     beforeEach(() => {
         mockUIStateStore = new UIStateStore();
         mockThemeStore = new ThemeStore();
+        mockUIStore = new UIStore();
+        mockSelectionStore = new SelectionStore();
+        mockFolderStore = new FolderStore();
+        mockNotesStore = new NotesStore(mockFolderStore, mockSelectionStore);
         vi.clearAllMocks();
         
         // Setup notesStore state
-        (notesStore as any).notes = new SvelteMap();
+        (mockNotesStore as any).notes = new SvelteMap();
         const now = new Date().toISOString();
-	        notesStore.notes.set('n1', {
+	        mockNotesStore.notes.set('n1', {
 	            id: 'n1',
 	            title: 'Note 1',
 	            content: 'Content 1',
@@ -106,7 +105,14 @@ describe('NoteItems.svelte Component', () => {
         return render(NoteItems, {
             context: new Map<any, any>([
                 [STORE_KEYS.UI_STATE, mockUIStateStore],
-                [STORE_KEYS.THEME, mockThemeStore]
+                [STORE_KEYS.THEME, mockThemeStore],
+                [STORE_KEYS.UI, mockUIStore],
+                [STORE_KEYS.SELECTION, mockSelectionStore],
+                [STORE_KEYS.FOLDERS, mockFolderStore],
+                [STORE_KEYS.NOTES, mockNotesStore],
+                [STORE_KEYS.NOTE_SERVICE, mockNoteService],
+                [STORE_KEYS.TRASH_SERVICE, mockTrashService],
+                [STORE_KEYS.NOTE_LIST_VIEW, mockNoteListViewInstance]
             ])
         });
     }
@@ -129,7 +135,7 @@ describe('NoteItems.svelte Component', () => {
         const noteItem = screen.getByText('Note 1');
         await fireEvent.click(noteItem);
         
-        expect(noteService.select).toHaveBeenCalledWith('n1');
+        expect(mockNoteService.select).toHaveBeenCalledWith('n1');
         expect(mockUIStateStore.activePane).toBe('notes');
     });
 
@@ -141,7 +147,7 @@ describe('NoteItems.svelte Component', () => {
         await fireEvent.click(pane);
 
         expect(mockUIStateStore.activePane).toBe('notes');
-        expect(noteService.select).not.toHaveBeenCalled();
+        expect(mockNoteService.select).not.toHaveBeenCalled();
     });
 
     it('should call noteService.create when the "New Note" button is clicked', async () => {
@@ -154,6 +160,6 @@ describe('NoteItems.svelte Component', () => {
         const createBtn = screen.getByTitle('New Note');
         await fireEvent.click(createBtn);
         
-        expect(noteService.create).toHaveBeenCalledWith('f1');
+        expect(mockNoteService.create).toHaveBeenCalledWith('f1');
     });
 });

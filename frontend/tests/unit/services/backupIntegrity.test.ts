@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import { NoteService } from '../../../src/lib/stores/services/noteService';
-import { notesStore } from '../../../src/lib/stores/notes.svelte';
+import { NotesStore } from '../../../src/lib/stores/notes.svelte';
+import { FolderStore } from '../../../src/lib/stores/folders.svelte';
+import { SelectionStore } from '../../../src/lib/stores/selection.svelte';
 import { notesRepository } from '../../../src/lib/infrastructure/repositories';
 import { 
 	initDB, 
@@ -22,15 +24,21 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 }));
 
 describe('Backup & Export Integrity', () => {
+    let mockFolderStore: FolderStore;
+    let selectionStore: SelectionStore;
+    let mockNotesStore: NotesStore;
+
 	beforeEach(() => {
 		vi.resetAllMocks();
-		(notesStore as any).notes.clear();
+        mockFolderStore = new FolderStore();
+        selectionStore = new SelectionStore(mockFolderStore);
+        mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
 	});
 
 	describe('Note Service Export Harvesting', () => {
 		it('should merge content from repository when content is missing in memory', async () => {
 			const noteId = 'target-id';
-			notesStore.notes.set(noteId, {
+			mockNotesStore.notes.set(noteId, {
 				id: noteId,
 				title: 'Test Note',
 				content: '', // Empty in memory
@@ -44,7 +52,7 @@ describe('Backup & Export Integrity', () => {
 				[noteId]: 'Actual Content from IDB'
 			});
 
-			const noteService = new NoteService();
+			const noteService = new NoteService(mockFolderStore, mockNotesStore, {} as any);
 			const exportData = await noteService.getExportData([noteId]);
 
 			expect(exportData[0].content).toBe('Actual Content from IDB');

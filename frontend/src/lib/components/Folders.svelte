@@ -8,16 +8,26 @@
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
-	import { folderStore, type FolderItem } from '$lib/stores/folders.svelte';
-	import { FolderSidebarView, type SidebarSourceItem } from '$lib/views/folderSidebarView.svelte';
-	import { getUIStateStore, getThemeStore } from '$lib/stores/context';
-	import { folderService, trashService } from '$lib/stores/services';
-	import { uiStore } from '$lib/stores/dialog.svelte';
+	import { type FolderItem } from '$lib/stores/folders.svelte';
+	import { 
+		getUIStateStore, 
+		getThemeStore, 
+		getUIStore, 
+		getSelectionStore, 
+		getFolderService, 
+		getTrashService, 
+		getFolderSidebarView,
+		getFolderStore
+	} from '$lib/stores/context';
 
 	const menuButtonStyle =
 		'h-8 rounded-sm px-3 pr-10 shadow-none transition-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-none';
-
-	const folderSidebarView = new FolderSidebarView();
+	const folderStore = getFolderStore();
+	const uiStore = getUIStore();
+	const selectionStore = getSelectionStore();
+	const folderService = getFolderService();
+	const trashService = getTrashService();
+	const folderSidebarView = getFolderSidebarView();
 	const uiStateStore = getUIStateStore();
 	const themeStore = getThemeStore();
 

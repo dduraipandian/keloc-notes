@@ -1,7 +1,7 @@
 import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 import type { FolderItem } from '../stores/folders.svelte';
 import type { NoteItem } from '../stores/notes.svelte';
-import { uiStore } from '../stores/dialog.svelte';
+import type { UIStore } from '../stores/dialog.svelte';
 
 const DEFAULT_DB_NAME = 'mdnotes-db';
 const DB_VERSION = 3;
@@ -56,12 +56,14 @@ function ensureStores(db: IDBPDatabase<DBStore>) {
 	}
 }
 
+let blockedHandler: ((current: number | undefined, blocked: number | null) => void) | null = null;
+
+export function setDatabaseBlockedHandler(handler: typeof blockedHandler) {
+	blockedHandler = handler;
+}
+
 export function handleDatabaseBlocked(currentVersion: number | undefined, blockedVersion: number | null) {
-	uiStore.confirmAppQuit(
-		'Database blocked',
-		`Another mdnotes window is open and is blocking a database upgrade (current: ${currentVersion ?? 'unknown'}, target: ${blockedVersion ?? 'unknown'}). Please close the other window and restart mdnotes.`,
-		() => {}
-	);
+	blockedHandler?.(currentVersion, blockedVersion);
 }
 
 export function initDB() {

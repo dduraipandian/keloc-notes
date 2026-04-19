@@ -1,22 +1,22 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { FolderService } from '../../../src/lib/stores/services/folderService';
-import { notesStore } from '../../../src/lib/stores/notes.svelte';
-import { folderStore } from '../../../src/lib/stores/folders.svelte';
-import { selectionStore } from '../../../src/lib/stores/selection.svelte';
+import { SelectionStore } from '../../../src/lib/stores/selection.svelte';
+import { FolderStore } from '../../../src/lib/stores/folders.svelte';
+import { NotesStore } from '../../../src/lib/stores/notes.svelte';
 
 describe('FolderService', () => {
+	let selectionStore: SelectionStore;
+	let folderStore: FolderStore;
+	let notesStore: NotesStore;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
+		folderStore = new FolderStore();
+		selectionStore = new SelectionStore(folderStore);
+		notesStore = new NotesStore(folderStore, selectionStore);
 		
-		// Reset global stores as a guard, even if using DI mocks
-		(notesStore as any).notes.clear();
-		(folderStore as any).folders.clear();
-		folderStore.folders.set('home', { id: 'home', title: 'Home', items: [], profile: 'home' } as any);
-		(notesStore as any).selectedNoteID = null;
 		(notesStore as any).isInitialized = true;
 		(folderStore as any).isInitialized = true;
-		
-		selectionStore.__resetForTest();
 	});
 
 	it('should delegate folder creation and return the new ID', () => {
@@ -108,7 +108,7 @@ describe('FolderService', () => {
 
 	it('should delegate rename start and cancel', () => {
 		const folders = { startRename: vi.fn(), cancelRename: vi.fn() };
-		const service = new FolderService(folders as any);
+		const service = new FolderService(folders as any, {} as any, {} as any);
 
 		service.startRename('folder-1');
 		service.cancelRename();
@@ -120,7 +120,7 @@ describe('FolderService', () => {
 	it('should delegate folder rename', () => {
 		const folders = { renameFolder: vi.fn() };
 
-		new FolderService(folders as any).rename('folder-1', 'Renamed');
+		new FolderService(folders as any, {} as any, {} as any).rename('folder-1', 'Renamed');
 
 		expect(folders.renameFolder).toHaveBeenCalledWith('folder-1', 'Renamed');
 	});
@@ -128,7 +128,7 @@ describe('FolderService', () => {
 	it('should delegate folder toggle', () => {
 		const folders = { openFolder: vi.fn() };
 
-		new FolderService(folders as any).toggle('folder-1');
+		new FolderService(folders as any, {} as any, {} as any).toggle('folder-1');
 
 		expect(folders.openFolder).toHaveBeenCalledWith('folder-1');
 	});
@@ -136,7 +136,7 @@ describe('FolderService', () => {
 	it('should delegate folder favorite toggles', () => {
 		const folders = { setFavorite: vi.fn() };
 
-		new FolderService(folders as any).setFavorite('folder-1', true);
+		new FolderService(folders as any, {} as any, {} as any).setFavorite('folder-1', true);
 
 		expect(folders.setFavorite).toHaveBeenCalledWith('folder-1', true);
 	});

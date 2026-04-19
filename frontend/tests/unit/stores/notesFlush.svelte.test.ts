@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { notesStore } from '../../../src/lib/stores/notes.svelte';
+import { NotesStore } from '../../../src/lib/stores/notes.svelte';
+import { FolderStore } from '../../../src/lib/stores/folders.svelte';
+import { SelectionStore } from '../../../src/lib/stores/selection.svelte';
 import { notesRepository, settingsRepository } from '../../../src/lib/infrastructure/repositories';
 import { SvelteMap } from 'svelte/reactivity';
 
@@ -14,16 +16,22 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 }));
 
 describe('NotesStore flushAllPendingWrites', () => {
+    let mockFolderStore: FolderStore;
+    let selectionStore: SelectionStore;
+    let mockNotesStore: NotesStore;
+
 	beforeEach(() => {
 		vi.useFakeTimers();
 		vi.clearAllMocks();
-		(notesStore as any).notes = new SvelteMap();
-		(notesStore as any).selectedNoteID = null;
-		(notesStore as any).onPersistError = null;
-		(notesStore as any).isInitialized = true;
-		(notesStore as any).inFlightWrites = new Set();
+        
+        mockFolderStore = new FolderStore();
+        selectionStore = new SelectionStore(mockFolderStore);
+        mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
 
-		notesStore.notes.set(
+		(mockNotesStore as any).isInitialized = true;
+		(mockFolderStore as any).isInitialized = true;
+
+		mockNotesStore.notes.set(
 			'n1',
 			{
 				id: 'n1',
@@ -50,11 +58,11 @@ describe('NotesStore flushAllPendingWrites', () => {
 			})
 		);
 
-		notesStore.updateNote('n1', { content: 'Flushed content' });
+		mockNotesStore.updateNote('n1', { content: 'Flushed content' });
 		expect(notesRepository.saveMeta).not.toHaveBeenCalled();
 		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 
-		const flushPromise = notesStore.flushAllPendingWrites();
+		const flushPromise = mockNotesStore.flushAllPendingWrites();
 		await vi.advanceTimersByTimeAsync(400);
 
 		expect(notesRepository.saveMeta).toHaveBeenCalledTimes(1);
@@ -74,7 +82,7 @@ describe('NotesStore flushAllPendingWrites', () => {
 	});
 
 	it('resolves immediately when there are no pending writes', async () => {
-		await expect(notesStore.flushAllPendingWrites()).resolves.toBeUndefined();
+		await expect(mockNotesStore.flushAllPendingWrites()).resolves.toBeUndefined();
 		expect(notesRepository.saveMeta).not.toHaveBeenCalled();
 		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 	});

@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { flushSync } from 'svelte';
 import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
 import { EventsOn } from '$lib/wailsjs/runtime/runtime';
-import { folderService, noteService } from '$lib/stores/services';
-import { notesStore } from '$lib/stores/notes.svelte';
+import { SelectionStore } from '$lib/stores/selection.svelte';
+import { UIStore } from '$lib/stores/dialog.svelte';
+import { NotesStore } from '$lib/stores/notes.svelte';
+import { FolderStore } from '$lib/stores/folders.svelte';
 import { ThemeStore } from '$lib/stores/theme.svelte';
 import { UIStateStore } from '$lib/stores/uiState.svelte';
 import * as AppModule from '$lib/wailsjs/go/main/App';
@@ -14,33 +16,26 @@ vi.mock('$lib/wailsjs/runtime/runtime', () => ({
 	EventsOn: vi.fn()
 }));
 
-vi.mock('$lib/stores/services', () => ({
-	folderService: {
-		create: vi.fn(),
-		rename: vi.fn(),
-		ensurePath: vi.fn()
-	},
-	noteService: {
-		create: vi.fn(),
-		update: vi.fn(),
-		getNotesForExport: vi.fn()
-	},
-	trashService: {}
-}));
-
-vi.mock('$lib/stores/folders.svelte', () => ({
-	folderStore: {
-		folders: new Map(),
-		findItemById: vi.fn(),
-		getPathForFolder: vi.fn()
-	}
-}));
-
-vi.mock('$lib/stores/selection.svelte', () => ({
-	selectionStore: {
-		selectedFolderID: null
-	}
-}));
+const mockFolderService = {
+	create: vi.fn(),
+	rename: vi.fn(),
+	ensurePath: vi.fn(),
+	select: vi.fn()
+};
+const mockNoteService = {
+	create: vi.fn(),
+	update: vi.fn(),
+	getNotesForExport: vi.fn(),
+	select: vi.fn()
+};
+const mockTrashService = {
+	emptyTrash: vi.fn(),
+	recoverNote: vi.fn()
+};
+const mockUIStore = {
+	confirmEmptyTrash: vi.fn(),
+	confirmNoteDelete: vi.fn()
+};
 
 vi.mock('$lib/wailsjs/go/main/App', () => ({
 	ImportNotesZip: vi.fn(),
@@ -54,20 +49,34 @@ vi.mock('$lib/wailsjs/go/main/App', () => ({
 // --- Tests ---
 
 describe('Menu Bridge System', () => {
+    let mockNotesStore: NotesStore;
+    let mockFolderStore: FolderStore;
+    let mockSelectionStore: SelectionStore;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Mock Wails runtime for unit tests
 		(window as any).runtime = {};
-		notesStore.notes.clear();
-		notesStore.selectedNoteID = null;
-		notesStore.trashCount = 0;
+        mockFolderStore = new FolderStore();
+        mockSelectionStore = new SelectionStore();
+        mockNotesStore = new NotesStore(mockFolderStore, mockSelectionStore);
 	});
 
 	describe('Initialization', () => {
 		it('should initialize the bridge and register handlers', () => {
 			const theme = new ThemeStore();
 			const uiState = new UIStateStore();
-			initMenuBridge({ theme, uiState });
+			initMenuBridge({ 
+				theme, 
+				uiState,
+				ui: mockUIStore as any,
+				selection: mockSelectionStore,
+                folders: mockFolderStore,
+                notes: mockNotesStore,
+				folderService: mockFolderService as any,
+				noteService: mockNoteService as any,
+				trashService: mockTrashService as any
+			});
 			expect(EventsOn).toHaveBeenCalled();
 		});
 	});
@@ -90,17 +99,27 @@ describe('Menu Bridge System', () => {
 				}
 			]);
 
-			vi.mocked(folderService.ensurePath).mockReturnValue('target-folder-id');
-			vi.mocked(noteService.create).mockReturnValue({ id: 'new-note-id' } as any);
+			vi.mocked(mockFolderService.ensurePath).mockReturnValue('target-folder-id');
+			vi.mocked(mockNoteService.create).mockReturnValue({ id: 'new-note-id' } as any);
 
 			const theme = new ThemeStore();
 			const uiState = new UIStateStore();
-			initMenuBridge({ theme, uiState });
+			initMenuBridge({ 
+				theme, 
+				uiState,
+				ui: mockUIStore as any,
+				selection: mockSelectionStore,
+                folders: mockFolderStore,
+                notes: mockNotesStore,
+				folderService: mockFolderService as any,
+				noteService: mockNoteService as any,
+				trashService: mockTrashService as any
+			});
 			await importHandler();
 
-			expect(folderService.ensurePath).toHaveBeenCalledWith('Folder A/Sub B');
-			expect(noteService.create).toHaveBeenCalledWith('target-folder-id', { silent: true });
-			expect(noteService.update).toHaveBeenCalledWith('new-note-id', {
+			expect(mockFolderService.ensurePath).toHaveBeenCalledWith('Folder A/Sub B');
+			expect(mockNoteService.create).toHaveBeenCalledWith('target-folder-id', { silent: true });
+			expect(mockNoteService.update).toHaveBeenCalledWith('new-note-id', {
 				title: 'Test Note',
 				content: 'Test Content'
 			});
@@ -117,17 +136,27 @@ describe('Menu Bridge System', () => {
 				return () => {};
 			});
 
-			notesStore.selectedNoteID = 'n1';
-			vi.mocked(noteService.getNotesForExport).mockResolvedValue([
+			mockNotesStore.selectedNoteID = 'n1';
+			vi.mocked(mockNoteService.getNotesForExport).mockResolvedValue([
 				{ title: 'T1', content: 'C1', folderPath: '', updatedAt: '' }
 			]);
 
 			const theme = new ThemeStore();
 			const uiState = new UIStateStore();
-			initMenuBridge({ theme, uiState });
+			initMenuBridge({ 
+				theme, 
+				uiState,
+				ui: mockUIStore as any,
+				selection: mockSelectionStore,
+                folders: mockFolderStore,
+                notes: mockNotesStore,
+				folderService: mockFolderService as any,
+				noteService: mockNoteService as any,
+				trashService: mockTrashService as any
+			});
 			await exportNoteHandler();
 
-			expect(noteService.getNotesForExport).toHaveBeenCalledWith(['n1']);
+			expect(mockNoteService.getNotesForExport).toHaveBeenCalledWith(['n1']);
 			expect(AppModule.ExportNoteToFile).toHaveBeenCalledWith('T1', 'C1');
 		});
 
@@ -141,17 +170,27 @@ describe('Menu Bridge System', () => {
 			});
 
 			const note1 = { id: '1', deletedAt: null };
-			notesStore.notes.set('1', note1 as any);
+			mockNotesStore.notes.set('1', note1 as any);
 			
 			const exportDtos = [{ title: 'Note 1', content: 'C1', folderPath: 'F1', updatedAt: '' }];
-			vi.mocked(noteService.getNotesForExport).mockResolvedValue(exportDtos);
+			vi.mocked(mockNoteService.getNotesForExport).mockResolvedValue(exportDtos);
 
 			const theme = new ThemeStore();
 			const uiState = new UIStateStore();
-			initMenuBridge({ theme, uiState });
+			initMenuBridge({ 
+				theme, 
+				uiState,
+				ui: mockUIStore as any,
+				selection: mockSelectionStore,
+                folders: mockFolderStore,
+                notes: mockNotesStore,
+				folderService: mockFolderService as any,
+				noteService: mockNoteService as any,
+				trashService: mockTrashService as any
+			});
 			await exportAllHandler();
 
-			expect(noteService.getNotesForExport).toHaveBeenCalledWith(['1']);
+			expect(mockNoteService.getNotesForExport).toHaveBeenCalledWith(['1']);
 			expect(AppModule.ExportNotesZip).toHaveBeenCalledWith(exportDtos);
 		});
 	});
@@ -168,7 +207,7 @@ describe('Menu Bridge System', () => {
 
 		it('calls UpdateMenuState with HasSelectedNote false when no note selected', async () => {
 			const theme = new ThemeStore();
-		cleanup = initMenuStateEffect({ theme });
+		cleanup = initMenuStateEffect({ theme, notes: mockNotesStore });
 			flushSync();
 
 			expect(AppModule.UpdateMenuState).toHaveBeenCalled();
@@ -179,11 +218,11 @@ describe('Menu Bridge System', () => {
 
 		it('calls UpdateMenuState with HasSelectedNote true when note selected', async () => {
 			const testNote = { id: 'note-1', deletedAt: null };
-			notesStore.notes.set('note-1', testNote as any);
-			notesStore.selectedNoteID = 'note-1';
+			mockNotesStore.notes.set('note-1', testNote as any);
+			mockNotesStore.selectedNoteID = 'note-1';
 
 			const theme = new ThemeStore();
-		cleanup = initMenuStateEffect({ theme });
+		cleanup = initMenuStateEffect({ theme, notes: mockNotesStore });
 			flushSync();
 
 			expect(AppModule.UpdateMenuState).toHaveBeenCalled();
@@ -195,12 +234,12 @@ describe('Menu Bridge System', () => {
 
 		it('calls UpdateMenuState with SelectedNoteInTrash true when selected note is deleted', async () => {
 			const testNote = { id: 'note-1', deletedAt: Date.now() };
-			notesStore.notes.set('note-1', testNote as any);
-			notesStore.selectedNoteID = 'note-1';
-			notesStore.trashCount = 1;
+			mockNotesStore.notes.set('note-1', testNote as any);
+			mockNotesStore.selectedNoteID = 'note-1';
+			mockNotesStore.trashCount = 1;
 
 			const theme = new ThemeStore();
-		cleanup = initMenuStateEffect({ theme });
+		cleanup = initMenuStateEffect({ theme, notes: mockNotesStore });
 			flushSync();
 
 			const calls = (AppModule.UpdateMenuState as any).mock.calls;
@@ -209,10 +248,10 @@ describe('Menu Bridge System', () => {
 		});
 
 		it('calls UpdateMenuState with TrashHasItems true when trash count > 0', async () => {
-			notesStore.trashCount = 2;
+			mockNotesStore.trashCount = 2;
 
 			const theme = new ThemeStore();
-		cleanup = initMenuStateEffect({ theme });
+		cleanup = initMenuStateEffect({ theme, notes: mockNotesStore });
 			flushSync();
 
 			const calls = (AppModule.UpdateMenuState as any).mock.calls;
@@ -224,7 +263,7 @@ describe('Menu Bridge System', () => {
 			const theme = new ThemeStore();
 			theme.init('dark');
 
-			cleanup = initMenuStateEffect({ theme });
+			cleanup = initMenuStateEffect({ theme, notes: mockNotesStore });
 			flushSync();
 
 			const calls = (AppModule.UpdateMenuState as any).mock.calls;

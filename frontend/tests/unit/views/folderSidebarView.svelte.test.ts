@@ -13,22 +13,33 @@ function createView(opts: {
 	actions?: any;
 }) {
 	const foldersMap = new Map(Object.entries(opts.folders));
+	const mockFolderStore = { 
+		items: opts.items ?? [], 
+		folders: foldersMap, 
+		editingId: null,
+		findItemById: (id: string) => foldersMap.get(id)
+	};
+	const mockFolderQueries = {
+		getTrashRootIds: vi.fn().mockReturnValue(opts.trashRootIds ?? []),
+		getFavoriteFolderIds: vi.fn().mockReturnValue(opts.favoriteFolderIds ?? []),
+		getHomeFolderChildIds: vi.fn().mockReturnValue(opts.homeFolderChildIds ?? [])
+	};
+	const mockNoteQueries = {
+		getNoteCountForFolder: vi
+			.fn()
+			.mockImplementation(opts.noteCountFn ?? (() => 0))
+	};
+	const mockSelectionStore = {
+		selectedFolderID: opts.selectedFolderID ?? null,
+		getSelectedFolder: () => (opts.selectedFolderID ? foldersMap.get(opts.selectedFolderID) : null)
+	};
+
 	return new FolderSidebarView(
-		{ items: opts.items ?? [], folders: foldersMap, editingId: null } as any,
-		{
-			getTrashRootIds: vi.fn().mockReturnValue(opts.trashRootIds ?? []),
-			getFavoriteFolderIds: vi.fn().mockReturnValue(opts.favoriteFolderIds ?? []),
-			getHomeFolderChildIds: vi.fn().mockReturnValue(opts.homeFolderChildIds ?? [])
-		} as any,
-		{
-			getNoteCountForFolder: vi
-				.fn()
-				.mockImplementation(opts.noteCountFn ?? (() => 0))
-		} as any,
-		{
-			selectedFolderID: opts.selectedFolderID ?? null,
-			getSelectedFolder: vi.fn()
-		} as any,
+		{ selection: mockSelectionStore as any, ui: {} as any },
+		mockFolderStore as any,
+		mockFolderQueries as any,
+		mockNoteQueries as any,
+		{} as any, // trashQueries
 		opts.actions
 	);
 }

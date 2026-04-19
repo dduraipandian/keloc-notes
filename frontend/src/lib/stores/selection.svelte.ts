@@ -1,10 +1,13 @@
 import { settingsRepository } from '../infrastructure/repositories';
-import { folderStore, type FolderID, type FolderItem } from './folders.svelte';
+import type { FolderStore } from './folders.svelte';
+import type { FolderID, FolderItem } from './folders.svelte';
 
 export class SelectionStore {
 	selectedFolderID = $state<FolderID | null>(null);
 	private isInitialized = false;
 	onPersistError = $state<((err: unknown, key: string) => void) | null>(null);
+
+	constructor(private readonly folders: FolderStore) {}
 
 	async init() {
 		if (this.isInitialized) return;
@@ -46,7 +49,7 @@ export class SelectionStore {
 
 	getSelectedFolder(): FolderItem | null {
 		if (!this.selectedFolderID) return null;
-		return folderStore.findItemById(this.selectedFolderID);
+		return this.folders.findItemById(this.selectedFolderID);
 	}
 
 	__resetForTest() {
@@ -57,8 +60,8 @@ export class SelectionStore {
 
 	private resolveFolderId(id: FolderID | null) {
 		if (!id) return null;
-		return folderStore.findItemById(id) ? id : null;
+		return this.folders.findItemById(id) ? id : null;
 	}
 }
 
-export const selectionStore = new SelectionStore();
+

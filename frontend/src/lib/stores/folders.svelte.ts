@@ -337,5 +337,3 @@ export class FolderStore {
 		return newFolder.id;
 	}
 }
-
-export const folderStore = new FolderStore();

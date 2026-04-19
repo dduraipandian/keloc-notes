@@ -2,12 +2,24 @@
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
 
 	let { dialog = $bindable() } = $props();
+	let isOpen = $state(dialog.open);
+
+	$effect(() => {
+		isOpen = dialog.open;
+	});
+
+	$effect(() => {
+		if (isOpen !== dialog.open && dialog) {
+			dialog.open = isOpen;
+		}
+	});
+
 	let actionBtnRef = $state<HTMLButtonElement | null>(null);
 	let cancelBtnRef = $state<HTMLButtonElement | null>(null);
 	let previousFocusElement: Element | null = null;
 
 	function handleKeyDown(e: KeyboardEvent) {
-		if (!dialog.open) return;
+		if (!isOpen) return;
 		if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
 			const buttons = [cancelBtnRef, actionBtnRef].filter(Boolean) as HTMLElement[];
 			if (buttons.length === 0) return;
@@ -59,7 +71,7 @@
 
 <svelte:window onkeydown={handleKeyDown} />
 
-<AlertDialog.Root bind:open={dialog.open}>
+<AlertDialog.Root bind:open={isOpen}>
 	<AlertDialog.Content onOpenAutoFocus={handleOpenAutoFocus} onCloseAutoFocus={handleCloseAutoFocus}>
 		<AlertDialog.Header>
 			<AlertDialog.Title>{dialog.title}</AlertDialog.Title>

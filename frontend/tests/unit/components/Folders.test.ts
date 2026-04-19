@@ -2,13 +2,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Folders from '$lib/components/Folders.svelte';
-import { folderStore } from '$lib/stores/folders.svelte';
-import { FolderSidebarView } from '$lib/views/folderSidebarView.svelte';
-import { folderService } from '$lib/stores/services';
+import { FolderStore } from '$lib/stores/folders.svelte';
 import { UIStateStore } from '$lib/stores/uiState.svelte';
 import { ThemeStore } from '$lib/stores/theme.svelte';
+import { SelectionStore } from '$lib/stores/selection.svelte';
+import { UIStore } from '$lib/stores/dialog.svelte';
 import { STORE_KEYS } from '$lib/stores/context';
 import { SvelteMap } from 'svelte/reactivity';
+import { FolderSidebarView } from '$lib/views/folderSidebarView.svelte';
+import type { FolderItem } from '$lib/stores/folders.svelte';
 
 // Mock Lucide icons to avoid rendering complexities in unit tests
 vi.mock('@lucide/svelte/icons/chevron-right', () => ({ default: vi.fn() }));
@@ -36,40 +38,46 @@ Object.defineProperty(window, 'matchMedia', {
     })),
 });
 
-// Mock services
-vi.mock('$lib/stores/services', () => ({
-    folderService: {
-        select: vi.fn(),
-        create: vi.fn(),
-        rename: vi.fn(),
-        cancelRename: vi.fn(),
-        toggle: vi.fn()
-    },
-    noteService: {
-        getNoteCountForFolder: vi.fn(() => 0)
-    },
-    trashService: {
-        recoverFolder: vi.fn(),
-        permanentlyDeleteFolder: vi.fn(),
-        emptyTrash: vi.fn()
-    }
-}));
+const mockFolderService = {
+    select: vi.fn(),
+    create: vi.fn(),
+    rename: vi.fn(),
+    cancelRename: vi.fn(),
+    toggle: vi.fn(),
+    ensurePath: vi.fn()
+};
+
+const mockNoteService = {
+    getNoteCountForFolder: vi.fn(() => 0)
+};
+
+const mockTrashService = {
+    recoverFolder: vi.fn(),
+    permanentlyDeleteFolder: vi.fn(),
+    emptyTrash: vi.fn()
+};
 
 describe('Folders.svelte Component', () => {
     let mockUIStateStore: UIStateStore;
     let mockThemeStore: ThemeStore;
+    let mockUIStore: UIStore;
+    let mockSelectionStore: SelectionStore;
+    let mockFolderStore: FolderStore;
 
     beforeEach(() => {
         mockUIStateStore = new UIStateStore();
         mockThemeStore = new ThemeStore();
+        mockUIStore = new UIStore();
+        mockFolderStore = new FolderStore();
+        mockSelectionStore = new SelectionStore(mockFolderStore);
         vi.clearAllMocks();
         
         // Setup folderStore state
-        (folderStore as any).folders = new SvelteMap();
-        (folderStore as any).items = ['f1'];
-        (folderStore as any).editingTitle = '';
-        (folderStore as any).rejectedRename = null;
-        folderStore.folders.set('f1', {
+        (mockFolderStore as any).folders = new SvelteMap();
+        (mockFolderStore as any).items = ['f1'];
+        (mockFolderStore as any).editingTitle = '';
+        (mockFolderStore as any).rejectedRename = null;
+        mockFolderStore.folders.set('f1', {
             id: 'f1',
             title: 'My Notes',
             items: [],
@@ -77,16 +85,31 @@ describe('Folders.svelte Component', () => {
         });
         
         // Add system views to store so sidebarView can find them
-        folderStore.folders.set('home', { id: 'home', title: 'Home', items: [] });
-        folderStore.folders.set('favorites', { id: 'favorites', title: 'Favorites', items: [] });
-        folderStore.folders.set('trash', { id: 'trash', title: 'Trash', items: [] });
+        mockFolderStore.folders.set('home', { id: 'home', title: 'Home', items: [] });
+        mockFolderStore.folders.set('favorites', { id: 'favorites', title: 'Favorites', items: [] });
+        mockFolderStore.folders.set('trash', { id: 'trash', title: 'Trash', items: [] });
     });
 
     function renderFolders() {
+        const view = new FolderSidebarView(
+            { selection: mockSelectionStore, ui: mockUIStore },
+            mockFolderStore,
+            mockFolderService as any,
+            mockNoteService as any,
+            mockTrashService as any
+        );
+
         return render(Folders, {
             context: new Map<any, any>([
                 [STORE_KEYS.UI_STATE, mockUIStateStore],
-                [STORE_KEYS.THEME, mockThemeStore]
+                [STORE_KEYS.THEME, mockThemeStore],
+                [STORE_KEYS.UI, mockUIStore],
+                [STORE_KEYS.SELECTION, mockSelectionStore],
+                [STORE_KEYS.FOLDERS, mockFolderStore],
+                [STORE_KEYS.FOLDER_SERVICE, mockFolderService],
+                [STORE_KEYS.NOTE_SERVICE, mockNoteService],
+                [STORE_KEYS.TRASH_SERVICE, mockTrashService],
+                [STORE_KEYS.FOLDER_SIDEBAR_VIEW, view]
             ])
         });
     }
@@ -104,7 +127,7 @@ describe('Folders.svelte Component', () => {
         const folderItem = screen.getByText('My Notes');
         await fireEvent.click(folderItem);
         
-        expect(folderService.select).toHaveBeenCalledWith('f1');
+        expect(mockFolderService.select).toHaveBeenCalledWith('f1');
         expect(mockUIStateStore.activePane).toBe('folders');
     });
 
@@ -117,7 +140,7 @@ describe('Folders.svelte Component', () => {
         await fireEvent.click(pane);
 
         expect(mockUIStateStore.activePane).toBe('folders');
-        expect(folderService.select).not.toHaveBeenCalled();
+        expect(mockFolderService.select).not.toHaveBeenCalled();
     });
 
     it('should call folderService.create when "New Folder" is clicked', async () => {
@@ -126,13 +149,13 @@ describe('Folders.svelte Component', () => {
         const newFolderBtn = screen.getByText('New Folder');
         await fireEvent.click(newFolderBtn);
         
-        expect(folderService.create).toHaveBeenCalled();
+        expect(mockFolderService.create).toHaveBeenCalled();
     });
 
     it('should render an input field when a folder is in editing mode', () => {
         // Set editing mode in store
-        (folderStore as any).editingId = 'f1';
-        (folderStore as any).editingTitle = 'My Notes';
+        (mockFolderStore as any).editingId = 'f1';
+        (mockFolderStore as any).editingTitle = 'My Notes';
         
         renderFolders();
         

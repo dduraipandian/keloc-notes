@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { notesStore } from '../../../src/lib/stores/notes.svelte';
-import { folderStore } from '../../../src/lib/stores/folders.svelte';
-import { selectionStore } from '../../../src/lib/stores/selection.svelte';
+import { FolderStore } from '../../../src/lib/stores/folders.svelte';
+import { NotesStore } from '../../../src/lib/stores/notes.svelte';
+import { SelectionStore } from '../../../src/lib/stores/selection.svelte';
 import { notesRepository, settingsRepository } from '../../../src/lib/infrastructure/repositories';
 import { NoteService, TrashService } from '../../../src/lib/stores/services';
 
@@ -20,18 +19,23 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 describe('Selection Shifting Behavior', () => {
 	let noteService: NoteService;
 	let trashService: TrashService;
+	let selectionStore: SelectionStore;
+	let mockFolderStore: FolderStore;
+	let mockNotesStore: NotesStore;
 
 	beforeEach(() => {
 		vi.useFakeTimers();
 		vi.clearAllMocks();
 		
-		// Reset stores
-		(notesStore as any).notes.clear();
-		(notesStore as any).isInitialized = true;
-		(folderStore as any).isInitialized = true;
+		mockFolderStore = new FolderStore();
+		selectionStore = new SelectionStore(mockFolderStore);
+		mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
 		
-		noteService = new NoteService(folderStore, notesStore, selectionStore);
-		trashService = new TrashService(folderStore, notesStore, undefined as any, selectionStore);
+		(mockNotesStore as any).isInitialized = true;
+		(mockFolderStore as any).isInitialized = true;
+		
+		noteService = new NoteService(mockFolderStore, mockNotesStore, selectionStore);
+		trashService = new TrashService(mockFolderStore, mockNotesStore, undefined as any, selectionStore);
 
 		// Setup mock notes
 		const notes = [
@@ -42,48 +46,48 @@ describe('Selection Shifting Behavior', () => {
 
 		notes.forEach(note => {
 			let n = $state(note);
-			notesStore.notes.set(note.id, n as any);
+			mockNotesStore.notes.set(note.id, n as any);
 		});
 		
 		// Setup mock folder
 		let f1 = $state({ id: 'f1', title: 'Folder 1', profile: 'regular' });
-		folderStore.folders.set('f1', f1 as any);
+		mockFolderStore.folders.set('f1', f1 as any);
 	});
 
 	describe('Deletion in Folder', () => {
 		it('should select the next note (older) when a middle note is deleted', () => {
 			selectionStore.selectFolder('f1');
-			notesStore.selectNote('n2');
+			mockNotesStore.selectNote('n2');
 			
 			noteService.delete('n2');
 			
 			// List is [n3, n2, n1]. Deleting n2 (index 1) selects index 2 (n1)
-			expect(notesStore.selectedNoteID).toBe('n1');
+			expect(mockNotesStore.selectedNoteID).toBe('n1');
 			expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', 'n1');
 		});
 
 		it('should select the previous note (newer) when the last note is deleted', () => {
 			selectionStore.selectFolder('f1');
-			notesStore.selectNote('n1');
+			mockNotesStore.selectNote('n1');
 			
 			noteService.delete('n1');
 			
 			// List is [n3, n2, n1]. Deleting n1 (index 2) selects index 1 (n2)
-			expect(notesStore.selectedNoteID).toBe('n2');
+			expect(mockNotesStore.selectedNoteID).toBe('n2');
 			expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', 'n2');
 		});
 
 		it('should clear selection when the only note is deleted', () => {
 			// Remove others
-			notesStore.notes.delete('n2');
-			notesStore.notes.delete('n3');
+			mockNotesStore.notes.delete('n2');
+			mockNotesStore.notes.delete('n3');
 			
 			selectionStore.selectFolder('f1');
-			notesStore.selectNote('n1');
+			mockNotesStore.selectNote('n1');
 			
 			noteService.delete('n1');
 			
-			expect(notesStore.selectedNoteID).toBeNull();
+			expect(mockNotesStore.selectedNoteID).toBeNull();
 			expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', null);
 		});
 	});
@@ -91,9 +95,9 @@ describe('Selection Shifting Behavior', () => {
 	describe('Restoration from Trash', () => {
 		beforeEach(() => {
 			// Mark notes as deleted
-			const n1 = notesStore.notes.get('n1')!;
-			const n2 = notesStore.notes.get('n2')!;
-			const n3 = notesStore.notes.get('n3')!;
+			const n1 = mockNotesStore.notes.get('n1')!;
+			const n2 = mockNotesStore.notes.get('n2')!;
+			const n3 = mockNotesStore.notes.get('n3')!;
 			n1.deletedAt = 1000;
 			n2.deletedAt = 1000;
 			n3.deletedAt = 1000;
@@ -103,25 +107,25 @@ describe('Selection Shifting Behavior', () => {
 		});
 
 		it('should select the next note (older) in Trash when a note is restored', () => {
-			notesStore.selectNote('n2');
+			mockNotesStore.selectNote('n2');
 			
 			trashService.recoverNote('n2');
 			
 			// Note should be restored locally
-			expect(notesStore.notes.get('n2')?.deletedAt).toBeNull();
+			expect(mockNotesStore.notes.get('n2')?.deletedAt).toBeNull();
 			// Selection should move to n1 (older neighbor) in Trash
-			expect(notesStore.selectedNoteID).toBe('n1');
+			expect(mockNotesStore.selectedNoteID).toBe('n1');
 			// Persistence should be triggered for selection
 			expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', 'n1');
 		});
 
 		it('should select the previous note (newer) in Trash when the last deleted note is restored', () => {
-			notesStore.selectNote('n1');
+			mockNotesStore.selectNote('n1');
 			
 			trashService.recoverNote('n1');
 			
 			// n1 is removed from Trash. n2 is the newest neighbor available.
-			expect(notesStore.selectedNoteID).toBe('n2');
+			expect(mockNotesStore.selectedNoteID).toBe('n2');
 			expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', 'n2');
 		});
 	});

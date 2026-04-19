@@ -1,6 +1,7 @@
-import { folderStore } from '$lib/stores/folders.svelte';
-import { notesStore } from '$lib/stores/notes.svelte';
+import type { FolderStore } from '$lib/stores/folders.svelte';
+import type { NotesStore } from '$lib/stores/notes.svelte';
 import { settingsRepository } from '$lib/infrastructure/repositories';
+import type { NoteService } from '$lib/stores/services/noteService';
 
 interface BackupPayload {
 	schemaVersion: number;
@@ -11,12 +12,15 @@ interface BackupPayload {
 	settings: Record<string, unknown>;
 }
 
-export async function exportBackup(): Promise<string> {
+export async function exportBackup(
+    noteService: NoteService,
+    folderStore: FolderStore,
+    notesStore: NotesStore
+): Promise<string> {
 	const folders = Array.from(folderStore.folders.values());
 	const noteIds = Array.from(notesStore.notes.keys());
 
-	const { noteService } = await import('$lib/stores/services');
-	const fullNotesArr = await noteService.getExportData(noteIds);
+	const fullNotesArr = await noteService.getNotesForExport(noteIds);
 
 	const settings = {
 		// Include all stored settings
@@ -38,7 +42,11 @@ export async function exportBackup(): Promise<string> {
 	return JSON.stringify(backup, null, 2);
 }
 
-export async function importBackup(json: string): Promise<void> {
+export async function importBackup(
+    json: string,
+    folderStore: FolderStore,
+    notesStore: NotesStore
+): Promise<void> {
 	try {
 		const backup: BackupPayload = JSON.parse(json);
 

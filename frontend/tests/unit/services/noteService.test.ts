@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { NoteService } from '../../../src/lib/stores/services/noteService';
-import { notesStore } from '../../../src/lib/stores/notes.svelte';
-import { folderStore } from '../../../src/lib/stores/folders.svelte';
-import { selectionStore } from '../../../src/lib/stores/selection.svelte';
+import { FolderStore } from '../../../src/lib/stores/folders.svelte';
+import { NotesStore } from '../../../src/lib/stores/notes.svelte';
+import { SelectionStore } from '../../../src/lib/stores/selection.svelte';
 import { initMenuBridge } from '../../../src/lib/menu/menuBridge.svelte';
 import { ThemeStore } from '../../../src/lib/stores/theme.svelte';
 import { UIStateStore } from '../../../src/lib/stores/uiState.svelte';
@@ -41,18 +41,18 @@ vi.mock('../../../src/lib/stores/services', () => ({
 }));
 
 describe('NoteService', () => {
+    let mockFolderStore: FolderStore;
+    let selectionStore: SelectionStore;
+    let mockNotesStore: NotesStore;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
+        mockFolderStore = new FolderStore();
+        selectionStore = new SelectionStore(mockFolderStore);
+        mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
 		
-		// Reset global stores according to conventions
-		(notesStore as any).notes.clear();
-		(folderStore as any).folders.clear();
-		folderStore.folders.set('home', { id: 'home', title: 'Home', items: [], profile: 'home' } as any);
-		(notesStore as any).selectedNoteID = null;
-		(notesStore as any).isInitialized = true;
-		(folderStore as any).isInitialized = true;
-		
-		selectionStore.__resetForTest();
+		(mockNotesStore as any).isInitialized = true;
+		(mockFolderStore as any).isInitialized = true;
 	});
 
 	// ... [Rest of NoteService tests]
@@ -120,7 +120,7 @@ describe('NoteService', () => {
 		const folders = { findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
 		const notes = { updateNote: vi.fn() };
 
-		new NoteService(folders as any, notes as any).update('note-1', { title: 'Updated' });
+		new NoteService(folders as any, notes as any, {} as any).update('note-1', { title: 'Updated' });
 
 		expect(notes.updateNote).toHaveBeenCalledWith('note-1', { title: 'Updated' }, undefined);
 	});
@@ -129,7 +129,7 @@ describe('NoteService', () => {
 		const folders = { findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? (id === 'deleted-notes' ? 'trash' : id) : 'regular' }) };
 		const notes = { selectNote: vi.fn() };
 
-		new NoteService(folders as any, notes as any).select('note-1');
+		new NoteService(folders as any, notes as any, {} as any).select('note-1');
 
 		expect(notes.selectNote).toHaveBeenCalledWith('note-1');
 	});
@@ -137,7 +137,7 @@ describe('NoteService', () => {
 	it('should delegate note favorite toggles', () => {
 		const notes = { setFavorite: vi.fn() };
 
-		new NoteService({ findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? id : 'regular' }) } as any, notes as any).setFavorite('note-1', true);
+		new NoteService({ findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? id : 'regular' }) } as any, notes as any, {} as any).setFavorite('note-1', true);
 
 		expect(notes.setFavorite).toHaveBeenCalledWith('note-1', true);
 	});
@@ -201,7 +201,7 @@ describe('NoteService', () => {
 			])
 		};
 
-		const result = new NoteService(folders as any, notes as any).getNotesForFolder('f1');
+		const result = new NoteService(folders as any, notes as any, {} as any).getNotesForFolder('f1');
 
 		expect(result.map((note: any) => note.id)).toEqual(['2', '1']);
 	});
@@ -215,7 +215,7 @@ describe('NoteService', () => {
 			])
 		};
 
-		const result = new NoteService(folders as any, notes as any).getNotesForFolder('deleted-notes', 'trash');
+		const result = new NoteService(folders as any, notes as any, {} as any).getNotesForFolder('deleted-notes', 'trash');
 
 		expect(result.map((note: any) => note.id)).toEqual(['1']);
 	});
@@ -247,7 +247,7 @@ describe('NoteService', () => {
 			])
 		};
 
-		const result = new NoteService({ findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? id : 'regular' }) } as any, notes as any).getNotesForFolder(
+		const result = new NoteService({ findItemById: (id: string) => ({ id, profile: ['home', 'favorites', 'deleted-notes', 'trash'].includes(id) ? id : 'regular' }) } as any, notes as any, {} as any).getNotesForFolder(
 			'favorites',
 			'favorites'
 		);
@@ -269,7 +269,7 @@ describe('NoteService', () => {
 			getDeletedNotes: vi.fn(() => [])
 		};
 
-		const count = new NoteService(folders as any, notes as any).getNoteCountForFolder('f1');
+		const count = new NoteService(folders as any, notes as any, {} as any).getNoteCountForFolder('f1');
 
 		expect(count).toBe(2);
 	});
@@ -291,7 +291,7 @@ describe('NoteService', () => {
 			])
 		};
 
-		const result = new NoteService(folders as any, notes as any).getNotesForFolder('A');
+		const result = new NoteService(folders as any, notes as any, {} as any).getNotesForFolder('A');
 
 		expect(result.map((note: any) => note.id)).toEqual(['note-x']);
 	});
@@ -340,7 +340,15 @@ describe('NoteService', () => {
 
 			const mockUIStateStore = new UIStateStore();
 			const mockThemeStore = new ThemeStore();
-			initMenuBridge({ uiState: mockUIStateStore, theme: mockThemeStore });
+			initMenuBridge({ 
+				uiState: mockUIStateStore, 
+				theme: mockThemeStore,
+				ui: {} as any,
+				selection: {} as any,
+				folderService: mockFolderService as any,
+				noteService: mockNoteService as any,
+				trashService: {} as any
+			});
 
 			// Trigger import
 			await handlers['menu:import-markdown']();

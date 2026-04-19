@@ -1,16 +1,18 @@
 <script lang="ts">
-	import { notesStore } from '$lib/stores/notes.svelte';
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Info from '@lucide/svelte/icons/info';
-	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { noteService, trashService } from '$lib/stores/services';
+	import { getUIStore, getSelectionStore, getNoteService, getTrashService, getNotesStore } from '$lib/stores/context';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
-
 	import Alert from './alert.svelte';
 
+	const notesStore = getNotesStore();
 	let selectedNote = $derived(notesStore.selectedNote);
-	const noteListView = new NoteListView();
+	const uiStore = getUIStore();
+	const selectionStore = getSelectionStore();
+	const noteService = getNoteService();
+	const trashService = getTrashService();
+	const noteListView = new NoteListView({ selection: selectionStore });
 
 	let restoreContext = $derived(noteListView.getRestoreContext(selectedNote));
 

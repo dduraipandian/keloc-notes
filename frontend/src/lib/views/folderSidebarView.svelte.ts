@@ -1,7 +1,7 @@
-import { folderStore, type FolderID, type FolderItem } from '$lib/stores/folders.svelte';
-import { folderService, noteService, trashService } from '$lib/stores/services';
-import { selectionStore } from '$lib/stores/selection.svelte';
-import { uiStore } from '$lib/stores/dialog.svelte';
+import { type FolderStore, type FolderID, type FolderItem } from '$lib/stores/folders.svelte';
+import type { FolderService, NoteService, TrashService } from '$lib/stores/services';
+import { SelectionStore } from '$lib/stores/selection.svelte';
+import { UIStore } from '$lib/stores/dialog.svelte';
 import type { Component } from 'svelte';
 import Home from '@lucide/svelte/icons/home';
 import Folder from '@lucide/svelte/icons/folder';
@@ -87,29 +87,42 @@ export const ICON_REGISTRY: Record<
 	}
 };
 
-const defaultSidebarActionDeps: SidebarActionDeps = {
-	folderCreate: () => folderService.create(),
-	folderStartRename: (id) => folderService.startRename(id),
-	folderDelete: (id) =>
-		uiStore.confirmFolderDelete(folderStore.folders.get(id)?.title ?? '', () =>
-			folderService.delete(id)
-		),
-	folderSetFavorite: (id, isFav) => folderService.setFavorite(id, isFav),
-	trashRecover: (id) => trashService.recoverFolder(id),
-	trashPermanentDelete: (title, id) =>
-		uiStore.confirmFolderPermanentDelete(title, () => trashService.permanentlyDeleteFolder(id)),
-	trashEmpty: () => uiStore.confirmEmptyTrash(() => trashService.emptyTrash())
-};
-
+function buildDefaultSidebarActionDeps(
+	ui: UIStore,
+	folders: FolderStore,
+	folderQueries: FolderService,
+	trashQueries: TrashService
+): SidebarActionDeps {
+	return {
+		folderCreate: () => folderQueries.create(),
+		folderStartRename: (id) => folderQueries.startRename(id),
+		folderDelete: (id) =>
+			ui.confirmFolderDelete(folders.folders.get(id)?.title ?? '', () =>
+				folderQueries.delete(id)
+			),
+		folderSetFavorite: (id, isFav) => folderQueries.setFavorite(id, isFav),
+		trashRecover: (id) => trashQueries.recoverFolder(id),
+		trashPermanentDelete: (title, id) =>
+			ui.confirmFolderPermanentDelete(title, () => trashQueries.permanentlyDeleteFolder(id)),
+		trashEmpty: () => ui.confirmEmptyTrash(() => trashQueries.emptyTrash())
+	};
+}
 
 export class FolderSidebarView {
+	private readonly selection: SelectionStore;
+	private readonly actions: SidebarActionDeps;
+
 	constructor(
-		private readonly folders = folderStore,
-		private readonly folderQueries = folderService,
-		private readonly noteQueries = noteService,
-		private readonly selection = selectionStore,
-		private readonly actions: SidebarActionDeps = defaultSidebarActionDeps
-	) {}
+		stores: { selection: SelectionStore; ui: UIStore },
+		private readonly folders: FolderStore,
+		private readonly folderQueries: FolderService,
+		private readonly noteQueries: NoteService,
+		private readonly trashQueries: TrashService,
+		actions?: SidebarActionDeps
+	) {
+		this.selection = stores.selection;
+		this.actions = actions ?? buildDefaultSidebarActionDeps(stores.ui, folders, folderQueries, trashQueries);
+	}
 
 	sections = $derived.by((): SidebarSourceSection[] => {
 		return [

@@ -8,13 +8,13 @@ import {
 	ReadBackupFile
 } from '$lib/wailsjs/go/main/App';
 import { menu } from '$lib/wailsjs/go/models';
-import { noteService, folderService, trashService } from '$lib/stores/services';
-import { uiStore } from '$lib/stores/dialog.svelte';
-import { notesStore } from '$lib/stores/notes.svelte';
-import { folderStore } from '$lib/stores/folders.svelte';
-import { selectionStore } from '$lib/stores/selection.svelte';
-import { ThemeStore } from '$lib/stores/theme.svelte';
-import { UIStateStore } from '$lib/stores/uiState.svelte';
+import type { NoteService, FolderService, TrashService } from '$lib/stores/services';
+import type { NotesStore } from '$lib/stores/notes.svelte';
+import type { FolderStore } from '$lib/stores/folders.svelte';
+import type { SelectionStore } from '$lib/stores/selection.svelte';
+import type { UIStore } from '$lib/stores/dialog.svelte';
+import type { ThemeStore } from '$lib/stores/theme.svelte';
+import type { UIStateStore } from '$lib/stores/uiState.svelte';
 import { hasWailsRuntime } from '$lib/wails.svelte';
 import { exportBackup, importBackup } from '$lib/backup/backup';
 
@@ -26,19 +26,26 @@ export function initMenuBridge(
 	stores: {
 		uiState: UIStateStore;
 		theme: ThemeStore;
+		ui: UIStore;
+		selection: SelectionStore;
+		folders: FolderStore;
+		notes: NotesStore;
+		folderService: FolderService;
+		noteService: NoteService;
+		trashService: TrashService;
 	},
 	callbacks?: {
 		onOpenAbout?: () => void;
 		onOpenPreferences?: () => void;
 	}
 ): () => void {
-	const { uiState, theme } = stores;
+	const { uiState, theme, ui, selection, folders, notes, folderService, noteService, trashService } = stores;
 	const unsubscribers: Array<() => void> = [];
 
 	// File menu events
 	unsubscribers.push(
 		EventsOn('menu:new-note', () => {
-			noteService.create(selectionStore.selectedFolderID ?? null);
+			noteService.create(selection.selectedFolderID ?? null);
 		})
 	);
 
@@ -50,9 +57,9 @@ export function initMenuBridge(
 
 	unsubscribers.push(
 		EventsOn('menu:delete-note', () => {
-			const note = notesStore.selectedNote;
+			const note = notes.selectedNote;
 			if (note && !note.deletedAt) {
-				uiStore.confirmNoteDelete(note.title, () => {
+				ui.confirmNoteDelete(note.title, () => {
 					noteService.delete(note.id);
 				});
 			}
@@ -61,7 +68,7 @@ export function initMenuBridge(
 
 	unsubscribers.push(
 		EventsOn('menu:empty-trash', () => {
-			uiStore.confirmEmptyTrash(() => {
+			ui.confirmEmptyTrash(() => {
 				trashService.emptyTrash();
 			});
 		})
@@ -114,7 +121,7 @@ export function initMenuBridge(
 	// Export/Import events
 	unsubscribers.push(
 		EventsOn('menu:export-note', async () => {
-			const noteId = notesStore.selectedNoteID;
+			const noteId = notes.selectedNoteID;
 			if (noteId) {
 				try {
 					const harvested = await noteService.getNotesForExport([noteId]);
@@ -132,7 +139,7 @@ export function initMenuBridge(
 		EventsOn('menu:export-all-markdown', async () => {
 			try {
 				// Collect all active (non-deleted) notes
-				const activeNoteIds = Array.from(notesStore.notes.values())
+				const activeNoteIds = Array.from(notes.notes.values())
 					.filter((n) => !n.deletedAt)
 					.map((n) => n.id);
 
@@ -147,7 +154,7 @@ export function initMenuBridge(
 	unsubscribers.push(
 		EventsOn('menu:export-backup', async () => {
 			try {
-				const json = await exportBackup();
+				const json = await exportBackup(noteService, folders, notes);
 				await SaveBackupFile(json);
 			} catch (err) {
 				console.error('Failed to export backup:', err);
@@ -189,7 +196,7 @@ export function initMenuBridge(
 			try {
 				const json = await ReadBackupFile();
 				if (json) {
-					await importBackup(json);
+					await importBackup(json, folders, notes);
 					// Reload the page to reinitialize with restored data
 					window.location.reload();
 				}
@@ -218,23 +225,24 @@ export function initMenuBridge(
  */
 export function initMenuStateEffect(stores: {
 	theme: ThemeStore;
+	notes: NotesStore;
 }): () => void {
-	const { theme } = stores;
+	const { theme, notes } = stores;
 	return $effect.root(() => {
 		$effect(() => {
 			// Explicitly access reactive states to ensure tracking
-			const noteId = notesStore.selectedNoteID;
-			const selectedNote = notesStore.selectedNote;
+			const noteId = notes.selectedNoteID;
+			const selectedNote = notes.selectedNote;
 			const hasSelected = noteId !== null;
 			const menuState = new menu.MenuState({
 				HasSelectedNote: hasSelected,
 				SelectedNoteInTrash: selectedNote?.deletedAt != null,
-				TrashHasItems: notesStore.trashCount > 0,
+				TrashHasItems: notes.trashCount > 0,
 				Theme: theme.theme
 			});
 
 			console.log(
-				`[MENU] MenuState: noteId=${noteId}, hasSelected=${hasSelected}, trashCount=${notesStore.trashCount}, theme=${theme.theme}`
+				`[MENU] MenuState: noteId=${noteId}, hasSelected=${hasSelected}, trashCount=${notes.trashCount}, theme=${theme.theme}`
 			);
 
 			// Update the native menu with current state

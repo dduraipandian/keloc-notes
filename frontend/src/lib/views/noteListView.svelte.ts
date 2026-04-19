@@ -1,23 +1,27 @@
 import { groupNotesByDate } from '$lib/utils/utils';
-import { folderStore, type FolderID, type FolderItem } from '$lib/stores/folders.svelte';
-import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
-import { folderService, noteService } from '$lib/stores/services';
-import { selectionStore } from '$lib/stores/selection.svelte';
+import { type FolderStore, type FolderID, type FolderItem } from '$lib/stores/folders.svelte';
+import { type NotesStore, type NoteItem } from '$lib/stores/notes.svelte';
+import { SelectionStore } from '$lib/stores/selection.svelte';
 import { resolveProfile, getProfileId } from '$lib/stores/domain/profiles';
-import { searchService } from '$lib/stores/services';
+import type { NoteService, FolderService, SearchService } from '$lib/stores/services';
 
 export class NoteListView {
 	searchQuery = $state('');
 	debouncedSearchQuery = $state('');
 	private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+	private readonly selection: SelectionStore;
+
 	constructor(
-		private readonly folders = folderStore,
-		private readonly notes = notesStore,
-		private readonly folderQueries = folderService,
-		private readonly noteQueries = noteService,
-		private readonly selection = selectionStore
-	) {}
+		stores: { selection: SelectionStore },
+		private readonly folders: FolderStore,
+		private readonly notes: NotesStore,
+		private readonly folderQueries: FolderService,
+		private readonly noteQueries: NoteService,
+		private readonly search: SearchService
+	) {
+		this.selection = stores.selection;
+	}
 
 	getSelectedFolderTitle() {
 		return this.selection.getSelectedFolder()?.title ?? 'Notes';
@@ -83,14 +87,14 @@ export class NoteListView {
 
 		// 2. Trigger on-demand indexing for the active hierarchy
 		// Note: This is async, results will populate as indexing completes via version reactivity.
-		void searchService.ensureFolderIndexed(currentFolderId);
+		void this.search.ensureFolderIndexed(currentFolderId);
 
 		// 3. Subscription to search service changes
 		// This line ensures Svelte re-runs this derived logic when the index updates.
-		searchService.version;
+		this.search.version;
 
 		// 4. Perform scoped search
-		const searchResultIds = searchService.search(normalizedQuery, currentFolderId);
+		const searchResultIds = this.search.search(normalizedQuery, currentFolderId);
 		
 		// 5. Combine results:
 		// We prefer search results if found. 

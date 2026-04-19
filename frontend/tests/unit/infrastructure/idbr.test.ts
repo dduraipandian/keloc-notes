@@ -18,7 +18,8 @@ import {
 	getAllSettings,
 	permanentDeleteNoteTransactionally
 } from '../../../src/lib/infrastructure/idbr';
-import { uiStore } from '../../../src/lib/stores/dialog.svelte';
+import { UIStore } from '../../../src/lib/stores/dialog.svelte';
+import { setDatabaseBlockedHandler } from '../../../src/lib/infrastructure/idbr';
 
 describe('IndexedDB Wrapper (idbr.ts)', () => {
 	beforeEach(async () => {
@@ -36,7 +37,16 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 	});
 
 	it('should surface a user-visible dialog when the database is blocked', () => {
-		const confirmSpy = vi.spyOn(uiStore, 'confirmAppQuit').mockImplementation(() => {});
+		const mockUIStore = new UIStore();
+		const confirmSpy = vi.spyOn(mockUIStore, 'confirmAppQuit').mockImplementation(() => {});
+		
+		setDatabaseBlockedHandler((current, blocked) => {
+			mockUIStore.confirmAppQuit(
+				'Database blocked',
+				'Another mdnotes window is open and preventing the update. Please close other windows to avoid data loss.',
+				() => {}
+			);
+		});
 
 		handleDatabaseBlocked(1, 2);
 

@@ -1,22 +1,37 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NoteListView } from '../../../src/lib/views/noteListView.svelte';
-import { noteService, searchService } from '../../../src/lib/stores/services';
+import { NoteService } from '../../../src/lib/stores/services/noteService';
+import { SearchService } from '../../../src/lib/stores/searchService.svelte';
 import { notesRepository } from '../../../src/lib/infrastructure/repositories';
-import { folderStore } from '../../../src/lib/stores/folders.svelte';
-import { notesStore } from '../../../src/lib/stores/notes.svelte';
+import { FolderStore } from '../../../src/lib/stores/folders.svelte';
+import { NotesStore } from '../../../src/lib/stores/notes.svelte';
+import { SelectionStore } from '../../../src/lib/stores/selection.svelte';
 
 const NOW = new Date().toISOString();
 
 describe('Search Integration (Phase 2)', () => {
 	let noteListView: NoteListView;
+	let mockSearchService: SearchService;
+	let mockNoteService: NoteService;
+	let mockFolderStore: FolderStore;
+	let mockNotesStore: NotesStore;
+	let mockSelectionStore: SelectionStore;
 
 	beforeEach(() => {
-		noteListView = new NoteListView();
+		mockFolderStore = new FolderStore();
+		mockSelectionStore = new SelectionStore();
+		mockNotesStore = new NotesStore(mockFolderStore, mockSelectionStore);
+		mockNoteService = new NoteService(mockFolderStore, mockNotesStore, mockSelectionStore);
+		mockSearchService = new SearchService(mockFolderStore, mockNotesStore, mockNoteService);
+		noteListView = new NoteListView(
+			{ selection: mockSelectionStore },
+			mockFolderStore,
+			mockNotesStore,
+			{} as any,
+			mockNoteService,
+			mockSearchService
+		);
 		vi.resetAllMocks();
-		// Reset search service state
-		(searchService as any).indexedFolderIds = new Set();
-		(searchService as any).index.removeAll();
-		(searchService as any).version = 0;
 	});
 
 	it('should find notes by content (Full Text Search)', async () => {
@@ -27,10 +42,10 @@ describe('Search Integration (Phase 2)', () => {
 
 		// 1. Setup Data Layer Mocks
 		const mockNote = { id: noteId, title: noteTitle, summary: '', updatedAt: '', folderId };
-		vi.spyOn(noteService, 'getNotesForFolder').mockReturnValue([mockNote as any]);
-		vi.spyOn(notesStore, 'getNote').mockReturnValue(mockNote as any);
-		vi.spyOn(notesStore, 'listNotes').mockReturnValue([mockNote as any]);
-		vi.spyOn(folderStore, 'findItemById').mockReturnValue({ id: folderId, items: [] } as any);
+		vi.spyOn(mockNoteService, 'getNotesForFolder').mockReturnValue([mockNote as any]);
+		vi.spyOn(mockNotesStore, 'getNote').mockReturnValue(mockNote as any);
+		vi.spyOn(mockNotesStore, 'listNotes').mockReturnValue([mockNote as any]);
+		vi.spyOn(mockFolderStore, 'findItemById').mockReturnValue({ id: folderId, items: [] } as any);
 		
 		// Mock bulk retrieval
 		vi.spyOn(notesRepository, 'getBulkContents').mockResolvedValue({
@@ -66,10 +81,10 @@ describe('Search Integration (Phase 2)', () => {
 		const folderId = 'root';
 
 		const mockNote = { id: noteId, title: noteTitle, summary: '', updatedAt: NOW, folderId };
-		vi.spyOn(noteService, 'getNotesForFolder').mockReturnValue([mockNote as any]);
-		vi.spyOn(notesStore, 'getNote').mockReturnValue(mockNote as any);
-		vi.spyOn(notesStore, 'listNotes').mockReturnValue([mockNote as any]);
-		vi.spyOn(folderStore, 'findItemById').mockReturnValue({ id: folderId, items: [] } as any);
+		vi.spyOn(mockNoteService, 'getNotesForFolder').mockReturnValue([mockNote as any]);
+		vi.spyOn(mockNotesStore, 'getNote').mockReturnValue(mockNote as any);
+		vi.spyOn(mockNotesStore, 'listNotes').mockReturnValue([mockNote as any]);
+		vi.spyOn(mockFolderStore, 'findItemById').mockReturnValue({ id: folderId, items: [] } as any);
 		vi.spyOn(notesRepository, 'getBulkContents').mockResolvedValue({ [noteId]: noteContent });
 
 		noteListView.setSearchQuery('God');

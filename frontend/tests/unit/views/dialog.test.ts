@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { uiStore } from '../../../src/lib/stores/dialog.svelte';
+import { UIStore } from '../../../src/lib/stores/dialog.svelte';
 
 describe('UIStore', () => {
+	let uiStore: UIStore;
+
 	beforeEach(() => {
-		uiStore.noteDialog.open = false;
-		uiStore.folderDialog.open = false;
-		uiStore.appDialog.open = false;
+		uiStore = new UIStore();
 	});
 
 	it('should configure note delete dialog correctly', () => {

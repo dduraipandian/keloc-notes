@@ -504,5 +504,3 @@ export class NotesStore {
 		});
 	}
 }
-
-export const notesStore = new NotesStore([]);

@@ -1,6 +1,4 @@
-import { folderStore, type FolderID, type FolderItem } from '../folders.svelte';
-import { notesStore } from '../notes.svelte';
-import { selectionStore } from '../selection.svelte';
+import type { FolderID, FolderItem } from '../folders.svelte';
 import type { FolderStoreLike, NotesStoreLike, SelectionStoreLike } from './types';
 import { FolderTreeHelper } from '../domain/folderTree';
 import { resolveProfile } from '../domain/profiles';
@@ -10,9 +8,9 @@ export class FolderService {
 	private readonly selection: SelectionStoreLike;
 
 	constructor(
-		private readonly folders: FolderStoreLike = folderStore,
-		private readonly notes: NotesStoreLike = notesStore,
-		selection: SelectionStoreLike = selectionStore
+		private readonly folders: FolderStoreLike,
+		private readonly notes: NotesStoreLike,
+		selection: SelectionStoreLike
 	) {
 		this.tree = new FolderTreeHelper(folders, notes);
 		this.selection = selection;

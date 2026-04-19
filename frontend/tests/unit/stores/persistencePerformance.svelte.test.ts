@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { notesStore } from '../../../src/lib/stores/notes.svelte';
+import { NotesStore } from '../../../src/lib/stores/notes.svelte';
+import { FolderStore } from '../../../src/lib/stores/folders.svelte';
+import { SelectionStore } from '../../../src/lib/stores/selection.svelte';
 import { notesRepository, settingsRepository } from '../../../src/lib/infrastructure/repositories';
 import { SvelteMap } from 'svelte/reactivity';
 
@@ -15,14 +17,18 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 }));
 
 describe('Phase B: Persistence Performance', () => {
+    let mockFolderStore: FolderStore;
+    let selectionStore: SelectionStore;
+    let mockNotesStore: NotesStore;
+
 	beforeEach(() => {
 		vi.useFakeTimers();
 		vi.clearAllMocks();
 		
-		// Reset store state
-		(notesStore as any).notes.clear();
-		(notesStore as any).isInitialized = true;
-		(notesStore as any).selectedNoteID = null;
+        mockFolderStore = new FolderStore();
+        selectionStore = new SelectionStore(mockFolderStore);
+        mockNotesStore = new NotesStore(mockFolderStore, selectionStore);
+		(mockNotesStore as any).isInitialized = true;
 		
 		// Setup a test note
 		const note = {
@@ -34,11 +40,11 @@ describe('Phase B: Persistence Performance', () => {
 			isContentLoaded: true
 		};
 		let n = $state(note);
-		notesStore.notes.set('n1', n as any);
+		mockNotesStore.notes.set('n1', n as any);
 	});
 
 	it('Item 4.1: should debounce note persistence', () => {
-		notesStore.updateNote('n1', { content: 'typed' });
+		mockNotesStore.updateNote('n1', { content: 'typed' });
 		
 		// Should NOT call save immediately
 		expect(notesRepository.saveContent).not.toHaveBeenCalled();
@@ -56,13 +62,13 @@ describe('Phase B: Persistence Performance', () => {
 	});
 
 	it('Item 4.1: should flush pending debounce on note switch', () => {
-		notesStore.selectNote('n1');
-		notesStore.updateNote('n1', { content: 'unsaved content' });
+		mockNotesStore.selectNote('n1');
+		mockNotesStore.updateNote('n1', { content: 'unsaved content' });
 		
 		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 
 		// Switch to another note
-		notesStore.selectNote('n2');
+		mockNotesStore.selectNote('n2');
 
 		// n1 should have been flushed immediately
 		expect(notesRepository.saveContent).toHaveBeenCalledTimes(1);
@@ -70,11 +76,11 @@ describe('Phase B: Persistence Performance', () => {
 	});
 
 	it('Item 4.2: should separate selection persistence from note persistence', () => {
-		notesStore.selectNote('n1');
+		mockNotesStore.selectNote('n1');
 		(settingsRepository.save as any).mockClear();
 
 		// Update note content
-		notesStore.updateNote('n1', { content: 'updated' });
+		mockNotesStore.updateNote('n1', { content: 'updated' });
 		
 		// Advance timers so persistence fires
 		vi.advanceTimersByTime(400);
@@ -88,7 +94,8 @@ describe('Phase B: Persistence Performance', () => {
 	});
 
 	it('Item 4.2: should persist selection only when selectNote is called', () => {
-		notesStore.selectNote('n1');
+		mockNotesStore.selectNote('n1');
+		// Corrected sentinel check: the code uses __selection__ internally
 		expect(settingsRepository.save).toHaveBeenCalledWith('selectedNoteID', 'n1');
 	});
 });

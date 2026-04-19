@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { TrashService } from '../../../src/lib/stores/services/trashService';
-import { notesStore } from '../../../src/lib/stores/notes.svelte';
-import { folderStore } from '../../../src/lib/stores/folders.svelte';
-import { selectionStore } from '../../../src/lib/stores/selection.svelte';
+import { FolderStore } from '../../../src/lib/stores/folders.svelte';
+import { NotesStore } from '../../../src/lib/stores/notes.svelte';
+import { SelectionStore } from '../../../src/lib/stores/selection.svelte';
 import { trashRepository, settingsRepository } from '../../../src/lib/infrastructure/repositories';
 import {
 	initDB,
@@ -35,31 +35,25 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 
 describe('TrashService', () => {
 	let trashService: TrashService;
+	let folderStore: FolderStore;
+	let notesStore: NotesStore;
+	let selectionStore: SelectionStore;
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
 
-		// Reset stores according to conventions
-		(notesStore as any).notes.clear();
-		(folderStore as any).folders.clear();
-		(folderStore as any).items = [];
-		folderStore.folders.set('home', {
-			id: 'home',
-			title: 'Home',
-			items: [],
-			profile: 'home'
-		} as any);
-		(notesStore as any).selectedNoteID = null;
+		folderStore = new FolderStore();
+		selectionStore = new SelectionStore(folderStore);
+		notesStore = new NotesStore(folderStore, selectionStore);
+
 		(notesStore as any).isInitialized = true;
 		(folderStore as any).isInitialized = true;
-
-		selectionStore.__resetForTest();
 
 		trashService = new TrashService(
 			folderStore as any,
 			notesStore as any,
-			trashRepository as any,
-			selectionStore as any
+			selectionStore as any,
+			trashRepository as any
 		);
 	});
 

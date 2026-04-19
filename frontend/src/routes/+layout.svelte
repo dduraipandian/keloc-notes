@@ -1,13 +1,27 @@
 <script lang="ts">
 	import './layout.css';
 	import { onMount } from 'svelte';
-	import { folderStore } from '$lib/stores/folders.svelte';
-	import { notesStore } from '$lib/stores/notes.svelte';
-	import { selectionStore } from '$lib/stores/selection.svelte';
+	import { FolderStore } from '$lib/stores/folders.svelte';
+	import { NotesStore } from '$lib/stores/notes.svelte';
+	import { SelectionStore } from '$lib/stores/selection.svelte';
 	import { settingsRepository } from '$lib/infrastructure/repositories';
 	import { ThemeStore } from '$lib/stores/theme.svelte';
 	import { UIStateStore } from '$lib/stores/uiState.svelte';
-	import { setThemeStore, setUIStateStore, setPreferencesStore } from '$lib/stores/context';
+	import { 
+		setThemeStore, 
+		setUIStateStore, 
+		setPreferencesStore,
+		setUIStore,
+		setSelectionStore,
+		setFolderStore,
+		setNotesStore,
+		setFolderService,
+		setNoteService,
+		setTrashService,
+		setSearchService,
+		setFolderSidebarView,
+		setNoteListView
+	} from '$lib/stores/context';
 	import {
 		handleEscapeShortcut,
 		handleFoldersPaneShortcut,
@@ -19,8 +33,8 @@
 	import Folders from '$lib/components/Folders.svelte';
 	import NoteItems from '$lib/components/NoteItems.svelte';
 	import { EventsEmit, EventsOn, Quit, WindowSetTitle } from '$lib/wailsjs/runtime/runtime';
-	import { uiStore } from '$lib/stores/dialog.svelte';
-	import { folderService, noteService, trashService } from '$lib/stores/services';
+	import { UIStore } from '$lib/stores/dialog.svelte';
+	import { FolderService, NoteService, TrashService, SearchService } from '$lib/stores/services';
 	import { FolderSidebarView } from '$lib/views/folderSidebarView.svelte';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
 	import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
@@ -30,16 +44,63 @@
 import { hasWailsRuntime } from '$lib/wails.svelte';
 	import { UpdateMenuState } from '$lib/wailsjs/go/main/App';
 	import { menu } from '$lib/wailsjs/go/models';
+	import { setDatabaseBlockedHandler } from '$lib/infrastructure/idbr';
 
+	const folderStore = new FolderStore();
 	const themeStore = new ThemeStore();
 	const uiStateStore = new UIStateStore();
 	const preferencesStore = new PreferencesStore();
+	const uiStore = new UIStore();
+	const selectionStore = new SelectionStore(folderStore);
+	const notesStore = new NotesStore(folderStore, selectionStore);
+
+	setFolderStore(folderStore);
+	setNotesStore(notesStore);
 	setThemeStore(themeStore);
 	setUIStateStore(uiStateStore);
 	setPreferencesStore(preferencesStore);
+	setUIStore(uiStore);
+	setSelectionStore(selectionStore);
 
-	const folderSidebarView = new FolderSidebarView();
-	const noteListView = new NoteListView();
+	const folderService = new FolderService(folderStore, notesStore, selectionStore);
+	const noteService = new NoteService(folderStore, notesStore, selectionStore);
+	const trashService = new TrashService(folderStore, notesStore, selectionStore);
+	const searchService = new SearchService(folderStore, notesStore, noteService);
+
+	setFolderService(folderService);
+	setNoteService(noteService);
+	setTrashService(trashService);
+	setSearchService(searchService);
+
+	// Break circular dependency
+	notesStore.setSearchService(searchService);
+
+	setDatabaseBlockedHandler((current, blocked) => {
+		uiStore.confirmAppQuit(
+			'Database blocked',
+			`Another mdnotes window is open and is blocking a database upgrade (current: ${current ?? 'unknown'}, target: ${blocked ?? 'unknown'}). Please close the other window and restart mdnotes.`,
+			() => {}
+		);
+	});
+
+	const folderSidebarView = new FolderSidebarView(
+		{ selection: selectionStore, ui: uiStore },
+		folderStore,
+		folderService,
+		noteService,
+		trashService
+	);
+	const noteListView = new NoteListView(
+		{ selection: selectionStore },
+		folderStore,
+		notesStore,
+		folderService,
+		noteService,
+		searchService
+	);
+
+	setFolderSidebarView(folderSidebarView);
+	setNoteListView(noteListView);
 
 
 	let { children } = $props();
@@ -329,7 +390,17 @@ import { hasWailsRuntime } from '$lib/wails.svelte';
 
 		const offMenuBridge = hasWailsRuntime()
 			? initMenuBridge(
-					{ uiState: uiStateStore, theme: themeStore },
+					{ 
+						uiState: uiStateStore, 
+						theme: themeStore, 
+						ui: uiStore, 
+						selection: selectionStore,
+						folders: folderStore,
+						notes: notesStore,
+						folderService,
+						noteService,
+						trashService
+					},
 					{
 					onOpenAbout: () => {
 						showAbout = true;
@@ -340,7 +411,7 @@ import { hasWailsRuntime } from '$lib/wails.svelte';
 				})
 			: () => {};
 
-		const offMenuState = hasWailsRuntime() ? initMenuStateEffect({ theme: themeStore }) : () => {};
+		const offMenuState = hasWailsRuntime() ? initMenuStateEffect({ theme: themeStore, notes: notesStore }) : () => {};
 
 		void (async () => {
 			try {

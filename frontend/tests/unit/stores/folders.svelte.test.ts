@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { folderStore, type FolderItem } from '../../../src/lib/stores/folders.svelte';
+import { FolderStore, type FolderItem } from '../../../src/lib/stores/folders.svelte';
 import { SvelteMap } from 'svelte/reactivity';
 import { foldersRepository } from '../../../src/lib/infrastructure/repositories';
 
@@ -23,8 +23,11 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 global.crypto.randomUUID = vi.fn(() => 'test-uuid' as any);
 
 describe('FolderStore (Flat Recovery & Validation)', () => {
+    let folderStore: FolderStore;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
+        folderStore = new FolderStore();
 		(folderStore as any).items = [];
 		(folderStore as any).folders = new SvelteMap<string, FolderItem>();
 		(folderStore as any).isInitialized = true;
@@ -118,8 +121,11 @@ describe('FolderStore (Flat Recovery & Validation)', () => {
 });
 
 describe('FolderStore Reactivity (Regression Test)', () => {
+    let folderStore: FolderStore;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
+        folderStore = new FolderStore();
 		(folderStore as any).items = [];
 		(folderStore as any).folders = new SvelteMap<string, FolderItem>();
 		(folderStore as any).isInitialized = true;
