@@ -1,22 +1,26 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
-import { 
-	initDB, 
+import {
+	initDB,
 	handleDatabaseBlocked,
-	putFolder, 
-	getFolder, 
-	deleteFolder, 
-	getAllFolders, 
-	putNoteMeta, 
-	getNoteMeta, 
-	putNoteContent, 
-	getNoteContent, 
-	deleteNote, 
-	getAllNotesMeta, 
-	putSetting, 
-	getSetting, 
+	putFolder,
+	getFolder,
+	deleteFolder,
+	getAllFolders,
+	putNoteMeta,
+	getNoteMeta,
+	putNoteContent,
+	getNoteContent,
+	deleteNote,
+	getAllNotesMeta,
+	putSetting,
+	getSetting,
 	getAllSettings,
-	permanentDeleteNoteTransactionally
+	permanentDeleteNoteTransactionally,
+	putNoteAsset,
+	getNoteAsset,
+	deleteNoteAsset,
+	deleteNoteAssetsByNoteId
 } from '../../../src/lib/infrastructure/idbr';
 import { UIStore } from '../../../src/lib/stores/dialog.svelte';
 import { setDatabaseBlockedHandler } from '../../../src/lib/infrastructure/idbr';
@@ -34,6 +38,7 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 		expect(db.objectStoreNames).toContain('notes_contents');
 		expect(db.objectStoreNames).toContain('settings');
 		expect(db.objectStoreNames).toContain('backups');
+		expect(db.objectStoreNames).toContain('note_assets');
 	});
 
 	it('should surface a user-visible dialog when the database is blocked', () => {
@@ -138,6 +143,104 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 			expect(settings.noteListWidth).toBe(360);
 			expect(settings.applicationTheme).toBe('dark');
 		});
+
+		it('should return editorToolbar setting with default null', async () => {
+			const settings = await getAllSettings();
+			expect(settings.editorToolbar).toBeNull();
+		});
+
+		it('should put and get editorToolbar setting', async () => {
+			await putSetting('editorToolbar', 'fixed');
+			const settings = await getAllSettings();
+			expect(settings.editorToolbar).toBe('fixed');
+		});
+
+		it('should return enabledLanguages setting with default null', async () => {
+			const settings = await getAllSettings();
+			expect(settings.enabledLanguages).toBeNull();
+		});
+
+		it('should put and get enabledLanguages setting as array', async () => {
+			const languages = ['javascript', 'python', 'go'];
+			await putSetting('enabledLanguages', languages);
+			const settings = await getAllSettings();
+			expect(settings.enabledLanguages).toEqual(languages);
+		});
+	});
+
+	describe('Note Assets CRUD', () => {
+		it('should put and get a note asset', async () => {
+			const blob = new Blob(['image data'], { type: 'image/webp' });
+			const asset = {
+				id: 'asset-1',
+				noteId: 'n1',
+				mimeType: 'image/webp',
+				data: blob
+			};
+			await putNoteAsset(asset);
+			const result = await getNoteAsset('asset-1');
+			expect(result).toBeDefined();
+			expect(result?.id).toBe('asset-1');
+			expect(result?.noteId).toBe('n1');
+			expect(result?.mimeType).toBe('image/webp');
+		});
+
+		it('should delete a note asset', async () => {
+			const blob = new Blob(['test'], { type: 'image/webp' });
+			await putNoteAsset({
+				id: 'asset-1',
+				noteId: 'n1',
+				mimeType: 'image/webp',
+				data: blob
+			});
+			await deleteNoteAsset('asset-1');
+			const result = await getNoteAsset('asset-1');
+			expect(result).toBeUndefined();
+		});
+
+		it('should delete all assets for a note by noteId', async () => {
+			const blob1 = new Blob(['img1'], { type: 'image/webp' });
+			const blob2 = new Blob(['img2'], { type: 'image/webp' });
+			const blob3 = new Blob(['img3'], { type: 'image/webp' });
+
+			// Add assets for note n1
+			await putNoteAsset({
+				id: 'asset-1',
+				noteId: 'n1',
+				mimeType: 'image/webp',
+				data: blob1
+			});
+			await putNoteAsset({
+				id: 'asset-2',
+				noteId: 'n1',
+				mimeType: 'image/webp',
+				data: blob2
+			});
+
+			// Add asset for note n2
+			await putNoteAsset({
+				id: 'asset-3',
+				noteId: 'n2',
+				mimeType: 'image/webp',
+				data: blob3
+			});
+
+			// Delete all assets for n1
+			await deleteNoteAssetsByNoteId('n1');
+
+			// Verify n1 assets are gone
+			expect(await getNoteAsset('asset-1')).toBeUndefined();
+			expect(await getNoteAsset('asset-2')).toBeUndefined();
+
+			// Verify n2 asset still exists
+			expect(await getNoteAsset('asset-3')).toBeDefined();
+		});
+
+		it('should create note_assets store with noteId index on v4 migration', async () => {
+			const db = await initDB();
+			const storeNames = Array.from(db.objectStoreNames);
+			expect(storeNames).toContain('note_assets');
+		});
 	});
 
 	describe('Permanent Delete Note (Single)', () => {
@@ -150,13 +253,13 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 
 			// New robust signature (3 args)
 			await permanentDeleteNoteTransactionally(meta, 'Home / To Delete', archivedAt);
-			
+
 			// Verify note is gone from notes stores
 			const fetchedMeta = await getNoteMeta('n1');
 			expect(fetchedMeta).toBeUndefined();
 			const fetchedContent = await getNoteContent('n1');
 			expect(fetchedContent).toBe('');
-			
+
 			// Verify note is in backups store
 			const db = await initDB();
 			const backup = await db.get('backups', 'note_n1');

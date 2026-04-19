@@ -4,7 +4,7 @@ import type { NoteItem } from '../stores/notes.svelte';
 import type { UIStore } from '../stores/dialog.svelte';
 
 const DEFAULT_DB_NAME = 'mdnotes-db';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export interface DBStore {
 	folders: {
@@ -24,6 +24,10 @@ export interface DBStore {
 		value: any;
 	};
 	backups: {
+		key: string;
+		value: any;
+	};
+	note_assets: {
 		key: string;
 		value: any;
 	};
@@ -54,6 +58,10 @@ function ensureStores(db: IDBPDatabase<DBStore>) {
 	if (!db.objectStoreNames.contains('backups')) {
 		db.createObjectStore('backups', { keyPath: 'id' });
 	}
+	if (!db.objectStoreNames.contains('note_assets')) {
+		const assetStore = db.createObjectStore('note_assets', { keyPath: 'id' });
+		assetStore.createIndex('by_note', 'noteId');
+	}
 }
 
 let blockedHandler: ((current: number | undefined, blocked: number | null) => void) | null = null;
@@ -82,6 +90,13 @@ export function initDB() {
 						db.deleteObjectStore('notes');
 					}
 					ensureStores(db);
+					break;
+				case 3:
+					// v4: add note_assets store
+					if (!db.objectStoreNames.contains('note_assets')) {
+						const assetStore = db.createObjectStore('note_assets', { keyPath: 'id' });
+						assetStore.createIndex('by_note', 'noteId');
+					}
 					break;
 				default:
 					ensureStores(db);
@@ -224,6 +239,8 @@ export type SettingsState = {
 	noteListWidth: number | null;
 	applicationTheme: 'light' | 'dark' | 'system' | null;
 	folderAccentColor: string | null;
+	editorToolbar: 'fixed' | 'bubble' | 'both' | null;
+	enabledLanguages: string[] | null;
 };
 
 type SettingsKey = keyof SettingsState;
@@ -254,6 +271,8 @@ export async function getAllSettings(): Promise<SettingsState> {
 		let noteListWidth: number | null = null;
 		let applicationTheme: 'light' | 'dark' | 'system' | null = null;
 		let folderAccentColor: string | null = null;
+		let editorToolbar: 'fixed' | 'bubble' | 'both' | null = null;
+		let enabledLanguages: string[] | null = null;
 
 		keys.forEach((key, index) => {
 			switch (key) {
@@ -275,6 +294,12 @@ export async function getAllSettings(): Promise<SettingsState> {
 				case 'folderAccentColor':
 					folderAccentColor = (values[index] as string | null) ?? null;
 					break;
+				case 'editorToolbar':
+					editorToolbar = (values[index] as 'fixed' | 'bubble' | 'both' | null) ?? null;
+					break;
+				case 'enabledLanguages':
+					enabledLanguages = (values[index] as string[] | null) ?? null;
+					break;
 				default:
 					break;
 			}
@@ -285,9 +310,46 @@ export async function getAllSettings(): Promise<SettingsState> {
 			sidebarWidth,
 			noteListWidth,
 			applicationTheme,
-			folderAccentColor
+			folderAccentColor,
+			editorToolbar,
+			enabledLanguages
 		};
 	});
+}
+
+// ─────────────────────────────────────────────
+// Note Assets Methods
+// ─────────────────────────────────────────────
+
+export async function putNoteAsset(asset: {
+	id: string;
+	noteId: string;
+	mimeType: string;
+	data: Blob;
+}): Promise<void> {
+	const db = await getDB();
+	await db.put('note_assets', asset);
+}
+
+export async function getNoteAsset(
+	id: string
+): Promise<{ id: string; noteId: string; mimeType: string; data: Blob } | undefined> {
+	const db = await getDB();
+	return db.get('note_assets', id);
+}
+
+export async function deleteNoteAsset(id: string): Promise<void> {
+	const db = await getDB();
+	await db.delete('note_assets', id);
+}
+
+export async function deleteNoteAssetsByNoteId(noteId: string): Promise<void> {
+	const db = await getDB();
+	const tx = db.transaction('note_assets', 'readwrite');
+	const index = tx.store.index('by_note');
+	const keys = await index.getAllKeys(noteId);
+	await Promise.all(keys.map((k) => tx.store.delete(k)));
+	await tx.done;
 }
 
 export async function restoreBackupTransactionally(
