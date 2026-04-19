@@ -437,6 +437,14 @@ This is the current high-level backlog after the Part A release blockers. The re
 
 ### Phase F: Release Readiness
 
+- [ ] **Backup import/export trustworthiness** — Fix `frontend/src/lib/backup/backup.ts` so imports persist notes, folders, and settings to IndexedDB before reload. Add automated coverage for backup export/import plus app restart validation.
+- [ ] **User-visible import/export failures** — Replace console-only failures in menu-driven import/export flows with actionable dialogs or notifications so users are never left with "nothing happened."
+- [ ] **One-click install path** — Publish a real end-user install path for the primary release target, not just `wails build`. Start with a signed/notarized macOS `.app`/DMG and documented install steps.
+- [ ] **Platform support positioning** — Either implement Windows/Linux menu parity or explicitly mark those platforms as preview / unsupported in README, releases, and product copy until parity exists.
+- [ ] **First-run onboarding** — Add empty-state guidance for a brand-new library: create first folder, create first note, and explain the three-pane workflow without requiring README reading.
+- [ ] **Native menu completeness** — Remove or implement placeholder menu items/actions (`Close Window`, `Enter Full Screen`, Help actions) before calling the app release-ready.
+- [ ] **Versioning source of truth** — Drive About dialog version, backup metadata, installer metadata, and release tags from one canonical app version instead of mixed fallbacks.
+- [ ] **Privacy & storage documentation** — Document exactly where local data is stored, what "local-first" means, whether data is encrypted at rest, and what backup compatibility guarantees exist across versions.
 - [ ] **README updates** — Fix tech stack details, add documentation and screenshots. Note: Go version is listed as "1.26+" but `go.mod` specifies 1.23.
 - [ ] **Screenshots for the repo** — Add polished app screenshots under `docs/screenshots/` and reference them from `README.md`.
 - [ ] **Rich text editor** — Final replacement of `<textarea>` with TipTap (TipTap/Markdown).
@@ -472,11 +480,15 @@ This is the current high-level backlog after the Part A release blockers. The re
 Before cutting a public release, confirm:
 
 1. All of **Part A (R1–R7)** is landed on `main`.
-2. All items in Part B sections 1–6 are `[x]` or have a linked issue explaining why they're deferred.
-3. `npm run check` and `npm run test` are green.
-4. `wails build` produces a runnable binary on at least macOS and one of (Linux, Windows).
-5. The README renders correctly on GitHub with working image links.
-6. Manual smoke test: fresh install → create folder → create note → type → ⌘Q mid-type → reopen → the typed content is intact.
-7. Secret scan: no local filesystem paths, PII, or credentials in tracked files (`go.mod` replace directives, `.claude/` settings, etc.).
-8. `.gitignore` covers `.claude/`, `*.DS_Store`, and build artifacts.
-9. `LICENSE` copyright boilerplate is filled in with actual year and holder name.
+2. All Phase F release-readiness items above are `[x]` or have a linked issue explaining why they are intentionally deferred from the public release.
+3. `npm run check`, `npm run test`, and `npm run test:e2e` are green under a documented supported Node version.
+4. Backup restore smoke test passes: export backup → wipe app data / use fresh DB → import backup → restart app → notes, folders, and settings are still present.
+5. Import/export failure paths are user-visible and actionable; no release-critical flows fail with console-only errors.
+6. A real installer / release artifact exists for the primary supported platform, with signing/notarization status documented and install steps verified on a clean machine.
+7. Platform claims match reality: if Windows/Linux are still partial, the README and release notes say so explicitly.
+8. The README renders correctly on GitHub with working image links, screenshots, and a <5 minute quick start for end users.
+9. Manual smoke test: fresh install → create folder → create note → type → ⌘Q mid-type → reopen → the typed content is intact.
+10. Secret scan: no local filesystem paths, PII, or credentials in tracked files (`go.mod` replace directives, `.claude/` settings, etc.).
+11. `.gitignore` covers `.claude/`, `*.DS_Store`, and build artifacts.
+12. `LICENSE` copyright boilerplate is filled in with actual year and holder name.
+13. About dialog version, backup metadata version, and release tag all match the same canonical application version.

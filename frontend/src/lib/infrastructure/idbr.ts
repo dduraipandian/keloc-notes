@@ -290,6 +290,48 @@ export async function getAllSettings(): Promise<SettingsState> {
 	});
 }
 
+export async function restoreBackupTransactionally(
+	folders: any[],
+	notes: Array<{
+		id: string;
+		folderId: string | null;
+		title: string;
+		summary: string;
+		updatedAt: string;
+		isFavorite?: boolean;
+		deletedAt?: number | null;
+		deletedBatchId?: string | null;
+		content: string;
+	}>,
+	settings: Partial<SettingsState>
+) {
+	return await withTransaction(['folders', 'notes_meta', 'notes_contents', 'settings'], 'readwrite', async (tx) => {
+		const folderStore = tx.objectStore('folders')!;
+		const metaStore = tx.objectStore('notes_meta')!;
+		const contentStore = tx.objectStore('notes_contents')!;
+		const settingsStore = tx.objectStore('settings')!;
+
+		await folderStore.clear!();
+		await metaStore.clear!();
+		await contentStore.clear!();
+		await settingsStore.clear!();
+
+		for (const folder of folders) {
+			await folderStore.put!(folder);
+		}
+
+		for (const note of notes) {
+			const { content, ...meta } = note;
+			await metaStore.put!(meta);
+			await contentStore.put!({ id: note.id, content });
+		}
+
+		for (const [key, value] of Object.entries(settings)) {
+			await settingsStore.put!(value, key);
+		}
+	});
+}
+
 // ─────────────────────────────────────────────
 // Transactional Archival/Deletion
 // ─────────────────────────────────────────────
