@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { tick } from 'svelte';
-import { render, screen } from '@testing-library/svelte';
+import { cleanup, render, screen } from '@testing-library/svelte';
 import Alert from '../../../src/routes/alert.svelte';
 import type { ConfirmOptions } from '../../../src/lib/stores/dialog.svelte';
 
@@ -9,9 +9,11 @@ describe('Alert route', () => {
 		delete (window as Window & { __xss?: boolean }).__xss;
 	});
 
-	// Flush bits-ui PresenceManager's rAF-based animation callbacks before
-	// @testing-library cleanup destroys the component (describe-scope runs first).
+	// bits-ui schedules delayed cleanup work on unmount. Run cleanup here, then
+	// drain both timer and animation queues before JSDOM is torn down.
 	afterEach(async () => {
+		cleanup();
+		await new Promise<void>((r) => setTimeout(() => r(), 0));
 		await new Promise<void>((r) => requestAnimationFrame(() => r()));
 		await tick();
 	});

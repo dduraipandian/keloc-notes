@@ -12,6 +12,11 @@ import (
 	"mdnotes/menu"
 )
 
+const (
+	helpURL      = "https://github.com/dduraipandian/mdnotes#readme"
+	reportBugURL = "https://github.com/dduraipandian/mdnotes/issues/new"
+)
+
 // App struct
 type App struct {
 	ctx      context.Context
@@ -70,6 +75,13 @@ func (a *App) OnOpenPreferences() {
 	runtime.EventsEmit(a.ctx, "menu:open-preferences")
 }
 
+func (a *App) OnCloseWindow() {
+	if a.ctx == nil {
+		return
+	}
+	runtime.WindowHide(a.ctx)
+}
+
 func (a *App) OnNewNote() {
 	runtime.EventsEmit(a.ctx, "menu:new-note")
 }
@@ -92,6 +104,17 @@ func (a *App) OnToggleSidebar() {
 
 func (a *App) OnToggleNoteList() {
 	runtime.EventsEmit(a.ctx, "menu:toggle-note-list")
+}
+
+func (a *App) OnToggleFullscreen() {
+	if a.ctx == nil {
+		return
+	}
+	if runtime.WindowIsFullscreen(a.ctx) {
+		runtime.WindowUnfullscreen(a.ctx)
+		return
+	}
+	runtime.WindowFullscreen(a.ctx)
 }
 
 func (a *App) OnSetTheme(theme string) {
@@ -123,7 +146,18 @@ func (a *App) OnImportBackup() {
 }
 
 func (a *App) OnHelp(topic string) {
-	runtime.EventsEmit(a.ctx, "menu:help", topic)
+	if a.ctx == nil {
+		return
+	}
+
+	switch topic {
+	case "help":
+		runtime.BrowserOpenURL(a.ctx, helpURL)
+	case "report-bug":
+		runtime.BrowserOpenURL(a.ctx, reportBugURL)
+	default:
+		return
+	}
 }
 
 // UpdateMenuState updates the menu based on the current application state.

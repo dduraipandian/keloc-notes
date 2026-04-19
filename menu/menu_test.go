@@ -2,12 +2,17 @@ package menu
 
 import (
 	"testing"
+
+	wailsmenu "github.com/wailsapp/wails/v2/pkg/menu"
 )
 
 // mockMenuHost implements MenuHost for testing.
 type mockMenuHost struct {
 	onOpenAboutCalled       bool
 	onOpenPreferencesCalled bool
+	onCloseWindowCalled     bool
+	onToggleFullscreenCalled bool
+	helpTopics              []string
 }
 
 func (m *mockMenuHost) OnOpenAbout() {
@@ -18,12 +23,17 @@ func (m *mockMenuHost) OnOpenPreferences() {
 	m.onOpenPreferencesCalled = true
 }
 
+func (m *mockMenuHost) OnCloseWindow() {
+	m.onCloseWindowCalled = true
+}
+
 func (m *mockMenuHost) OnNewNote()             {}
 func (m *mockMenuHost) OnNewFolder()           {}
 func (m *mockMenuHost) OnDeleteNote()          {}
 func (m *mockMenuHost) OnEmptyTrash()          {}
 func (m *mockMenuHost) OnToggleSidebar()       {}
 func (m *mockMenuHost) OnToggleNoteList()      {}
+func (m *mockMenuHost) OnToggleFullscreen()    { m.onToggleFullscreenCalled = true }
 func (m *mockMenuHost) OnSetTheme(theme string) {}
 func (m *mockMenuHost) OnFocusSearch()         {}
 func (m *mockMenuHost) OnExportCurrentNote()   {}
@@ -31,7 +41,7 @@ func (m *mockMenuHost) OnExportAllMarkdown()   {}
 func (m *mockMenuHost) OnExportBackup()        {}
 func (m *mockMenuHost) OnImportMarkdown()      {}
 func (m *mockMenuHost) OnImportBackup()        {}
-func (m *mockMenuHost) OnHelp(topic string)    {}
+func (m *mockMenuHost) OnHelp(topic string)    { m.helpTopics = append(m.helpTopics, topic) }
 
 func TestBuildMacMenuStructure(t *testing.T) {
 	host := &mockMenuHost{}
@@ -216,6 +226,75 @@ func TestBuildMacMenuStructure(t *testing.T) {
 	}
 	if !hasReportBug {
 		t.Error("Help menu missing 'Report a Bug' item")
+	}
+}
+
+func TestMacMenuCallbacksInvokeHostActions(t *testing.T) {
+	host := &mockMenuHost{}
+	mainMenu, _ := BuildMacMenu(host)
+
+	fileMenu := mainMenu.Items[1]
+	viewMenu := mainMenu.Items[3]
+	helpMenu := mainMenu.Items[5]
+
+	var closeWindowItem *wailsmenu.MenuItem
+	for _, item := range fileMenu.SubMenu.Items {
+		if item != nil && item.Label == "Close Window" {
+			closeWindowItem = item
+			break
+		}
+	}
+	if closeWindowItem == nil {
+		t.Fatal("Close Window item not found")
+	}
+	closeWindowItem.Click(&wailsmenu.CallbackData{MenuItem: closeWindowItem})
+	if !host.onCloseWindowCalled {
+		t.Error("Close Window should invoke host.OnCloseWindow")
+	}
+
+	var fullscreenItem *wailsmenu.MenuItem
+	for _, item := range viewMenu.SubMenu.Items {
+		if item != nil && item.Label == "Enter Full Screen" {
+			fullscreenItem = item
+			break
+		}
+	}
+	if fullscreenItem == nil {
+		t.Fatal("Enter Full Screen item not found")
+	}
+	fullscreenItem.Click(&wailsmenu.CallbackData{MenuItem: fullscreenItem})
+	if !host.onToggleFullscreenCalled {
+		t.Error("Enter Full Screen should invoke host.OnToggleFullscreen")
+	}
+
+	var helpItem *wailsmenu.MenuItem
+	var reportBugItem *wailsmenu.MenuItem
+	for _, item := range helpMenu.SubMenu.Items {
+		if item == nil {
+			continue
+		}
+		switch item.Label {
+		case "mdnotes Help":
+			helpItem = item
+		case "Report a Bug":
+			reportBugItem = item
+		}
+	}
+	if helpItem == nil || reportBugItem == nil {
+		t.Fatal("help menu items not found")
+	}
+
+	helpItem.Click(&wailsmenu.CallbackData{MenuItem: helpItem})
+	reportBugItem.Click(&wailsmenu.CallbackData{MenuItem: reportBugItem})
+
+	if len(host.helpTopics) != 2 {
+		t.Fatalf("expected 2 help callbacks, got %d", len(host.helpTopics))
+	}
+	if host.helpTopics[0] != "help" {
+		t.Errorf("expected first help topic 'help', got %q", host.helpTopics[0])
+	}
+	if host.helpTopics[1] != "report-bug" {
+		t.Errorf("expected second help topic 'report-bug', got %q", host.helpTopics[1])
 	}
 }
 

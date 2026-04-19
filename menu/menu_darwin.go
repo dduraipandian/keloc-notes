@@ -12,12 +12,14 @@ import (
 type MenuHost interface {
 	OnOpenAbout()
 	OnOpenPreferences()
+	OnCloseWindow()
 	OnNewNote()
 	OnNewFolder()
 	OnDeleteNote()
 	OnEmptyTrash()
 	OnToggleSidebar()
 	OnToggleNoteList()
+	OnToggleFullscreen()
 	OnSetTheme(theme string)
 	OnFocusSearch()
 	OnExportCurrentNote()
@@ -78,8 +80,7 @@ func buildFileMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
 
 	// Close Window
 	fileMenuItems.Append(menu.Text("Close Window", keys.CmdOrCtrl("w"), func(cd *menu.CallbackData) {
-		// Standard Close behavior would need runtime implementation or letting OS handle it.
-		// In Wails v2 without a role, we'll keep it as a placeholder for now.
+		host.OnCloseWindow()
 	}))
 	fileMenuItems.Append(menu.Separator())
 
@@ -169,7 +170,7 @@ func buildViewMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
 
 	viewMenuItems.Append(menu.Separator())
 	viewMenuItems.Append(menu.Text("Enter Full Screen", nil, func(cd *menu.CallbackData) {
-		// Roles for individual items not available in Wails v2; manual implementation needed.
+		host.OnToggleFullscreen()
 	}))
 
 	return menu.SubMenu("View", viewMenuItems)

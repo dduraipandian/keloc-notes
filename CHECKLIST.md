@@ -437,8 +437,8 @@ This is the current high-level backlog after the Part A release blockers. The re
 
 ### Phase F: Release Readiness
 
-- [ ] **Backup import/export trustworthiness** — Fix `frontend/src/lib/backup/backup.ts` so imports persist notes, folders, and settings to IndexedDB before reload. Add automated coverage for backup export/import plus app restart validation.
-- [ ] **User-visible import/export failures** — Replace console-only failures in menu-driven import/export flows with actionable dialogs or notifications so users are never left with "nothing happened."
+- [x] **Backup import/export trustworthiness** — Fix `frontend/src/lib/backup/backup.ts` so imports persist notes, folders, and settings to IndexedDB before reload. Add automated coverage for backup export/import plus app restart validation.
+- [x] **User-visible import/export failures** — Replace console-only failures in menu-driven import/export flows with actionable dialogs or notifications so users are never left with "nothing happened."
 - [ ] **One-click install path** — Publish a real end-user install path for the primary release target, not just `wails build`. Start with a signed/notarized macOS `.app`/DMG and documented install steps.
 - [ ] **Platform support positioning** — Either implement Windows/Linux menu parity or explicitly mark those platforms as preview / unsupported in README, releases, and product copy until parity exists.
 - [ ] **First-run onboarding** — Add empty-state guidance for a brand-new library: create first folder, create first note, and explain the three-pane workflow without requiring README reading.
