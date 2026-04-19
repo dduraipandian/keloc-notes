@@ -54,8 +54,10 @@ async function createNote(page: import('@playwright/test').Page, title: string, 
 	await expect(titleInput).toBeVisible();
 	await titleInput.fill(title);
 	if (content) {
-		const bodyInput = page.getByPlaceholder('Start writing...');
-		await bodyInput.fill(content);
+		const bodyInput = page.locator('.ProseMirror').first();
+		await expect(bodyInput).toBeVisible();
+		await bodyInput.click();
+		await bodyInput.type(content);
 	}
 }
 

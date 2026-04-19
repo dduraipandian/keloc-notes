@@ -16,9 +16,10 @@ test.describe('Search Functionality', () => {
 		// 1. Create a note with unique content
 		await page.getByTitle('New Note').click();
 		await page.getByPlaceholder('Note Title').fill('Science Note');
-		
-		const editor = page.getByPlaceholder('Start writing...');
-		await editor.fill('The study of thermodynamics is fascinating.');
+
+		const editor = page.locator('.ProseMirror').first();
+		await editor.click();
+		await editor.type('The study of thermodynamics is fascinating.');
 		
 		// Ensure persistence (400ms debounce + buffer)
 		await page.waitForTimeout(600);
@@ -59,7 +60,9 @@ test.describe('Search Functionality', () => {
 
 		await page.getByTitle('New Note').click();
 		await page.getByPlaceholder('Note Title').fill('Note in A');
-		await page.getByPlaceholder('Start writing...').fill('UniqueKeyA');
+		const editor1 = page.locator('.ProseMirror').first();
+		await editor1.click();
+		await editor1.type('UniqueKeyA');
 		await page.waitForTimeout(800);
 
 		// 2. Create Folder B (at Root/Home)
@@ -74,7 +77,9 @@ test.describe('Search Functionality', () => {
 
 		await page.getByTitle('New Note').click();
 		await page.getByPlaceholder('Note Title').fill('Note in B');
-		await page.getByPlaceholder('Start writing...').fill('UniqueKeyA');
+		const editor2 = page.locator('.ProseMirror').first();
+		await editor2.click();
+		await editor2.type('UniqueKeyA');
 		await page.waitForTimeout(800);
 
 		// 3. Search for the word while in Folder B

@@ -76,8 +76,10 @@ async function createNote(page: import('@playwright/test').Page, title: string, 
 	await titleInput.fill(title);
 
 	if (content) {
-		const bodyInput = page.getByPlaceholder('Start writing...');
-		await bodyInput.fill(content);
+		const proseMirror = page.locator('.ProseMirror').first();
+		await expect(proseMirror).toBeVisible();
+		await proseMirror.click();
+		await proseMirror.type(content);
 	}
 
 	await expect(getNoteEditorTitle(page)).toHaveValue(title);
@@ -134,7 +136,7 @@ test('can create a note in the selected folder', async ({ page }) => {
 	await createFolder(page, folderTitle);
 	await createNote(page, noteTitle, 'Created from Playwright.');
 
-	await expect(page.getByPlaceholder('Note Title')).toHaveValue(noteTitle);
+	await expect(getNoteEditorTitle(page)).toHaveValue(noteTitle);
 	await expect(page.getByText(noteTitle, { exact: true })).toBeVisible();
 });
 

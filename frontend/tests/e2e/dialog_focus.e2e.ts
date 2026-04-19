@@ -18,8 +18,10 @@ async function createAndSelectNote(page: import('@playwright/test').Page) {
 	const titleInput = page.getByPlaceholder('Note Title');
 	await expect(titleInput).toBeVisible();
 	await titleInput.fill('Test Note');
-	const bodyInput = page.getByPlaceholder('Start writing...');
-	await bodyInput.fill('Test content');
+	const bodyInput = page.locator('.ProseMirror').first();
+	await expect(bodyInput).toBeVisible();
+	await bodyInput.click();
+	await bodyInput.type('Test content');
 	await bodyInput.blur(); // Ensure focus leaves the input
 	await page.waitForTimeout(100); // Wait a moment for UI to settle
 }
@@ -97,8 +99,8 @@ test.describe('Dialog Focus Management', () => {
 		await createAndSelectNote(page);
 
 		// Get the note before deletion attempt
-		const noteContent = page.getByPlaceholder('Start writing...');
-		const contentBefore = await noteContent.inputValue();
+		const noteContent = page.locator('.ProseMirror').first();
+		const contentBefore = await noteContent.textContent();
 
 		// Open delete dialog
 		const dialog = await triggerDeleteDialog(page);
@@ -111,9 +113,9 @@ test.describe('Dialog Focus Management', () => {
 		await expect(dialog).not.toBeVisible();
 
 		// Note should still exist with the same content
-		const noteContentAfter = page.getByPlaceholder('Start writing...');
+		const noteContentAfter = page.locator('.ProseMirror').first();
 		await expect(noteContentAfter).toBeVisible();
-		const contentAfter = await noteContentAfter.inputValue();
+		const contentAfter = await noteContentAfter.textContent();
 		expect(contentAfter).toBe(contentBefore);
 	});
 });
