@@ -8,6 +8,9 @@
 	import { getPreferencesStore, getThemeStore } from '$lib/stores/context';
 	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import Palette from '@lucide/svelte/icons/palette';
+	import Code from '@lucide/svelte/icons/code';
+	import { createLowlight, common } from 'lowlight';
+	import { DEFAULT_LANGUAGES } from '$lib/editor/extensions';
 
 	interface Props {
 		open?: boolean;
@@ -19,7 +22,11 @@
 	const preferencesStore = getPreferencesStore();
 	const themeStore = getThemeStore();
 
-	let activeTab = $state<'general' | 'appearance'>('general');
+	let activeTab = $state<'general' | 'appearance' | 'editor'>('general');
+
+	// Get all available languages from lowlight
+	const lowlight = createLowlight(common);
+	const availableLanguages = lowlight.listLanguages().sort();
 
 	const predefinedColors = [
 		{ name: 'Blue', value: '#007aff' },
@@ -76,6 +83,13 @@
 				>
 					<Palette size={20} />
 					<span>Appearance</span>
+				</button>
+				<button
+					class={['toolbar-item', activeTab === 'editor' && 'active']}
+					onclick={() => (activeTab = 'editor')}
+				>
+					<Code size={20} />
+					<span>Editor</span>
 				</button>
 			</div>
 
@@ -142,6 +156,62 @@
 								<div class="theme-preview system"></div>
 								<span>System</span>
 							</button>
+						</div>
+					</div>
+				{:else if activeTab === 'editor'}
+					<div class="setting-group">
+						<h3 class="setting-title">Toolbar Style</h3>
+						<p class="description">Choose how the editor toolbar is displayed.</p>
+						<div class="editor-options">
+							<label class="radio-option">
+								<input
+									type="radio"
+									name="toolbar"
+									checked={preferencesStore.editorToolbar === 'fixed'}
+									onchange={() => preferencesStore.setEditorToolbar('fixed')}
+								/>
+								<span>Fixed (always visible)</span>
+							</label>
+							<label class="radio-option">
+								<input
+									type="radio"
+									name="toolbar"
+									checked={preferencesStore.editorToolbar === 'bubble'}
+									onchange={() => preferencesStore.setEditorToolbar('bubble')}
+								/>
+								<span>Bubble (appears on selection)</span>
+							</label>
+							<label class="radio-option">
+								<input
+									type="radio"
+									name="toolbar"
+									checked={preferencesStore.editorToolbar === 'both'}
+									onchange={() => preferencesStore.setEditorToolbar('both')}
+								/>
+								<span>Both</span>
+							</label>
+						</div>
+					</div>
+					<div class="setting-group">
+						<h3 class="setting-title">Code Block Languages</h3>
+						<p class="description">Select which languages appear in the code block language picker.</p>
+						<div class="languages-grid">
+							{#each availableLanguages as lang}
+								<label class="language-checkbox">
+									<input
+										type="checkbox"
+										checked={(preferencesStore.enabledLanguages ?? DEFAULT_LANGUAGES).includes(lang)}
+										onchange={(e) => {
+											const current = preferencesStore.enabledLanguages ?? DEFAULT_LANGUAGES;
+											const updated = e.currentTarget.checked
+												? [...current, lang]
+												: current.filter((l) => l !== lang);
+											preferencesStore.setEnabledLanguages(updated);
+										}}
+									/>
+									<span>{lang}</span>
+								</label>
+							{/each}
 						</div>
 					</div>
 				{/if}
@@ -416,5 +486,55 @@
 	.appearance-card span {
 		font-size: 12px;
 		font-weight: 500;
+	}
+
+	.editor-options {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.radio-option {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		cursor: pointer;
+		font-size: 14px;
+		padding: 8px 12px;
+		border-radius: 6px;
+		transition: background 150ms;
+	}
+
+	.radio-option:hover {
+		background: var(--muted);
+	}
+
+	.radio-option input[type='radio'] {
+		cursor: pointer;
+	}
+
+	.languages-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+		gap: 8px;
+	}
+
+	.language-checkbox {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		cursor: pointer;
+		font-size: 13px;
+		padding: 8px;
+		border-radius: 4px;
+		transition: background 150ms;
+	}
+
+	.language-checkbox:hover {
+		background: var(--muted);
+	}
+
+	.language-checkbox input[type='checkbox'] {
+		cursor: pointer;
 	}
 </style>
