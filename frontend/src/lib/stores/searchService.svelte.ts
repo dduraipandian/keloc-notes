@@ -42,7 +42,7 @@ export class SearchService {
 		for (const folderId of foldersToIndex) {
 			const notes = this.noteQueries.getNotesForFolder(folderId);
 			const noteIds = notes.map((n) => n.id);
-			
+
 			if (noteIds.length > 0) {
 				const contents = await notesRepository.getBulkContents(noteIds);
 				const documents = notes.map((n) => ({
@@ -104,7 +104,7 @@ export class SearchService {
 	 */
 	private getFolderSubtreeIds(rootId: string | null): string[] {
 		if (!rootId) return ['root']; // Or whatever your global root is
-		
+
 		const ids: string[] = [rootId];
 		const visit = (parentId: string) => {
 			const folder = this.folders.findItemById(parentId);

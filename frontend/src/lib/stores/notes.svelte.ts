@@ -68,7 +68,10 @@ export class NotesStore {
 	summarize(content: string): string {
 		if (!content) return '';
 		// Split by lines and filter out empty ones
-		const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+		const lines = content
+			.split('\n')
+			.map((l) => l.trim())
+			.filter((l) => l.length > 0);
 		// Take the first two non-empty lines and join them
 		return lines.slice(0, 2).join('\n');
 	}
@@ -87,7 +90,7 @@ export class NotesStore {
 					if (meta.deletedBatchId === undefined) meta.deletedBatchId = null;
 					if (meta.isFavorite === undefined) meta.isFavorite = false;
 					if (meta.summary === undefined) meta.summary = '';
-					
+
 					const item: NoteItem = {
 						...meta,
 						content: '',
@@ -182,7 +185,7 @@ export class NotesStore {
 					})
 				);
 				this.dirtyContentNotes.delete(id);
-				
+
 				// Update search index incrementally
 				this.searchService?.updateNoteIndex(id, note.title, note.content);
 			}
@@ -194,7 +197,7 @@ export class NotesStore {
 		const write = Promise.resolve(settingsRepository.save('selectedNoteID', this.selectedNoteID));
 		this.trackWrite(
 			write.catch((err) => {
-			this.onPersistError?.(err, '__selection__');
+				this.onPersistError?.(err, '__selection__');
 			})
 		);
 	}
@@ -238,10 +241,10 @@ export class NotesStore {
 		this.selectedNoteID = newNote.id;
 		this.persistNote(newNote.id);
 		this.persistSelection();
-		
+
 		// Index new note
 		this.searchService?.updateNoteIndex(newNote.id, newNote.title, '');
-		
+
 		return newNote;
 	}
 
@@ -270,11 +273,15 @@ export class NotesStore {
 
 			// Replace in map to trigger reactivity
 			this.notes.set(id, newNote);
-			
+
 			// Keep persistence throttled
-			this.debouncer.debounce(id, () => {
-				this.persistNote(id);
-			}, 400);
+			this.debouncer.debounce(
+				id,
+				() => {
+					this.persistNote(id);
+				},
+				400
+			);
 
 			const newFolderId = newNote.folderId ?? 'null';
 			const newDeletedAt = newNote.deletedAt;
@@ -285,24 +292,28 @@ export class NotesStore {
 				if (oldDeletedAt === null) {
 					this.folderNoteCounts[oldFolderId] = (this.folderNoteCounts[oldFolderId] ?? 0) - 1;
 				} else {
-					this.folderDeletedNoteCounts[oldFolderId] = (this.folderDeletedNoteCounts[oldFolderId] ?? 0) - 1;
+					this.folderDeletedNoteCounts[oldFolderId] =
+						(this.folderDeletedNoteCounts[oldFolderId] ?? 0) - 1;
 				}
 
 				if (newDeletedAt === null) {
 					this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) + 1;
 				} else {
-					this.folderDeletedNoteCounts[newFolderId] = (this.folderDeletedNoteCounts[newFolderId] ?? 0) + 1;
+					this.folderDeletedNoteCounts[newFolderId] =
+						(this.folderDeletedNoteCounts[newFolderId] ?? 0) + 1;
 				}
 			}
 
 			// Handle Deletion State Change
 			if (oldDeletedAt === null && newDeletedAt !== null) {
 				this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) - 1;
-				this.folderDeletedNoteCounts[newFolderId] = (this.folderDeletedNoteCounts[newFolderId] ?? 0) + 1;
+				this.folderDeletedNoteCounts[newFolderId] =
+					(this.folderDeletedNoteCounts[newFolderId] ?? 0) + 1;
 				this.trashCount++;
 				if (oldIsFavorite) this.favoriteCount--;
 			} else if (oldDeletedAt !== null && newDeletedAt === null) {
-				this.folderDeletedNoteCounts[newFolderId] = (this.folderDeletedNoteCounts[newFolderId] ?? 0) - 1;
+				this.folderDeletedNoteCounts[newFolderId] =
+					(this.folderDeletedNoteCounts[newFolderId] ?? 0) - 1;
 				this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) + 1;
 				this.trashCount--;
 				if (newIsFavorite) this.favoriteCount++;
@@ -335,8 +346,13 @@ export class NotesStore {
 			this.trashCount++;
 			if (note.isFavorite) this.favoriteCount--;
 		}
-		this.persistNote(id);
-		this.persistSelection();
+		try {
+			this.persistNote(id);
+			this.persistSelection();
+			this.searchService?.removeNoteIndex(id);
+		} catch (err) {
+			console.error('Error persisting note:', err);
+		}
 	}
 
 	restoreNote(id: NoteID, folderId?: string | null) {
@@ -346,12 +362,13 @@ export class NotesStore {
 			const newNote = { ...note, deletedAt: null, deletedBatchId: null };
 			if (folderId !== undefined) newNote.folderId = folderId;
 			const newFolderId = newNote.folderId ?? 'null';
-			
+
 			this.notes.set(id, newNote);
 
 			// Update counts
 			this.trashCount--;
-			this.folderDeletedNoteCounts[oldFolderId] = (this.folderDeletedNoteCounts[oldFolderId] ?? 0) - 1;
+			this.folderDeletedNoteCounts[oldFolderId] =
+				(this.folderDeletedNoteCounts[oldFolderId] ?? 0) - 1;
 			this.folderNoteCounts[newFolderId] = (this.folderNoteCounts[newFolderId] ?? 0) + 1;
 			if (newNote.isFavorite) this.favoriteCount++;
 
@@ -390,7 +407,11 @@ export class NotesStore {
 	restoreNotesInFolder(folderId: string, targetBatchId?: string) {
 		const allNotes = Array.from(this.notes.values());
 		for (const note of allNotes) {
-			if ((note.folderId ?? 'root') === folderId && note.deletedAt != null && note.deletedBatchId != null) {
+			if (
+				(note.folderId ?? 'root') === folderId &&
+				note.deletedAt != null &&
+				note.deletedBatchId != null
+			) {
 				if (targetBatchId && note.deletedBatchId === targetBatchId) {
 					const fid = note.folderId ?? 'null';
 					const newNote = { ...note, deletedAt: null, deletedBatchId: null };
@@ -430,7 +451,7 @@ export class NotesStore {
 		const note = this.notes.get(id);
 		if (!note) return;
 		const oldFav = !!note.isFavorite;
-		
+
 		const newNote = { ...note, isFavorite };
 		this.notes.set(id, newNote);
 
@@ -477,8 +498,8 @@ export class NotesStore {
 	}
 
 	getNoteCount(folderId: FolderID | null, profileId?: string): number {
-		const normId = (folderId === 'home' || folderId === null) ? 'null' : folderId;
-		
+		const normId = folderId === 'home' || folderId === null ? 'null' : folderId;
+
 		if (profileId === 'trash') {
 			return this.trashCount;
 		}
@@ -488,7 +509,7 @@ export class NotesStore {
 		if (profileId === 'deleted') {
 			return this.folderDeletedNoteCounts[normId] ?? 0;
 		}
-		
+
 		// Regular folder or home
 		return this.folderNoteCounts[normId] ?? 0;
 	}
