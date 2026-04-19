@@ -9,7 +9,7 @@
 	import SheetOverlay from "./sheet-overlay.svelte";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import XIcon from 'phosphor-svelte/lib/X';
-	import { cn, type WithoutChildrenOrChild } from "$lib/utils.js";
+	import { cn, type WithoutChildrenOrChild } from "$lib/utils/utils.js";
 	import type { ComponentProps } from "svelte";
 
 	let {

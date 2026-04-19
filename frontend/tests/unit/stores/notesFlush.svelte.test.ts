@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { notesStore } from '../../../src/lib/stores/notes.svelte';
-import { notesRepository, settingsRepository } from '../../../src/lib/stores/repositories';
+import { notesRepository, settingsRepository } from '../../../src/lib/infrastructure/repositories';
 import { SvelteMap } from 'svelte/reactivity';
 
-vi.mock('../../../src/lib/stores/repositories', () => ({
+vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
 	notesRepository: { 
 		list: vi.fn(), 

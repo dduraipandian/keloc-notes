@@ -4,17 +4,17 @@ import { TrashService } from '../../../src/lib/stores/services/trashService';
 import { notesStore } from '../../../src/lib/stores/notes.svelte';
 import { folderStore } from '../../../src/lib/stores/folders.svelte';
 import { selectionStore } from '../../../src/lib/stores/selection.svelte';
-import { trashRepository, settingsRepository } from '../../../src/lib/stores/repositories';
-import { 
-	initDB, 
-	putNoteMeta, 
-	putNoteContent, 
+import { trashRepository, settingsRepository } from '../../../src/lib/infrastructure/repositories';
+import {
+	initDB,
+	putNoteMeta,
+	putNoteContent,
 	getNoteMeta,
 	permanentDeleteNoteTransactionally,
 	permanentDeleteFolderTransactionally
-} from '../../../src/lib/stores/idbr';
+} from '../../../src/lib/infrastructure/idbr';
 
-vi.mock('../../../src/lib/stores/repositories', () => ({
+vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	foldersRepository: {
 		list: vi.fn(),
 		save: vi.fn()
@@ -38,16 +38,21 @@ describe('TrashService', () => {
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
-		
+
 		// Reset stores according to conventions
 		(notesStore as any).notes.clear();
 		(folderStore as any).folders.clear();
 		(folderStore as any).items = [];
-		folderStore.folders.set('home', { id: 'home', title: 'Home', items: [], profile: 'home' } as any);
+		folderStore.folders.set('home', {
+			id: 'home',
+			title: 'Home',
+			items: [],
+			profile: 'home'
+		} as any);
 		(notesStore as any).selectedNoteID = null;
 		(notesStore as any).isInitialized = true;
 		(folderStore as any).isInitialized = true;
-		
+
 		selectionStore.__resetForTest();
 
 		trashService = new TrashService(
@@ -59,13 +64,13 @@ describe('TrashService', () => {
 	});
 
 	function addFolder(opts: any) {
-		const folder = { 
-			items: [], 
-			deletedAt: null, 
-			deletedBatchId: null, 
+		const folder = {
+			items: [],
+			deletedAt: null,
+			deletedBatchId: null,
 			parentId: null,
 			profile: 'regular',
-			...opts 
+			...opts
 		};
 		folderStore.folders.set(folder.id, folder);
 		if (!folder.parentId) {
@@ -74,13 +79,13 @@ describe('TrashService', () => {
 	}
 
 	function addNote(opts: any) {
-		notesStore.notes.set(opts.id, { 
-			folderId: null, 
+		notesStore.notes.set(opts.id, {
+			folderId: null,
 			title: 'Note',
-			deletedAt: null, 
-			deletedBatchId: null, 
+			deletedAt: null,
+			deletedBatchId: null,
 			isContentLoaded: true,
-			...opts 
+			...opts
 		} as any);
 	}
 
@@ -90,7 +95,7 @@ describe('TrashService', () => {
 			addNote({ id: 'note-1', folderId: 'folder-a', deletedAt: 123 });
 
 			trashService.recoverNote('note-1');
-			
+
 			const note = notesStore.notes.get('note-1');
 			expect(note?.deletedAt).toBeNull();
 			expect(note?.folderId).toBeNull();
@@ -101,14 +106,19 @@ describe('TrashService', () => {
 			addNote({ id: 'note-1', folderId: 'folder-a', deletedAt: 123 });
 
 			trashService.recoverNote('note-1');
-			
+
 			const note = notesStore.notes.get('note-1');
 			expect(note?.deletedAt).toBeNull();
 			expect(note?.folderId).toBe('folder-a');
 		});
 
 		it('should root the folder if its parent is deleted during recovery', () => {
-			addFolder({ id: 'folder-1', deletedAt: 123, deletedBatchId: 'batch-1', parentId: 'parent-missing' });
+			addFolder({
+				id: 'folder-1',
+				deletedAt: 123,
+				deletedBatchId: 'batch-1',
+				parentId: 'parent-missing'
+			});
 
 			trashService.recoverFolder('folder-1', 'batch-1');
 
@@ -132,9 +142,27 @@ describe('TrashService', () => {
 
 		it('should archive and delete all descendant folders and notes transactional success', async () => {
 			const epoch = 12345;
-			addFolder({ id: 'parent', title: 'Parent', deletedAt: epoch, deletedBatchId: 'batch-parent', items: ['child'] });
-			addFolder({ id: 'child', title: 'Child', deletedAt: epoch, deletedBatchId: 'batch-parent', parentId: 'parent' });
-			addNote({ id: 'note-1', title: 'Note 1', folderId: 'child', deletedAt: epoch, deletedBatchId: 'batch-parent' });
+			addFolder({
+				id: 'parent',
+				title: 'Parent',
+				deletedAt: epoch,
+				deletedBatchId: 'batch-parent',
+				items: ['child']
+			});
+			addFolder({
+				id: 'child',
+				title: 'Child',
+				deletedAt: epoch,
+				deletedBatchId: 'batch-parent',
+				parentId: 'parent'
+			});
+			addNote({
+				id: 'note-1',
+				title: 'Note 1',
+				folderId: 'child',
+				deletedAt: epoch,
+				deletedBatchId: 'batch-parent'
+			});
 
 			vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockResolvedValue(true as any);
 
@@ -161,7 +189,9 @@ describe('TrashService', () => {
 			addFolder({ id: 'folder-1', title: 'Folder', deletedAt: 123, deletedBatchId: 'batch-1' });
 			vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockRejectedValue(new Error('Abort'));
 
-			await expect(trashService.permanentlyDeleteFolder('folder-1', 'batch-1')).rejects.toThrow('Abort');
+			await expect(trashService.permanentlyDeleteFolder('folder-1', 'batch-1')).rejects.toThrow(
+				'Abort'
+			);
 
 			expect(folderStore.folders.has('folder-1')).toBe(true);
 		});
@@ -222,9 +252,21 @@ describe('TrashService', () => {
 	describe('Empty Trash', () => {
 		it('should collect all deleted notes regardless of batch epoch', async () => {
 			addFolder({ id: 'f1', title: 'Work', deletedAt: 100, deletedBatchId: 'batch-folder' });
-			addNote({ id: 'n1', title: 'N1', folderId: 'f1', deletedAt: 100, deletedBatchId: 'batch-folder' });
-			addNote({ id: 'n2', title: 'N2', folderId: 'f1', deletedAt: 999, deletedBatchId: 'batch-note-2' });
-			
+			addNote({
+				id: 'n1',
+				title: 'N1',
+				folderId: 'f1',
+				deletedAt: 100,
+				deletedBatchId: 'batch-folder'
+			});
+			addNote({
+				id: 'n2',
+				title: 'N2',
+				folderId: 'f1',
+				deletedAt: 999,
+				deletedBatchId: 'batch-note-2'
+			});
+
 			vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockResolvedValue(true as any);
 
 			await trashService.emptyTrash();
@@ -244,7 +286,13 @@ describe('TrashService', () => {
 		});
 
 		it('should include root-level deleted notes (no folder)', async () => {
-			addNote({ id: 'root-n', title: 'Orphan', folderId: null, deletedAt: 500, deletedBatchId: 'batch-root-n' });
+			addNote({
+				id: 'root-n',
+				title: 'Orphan',
+				folderId: null,
+				deletedAt: 500,
+				deletedBatchId: 'batch-root-n'
+			});
 
 			vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockResolvedValue(true as any);
 
@@ -261,7 +309,13 @@ describe('TrashService', () => {
 
 		it('should ROLLBACK if the transaction fails', async () => {
 			addFolder({ id: 'f1', title: 'F1', deletedAt: 123, deletedBatchId: 'batch-f1' });
-			addNote({ id: 'n1', title: 'N1', folderId: 'f1', deletedAt: 123, deletedBatchId: 'batch-f1' });
+			addNote({
+				id: 'n1',
+				title: 'N1',
+				folderId: 'f1',
+				deletedAt: 123,
+				deletedBatchId: 'batch-f1'
+			});
 
 			vi.mocked(trashRepository.permanentlyDeleteFolderTree).mockRejectedValue(new Error('Crash'));
 
@@ -289,4 +343,3 @@ describe('TrashService', () => {
 		});
 	});
 });
-

@@ -4,7 +4,7 @@ import { folderStore } from '../../../src/lib/stores/folders.svelte';
 import { SvelteMap } from 'svelte/reactivity';
 
 // Mock repositories
-vi.mock('../../../src/lib/stores/repositories', () => ({
+vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
 	notesRepository: { 
 		list: vi.fn(), 

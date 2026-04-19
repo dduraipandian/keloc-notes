@@ -1,4 +1,4 @@
-import { groupNotesByDate } from '$lib/utils';
+import { groupNotesByDate } from '$lib/utils/utils';
 import { folderStore, type FolderID, type FolderItem } from '$lib/stores/folders.svelte';
 import { notesStore, type NoteItem } from '$lib/stores/notes.svelte';
 import { folderService, noteService } from '$lib/stores/services';

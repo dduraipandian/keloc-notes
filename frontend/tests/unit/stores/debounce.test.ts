@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { KeyedDebouncer } from '../../../src/lib/debounce';
+import { KeyedDebouncer } from '../../../src/lib/utils/debounce';
 
 describe('KeyedDebouncer', () => {
 	let debouncer: KeyedDebouncer;

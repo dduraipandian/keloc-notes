@@ -2,16 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import { NoteService } from '../../../src/lib/stores/services/noteService';
 import { notesStore } from '../../../src/lib/stores/notes.svelte';
-import { notesRepository } from '../../../src/lib/stores/repositories';
+import { notesRepository } from '../../../src/lib/infrastructure/repositories';
 import { 
 	initDB, 
 	putNoteMeta, 
 	putNoteContent, 
 	permanentDeleteNoteTransactionally,
 	permanentDeleteFolderTransactionally
-} from '../../../src/lib/stores/idbr';
+} from '../../../src/lib/infrastructure/idbr';
 
-vi.mock('../../../src/lib/stores/repositories', () => ({
+vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	notesRepository: {
 		getBulkContents: vi.fn(),
 		saveMeta: vi.fn(),

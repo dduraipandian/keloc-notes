@@ -1,6 +1,6 @@
 import { folderStore } from '$lib/stores/folders.svelte';
 import { notesStore } from '$lib/stores/notes.svelte';
-import { settingsRepository } from '$lib/stores/repositories';
+import { settingsRepository } from '$lib/infrastructure/repositories';
 
 interface BackupPayload {
 	schemaVersion: number;

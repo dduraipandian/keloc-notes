@@ -6,7 +6,7 @@ import { selectionStore } from '../../../src/lib/stores/selection.svelte';
 import { initMenuBridge } from '../../../src/lib/menu/menuBridge.svelte';
 import { EventsOn } from '../../../src/lib/wailsjs/runtime/runtime';
 import { ImportNotesZip } from '../../../src/lib/wailsjs/go/main/App';
-import * as Repositories from '../../../src/lib/stores/repositories';
+import * as Repositories from '../../../src/lib/infrastructure/repositories';
 
 vi.mock('../../../src/lib/wailsjs/runtime/runtime', () => ({
 	EventsOn: vi.fn(),

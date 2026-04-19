@@ -1,4 +1,4 @@
-import { settingsRepository } from './repositories';
+import { settingsRepository } from '../infrastructure/repositories';
 
 export class PreferencesStore {
 	#folderAccentColor = $state<string>('#007aff');

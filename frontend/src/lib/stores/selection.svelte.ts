@@ -1,4 +1,4 @@
-import { settingsRepository } from './repositories';
+import { settingsRepository } from '../infrastructure/repositories';
 import { folderStore, type FolderID, type FolderItem } from './folders.svelte';
 
 class SelectionStore {

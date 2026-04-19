@@ -17,7 +17,7 @@ export type FolderItem = {
 };
 
 import { SvelteMap } from 'svelte/reactivity';
-import { foldersRepository } from './repositories';
+import { foldersRepository } from '../infrastructure/repositories';
 
 class FolderStore {
 	items = $state<string[]>([]);

@@ -1,6 +1,6 @@
 import { SvelteMap } from 'svelte/reactivity';
-import { notesRepository, settingsRepository } from './repositories';
-import { KeyedDebouncer } from '../debounce';
+import { notesRepository, settingsRepository } from '../infrastructure/repositories';
+import { KeyedDebouncer } from '../utils/debounce';
 import type { FolderID } from './folders.svelte';
 import type { SearchService } from './searchService.svelte';
 

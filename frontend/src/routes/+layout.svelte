@@ -4,7 +4,7 @@
 	import { folderStore } from '$lib/stores/folders.svelte';
 	import { notesStore } from '$lib/stores/notes.svelte';
 	import { selectionStore } from '$lib/stores/selection.svelte';
-	import { settingsRepository } from '$lib/stores/repositories';
+	import { settingsRepository } from '$lib/infrastructure/repositories';
 	import { themeStore } from '$lib/stores/theme.svelte';
 	import {
 		handleEscapeShortcut,

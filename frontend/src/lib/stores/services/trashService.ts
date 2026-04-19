@@ -1,7 +1,7 @@
 import { folderStore, type FolderID, type FolderItem } from '../folders.svelte';
 import { notesStore, type NoteID, type NoteItem } from '../notes.svelte';
 import { selectionStore } from '../selection.svelte';
-import { trashRepository } from '../repositories';
+import { trashRepository } from '../../infrastructure/repositories';
 import type { FolderStoreLike, NotesStoreLike, SelectionStoreLike } from './types';
 import { FolderTreeHelper } from '../domain/folderTree';
 import { snapshotNote } from './helpers';

@@ -11,8 +11,8 @@ import {
 	putNoteMeta,
 	putSetting
 } from './idbr';
-import type { FolderItem } from './folders.svelte';
-import type { NoteID, NoteItem, NoteMeta } from './notes.svelte';
+import type { FolderItem } from '../stores/folders.svelte';
+import type { NoteID, NoteItem, NoteMeta } from '../stores/notes.svelte';
 
 export const foldersRepository = {
 	list(): Promise<FolderItem[]> {

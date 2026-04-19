@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ThemeStore } from '../../../src/lib/stores/theme.svelte';
-import { settingsRepository } from '../../../src/lib/stores/repositories';
+import { settingsRepository } from '../../../src/lib/infrastructure/repositories';
 
-vi.mock('../../../src/lib/stores/repositories', () => ({
+vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	settingsRepository: {
 		save: vi.fn().mockResolvedValue(undefined)
 	}

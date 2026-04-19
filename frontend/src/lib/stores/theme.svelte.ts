@@ -1,4 +1,4 @@
-import { settingsRepository } from './repositories';
+import { settingsRepository } from '../infrastructure/repositories';
 
 export type Theme = 'light' | 'dark' | 'system';
 

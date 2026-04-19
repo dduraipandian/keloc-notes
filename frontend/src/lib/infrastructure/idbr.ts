@@ -1,7 +1,7 @@
 import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
-import type { FolderItem } from './folders.svelte';
-import type { NoteItem } from './notes.svelte';
-import { uiStore } from './dialog.svelte';
+import type { FolderItem } from '../stores/folders.svelte';
+import type { NoteItem } from '../stores/notes.svelte';
+import { uiStore } from '../stores/dialog.svelte';
 
 const DEFAULT_DB_NAME = 'mdnotes-db';
 const DB_VERSION = 3;

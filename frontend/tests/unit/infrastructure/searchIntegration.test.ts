@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { noteListView } from '../../../src/lib/views/noteListView.svelte';
 import { noteService, searchService } from '../../../src/lib/stores/services';
-import { notesRepository } from '../../../src/lib/stores/repositories';
+import { notesRepository } from '../../../src/lib/infrastructure/repositories';
 import { folderStore } from '../../../src/lib/stores/folders.svelte';
 import { notesStore } from '../../../src/lib/stores/notes.svelte';
 

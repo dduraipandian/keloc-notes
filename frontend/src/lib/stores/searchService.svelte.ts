@@ -1,5 +1,5 @@
 import MiniSearch from 'minisearch';
-import { notesRepository } from './repositories';
+import { notesRepository } from '../infrastructure/repositories';
 import type { FolderStoreLike, NotesStoreLike } from './services/types';
 import type { NoteID, NoteItem } from './notes.svelte';
 import { folderStore } from './folders.svelte';

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { foldersRepository, notesRepository, settingsRepository, trashRepository } from '../../../src/lib/stores/repositories';
-import * as idbr from '../../../src/lib/stores/idbr';
+import { foldersRepository, notesRepository, settingsRepository, trashRepository } from '../../../src/lib/infrastructure/repositories';
+import * as idbr from '../../../src/lib/infrastructure/idbr';
 
 // Mock idbr to verify wiring without actually calling IndexedDB again
-vi.mock('../../../src/lib/stores/idbr', () => ({
+vi.mock('../../../src/lib/infrastructure/idbr', () => ({
 	getAllFolders: vi.fn(),
 	putFolder: vi.fn(),
 	getAllNotesMeta: vi.fn(),
