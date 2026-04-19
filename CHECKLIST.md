@@ -442,7 +442,7 @@ This is the current high-level backlog after the Part A release blockers. The re
 - [ ] **One-click install path** — Publish a real end-user install path for the primary release target, not just `wails build`. Start with a signed/notarized macOS `.app`/DMG and documented install steps.
 - [ ] **Platform support positioning** — Either implement Windows/Linux menu parity or explicitly mark those platforms as preview / unsupported in README, releases, and product copy until parity exists.
 - [ ] **First-run onboarding** — Add empty-state guidance for a brand-new library: create first folder, create first note, and explain the three-pane workflow without requiring README reading.
-- [ ] **Native menu completeness** — Remove or implement placeholder menu items/actions (`Close Window`, `Enter Full Screen`, Help actions) before calling the app release-ready.
+- [x] **Native menu completeness** — Remove or implement placeholder menu items/actions (`Close Window`, `Enter Full Screen`, Help actions) before calling the app release-ready.
 - [ ] **Versioning source of truth** — Drive About dialog version, backup metadata, installer metadata, and release tags from one canonical app version instead of mixed fallbacks.
 - [ ] **Privacy & storage documentation** — Document exactly where local data is stored, what "local-first" means, whether data is encrypted at rest, and what backup compatibility guarantees exist across versions.
 - [ ] **README updates** — Fix tech stack details, add documentation and screenshots. Note: Go version is listed as "1.26+" but `go.mod` specifies 1.23.
