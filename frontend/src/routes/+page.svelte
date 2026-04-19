@@ -2,8 +2,9 @@
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Info from '@lucide/svelte/icons/info';
-	import { getUIStore, getSelectionStore, getNoteService, getTrashService, getNotesStore, getFolderStore, getFolderService, getSearchService } from '$lib/stores/context';
+	import { getUIStore, getSelectionStore, getNoteService, getTrashService, getNotesStore, getFolderStore, getFolderService, getSearchService, getPreferencesStore } from '$lib/stores/context';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
+	import Editor from '$lib/components/Editor.svelte';
 	import Alert from './alert.svelte';
 
 	const notesStore = getNotesStore();
@@ -103,20 +104,13 @@
 				</div>
 
 				<!-- Main Editor Body -->
-				<div class="prose prose-lg flex max-w-none flex-1 flex-col dark:prose-invert">
-					<!-- Placeholder for future TipTap editor -->
-					<textarea
-						value={selectedNote.content}
-						readonly={selectedNote.deletedAt != null}
-						onclick={() => {
-							if (selectedNote.deletedAt != null) handleRestoreInit();
-						}}
-						oninput={(e) => noteService.update(selectedNote!.id, { content: (e.target as HTMLTextAreaElement).value })}
-						placeholder="Start writing..."
-						class="w-full flex-1 resize-none bg-transparent leading-relaxed text-foreground/90 outline-none placeholder:text-muted-foreground/10"
-						spellcheck="false"
-					></textarea>
-				</div>
+				{#if selectedNote.isContentLoaded}
+					{#key selectedNote.id}
+						<Editor note={selectedNote} readonly={selectedNote.deletedAt != null} />
+					{/key}
+				{:else}
+					<div class="editor-loading-skeleton flex-1 animate-pulse bg-muted/50"></div>
+				{/if}
 			</div>
 		</div>
 	</div>

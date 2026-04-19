@@ -115,7 +115,7 @@ describe('NotesStore (Flat Recovery)', () => {
 		it('should summarize content correctly', () => {
 			addNoteToStore({ id: 'n1', content: 'First line\nSecond line\nThird line' });
 			const note = mockNotesStore.getNote('n1')!;
-			expect(note.summary).toBe('First line\nSecond line');
+			expect(note.summary).toBe('First line Second line');
 		});
 
 		it('should load content on demand', async () => {

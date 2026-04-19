@@ -1,5 +1,6 @@
 import MiniSearch from 'minisearch';
 import { notesRepository } from '../infrastructure/repositories';
+import { extractTextFromJSON } from '../editor/serializer';
 import type { FolderStoreLike, NotesStoreLike } from './services/types';
 import type { NoteID, NoteItem } from './notes.svelte';
 
@@ -48,7 +49,7 @@ export class SearchService {
 				const documents = notes.map((n) => ({
 					id: n.id,
 					title: n.title,
-					content: contents[n.id] || ''
+					content: extractTextFromJSON(contents[n.id] || '')
 				}));
 				this.index.addAll(documents);
 				this.version++;
@@ -61,7 +62,7 @@ export class SearchService {
 	 * Performs incremental update for a single note.
 	 */
 	updateNoteIndex(id: string, title: string, content: string) {
-		const doc = { id, title, content };
+		const doc = { id, title, content: extractTextFromJSON(content) };
 		if (this.index.has(id)) {
 			this.index.replace(doc);
 		} else {

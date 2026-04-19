@@ -3,6 +3,7 @@ import type { NoteID, NoteItem } from '../notes.svelte';
 import type { FolderStoreLike, NotesStoreLike, SelectionStoreLike } from './types';
 import { FolderTreeHelper } from '../domain/folderTree';
 import { resolveProfile } from '../domain/profiles';
+import { jsonToMarkdown } from '$lib/editor/serializer';
 
 export class NoteService {
 	private readonly tree: FolderTreeHelper;
@@ -114,7 +115,7 @@ export class NoteService {
 
 			return {
 				title: note.title,
-				content: note.content,
+				content: jsonToMarkdown(note.content),
 				folderPath,
 				updatedAt: new Date(note.updatedAt ?? 0).toISOString()
 			};

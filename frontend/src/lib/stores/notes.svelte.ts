@@ -1,6 +1,7 @@
 import { SvelteMap } from 'svelte/reactivity';
 import { notesRepository, settingsRepository } from '../infrastructure/repositories';
 import { KeyedDebouncer } from '../utils/debounce';
+import { extractTextFromJSON } from '../editor/serializer';
 import type { FolderID } from './folders.svelte';
 import type { SearchService } from './searchService.svelte';
 
@@ -66,14 +67,10 @@ export class NotesStore {
 	}
 
 	summarize(content: string): string {
-		if (!content) return '';
-		// Split by lines and filter out empty ones
-		const lines = content
-			.split('\n')
-			.map((l) => l.trim())
-			.filter((l) => l.length > 0);
-		// Take the first two non-empty lines and join them
-		return lines.slice(0, 2).join('\n');
+		const text = extractTextFromJSON(content);
+		if (!text) return '';
+		const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+		return lines.slice(0, 2).join(' ');
 	}
 
 	async init() {
