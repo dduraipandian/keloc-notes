@@ -1169,7 +1169,17 @@ Track progress through each phase. Do not proceed to the next item until the cur
 ├─ [x] editor/serializer.ts (parseContent, extractTextFromJSON, jsonToMarkdown)
 └─ [x] Commit: "feat: add serializer" (53722d9)
 
-PENDING: Phase 2 — Step 2
+✅ COMPLETE: Phase 2 — Step 2
+├─ [x] tests/unit/editor/imageHandler.svelte.test.ts (5 tests)
+├─ [x] editor/imageHandler.ts (resize, store, resolve with caching)
+└─ [x] Commit: "feat: add image handler" (6181740)
+
+✅ COMPLETE: Phase 2 — Step 3
+├─ [x] tests/unit/stores/preferences.svelte.test.ts (8 tests)
+├─ [x] preferences.svelte.ts (editorToolbar, enabledLanguages)
+└─ [x] Commit: "feat: add preferences" (0429f9d)
+
+PENDING: Phase 2 — Steps 4-6
 ├─ [ ] tests/unit/editor/serializer.test.ts
 │   ├─ parseContent('') → empty doc
 │   ├─ parseContent(invalid JSON) → wraps as plain text
