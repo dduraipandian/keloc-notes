@@ -34,7 +34,8 @@ const mockTrashService = {
 };
 const mockUIStore = {
 	confirmEmptyTrash: vi.fn(),
-	confirmNoteDelete: vi.fn()
+	confirmNoteDelete: vi.fn(),
+	showOperationError: vi.fn()
 };
 
 vi.mock('$lib/wailsjs/go/main/App', () => ({
@@ -192,6 +193,106 @@ describe('Menu Bridge System', () => {
 
 			expect(mockNoteService.getNotesForExport).toHaveBeenCalledWith(['1']);
 			expect(AppModule.ExportNotesZip).toHaveBeenCalledWith(exportDtos);
+		});
+
+		it('surfaces a user-visible error when single note export fails', async () => {
+			const exportNoteHandler = vi.fn();
+			vi.mocked(EventsOn).mockImplementation((event, handler) => {
+				if (event === 'menu:export-note') {
+					exportNoteHandler.mockImplementation(handler);
+				}
+				return () => {};
+			});
+
+			mockNotesStore.selectedNoteID = 'n1';
+			vi.mocked(mockNoteService.getNotesForExport).mockRejectedValue(new Error('disk full'));
+
+			const theme = new ThemeStore();
+			const uiState = new UIStateStore();
+			initMenuBridge({
+				theme,
+				uiState,
+				ui: mockUIStore as any,
+				selection: mockSelectionStore,
+				folders: mockFolderStore,
+				notes: mockNotesStore,
+				folderService: mockFolderService as any,
+				noteService: mockNoteService as any,
+				trashService: mockTrashService as any
+			});
+
+			await exportNoteHandler();
+
+			expect(mockUIStore.showOperationError).toHaveBeenCalledWith(
+				'Export Current Note Failed',
+				expect.stringContaining('disk full')
+			);
+		});
+	});
+
+	describe('Backup Import/Export Errors', () => {
+		it('surfaces a user-visible error when backup export fails', async () => {
+			const exportBackupHandler = vi.fn();
+			vi.mocked(EventsOn).mockImplementation((event, handler) => {
+				if (event === 'menu:export-backup') {
+					exportBackupHandler.mockImplementation(handler);
+				}
+				return () => {};
+			});
+
+			const theme = new ThemeStore();
+			const uiState = new UIStateStore();
+			initMenuBridge({
+				theme,
+				uiState,
+				ui: mockUIStore as any,
+				selection: mockSelectionStore,
+				folders: mockFolderStore,
+				notes: mockNotesStore,
+				folderService: mockFolderService as any,
+				noteService: mockNoteService as any,
+				trashService: mockTrashService as any
+			});
+
+			await exportBackupHandler();
+
+			expect(mockUIStore.showOperationError).toHaveBeenCalledWith(
+				'Export Backup Failed',
+				expect.any(String)
+			);
+		});
+
+		it('surfaces a user-visible error when backup import fails', async () => {
+			const importBackupHandler = vi.fn();
+			vi.mocked(EventsOn).mockImplementation((event, handler) => {
+				if (event === 'menu:import-backup') {
+					importBackupHandler.mockImplementation(handler);
+				}
+				return () => {};
+			});
+
+			vi.mocked(AppModule.ReadBackupFile).mockResolvedValue('{ bad json');
+
+			const theme = new ThemeStore();
+			const uiState = new UIStateStore();
+			initMenuBridge({
+				theme,
+				uiState,
+				ui: mockUIStore as any,
+				selection: mockSelectionStore,
+				folders: mockFolderStore,
+				notes: mockNotesStore,
+				folderService: mockFolderService as any,
+				noteService: mockNoteService as any,
+				trashService: mockTrashService as any
+			});
+
+			await importBackupHandler();
+
+			expect(mockUIStore.showOperationError).toHaveBeenCalledWith(
+				'Import Backup Failed',
+				expect.stringContaining('Failed to import backup')
+			);
 		});
 	});
 

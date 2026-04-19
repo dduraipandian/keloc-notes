@@ -41,6 +41,7 @@ export function initMenuBridge(
 ): () => void {
 	const { uiState, theme, ui, selection, folders, notes, folderService, noteService, trashService } = stores;
 	const unsubscribers: Array<() => void> = [];
+	const formatError = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 	// File menu events
 	unsubscribers.push(
@@ -130,6 +131,7 @@ export function initMenuBridge(
 					}
 				} catch (err) {
 					console.error('Failed to export note:', err);
+					ui.showOperationError('Export Current Note Failed', formatError(err));
 				}
 			}
 		})
@@ -147,6 +149,7 @@ export function initMenuBridge(
 				await (ExportNotesZip as any)(notesToExport);
 			} catch (err) {
 				console.error('Failed to export notes:', err);
+				ui.showOperationError('Export All Notes Failed', formatError(err));
 			}
 		})
 	);
@@ -158,6 +161,7 @@ export function initMenuBridge(
 				await SaveBackupFile(json);
 			} catch (err) {
 				console.error('Failed to export backup:', err);
+				ui.showOperationError('Export Backup Failed', formatError(err));
 			}
 		})
 	);
@@ -187,6 +191,7 @@ export function initMenuBridge(
 				}
 			} catch (err) {
 				console.error('Failed to import notes:', err);
+				ui.showOperationError('Import Markdown Archive Failed', formatError(err));
 			}
 		})
 	);
@@ -202,6 +207,7 @@ export function initMenuBridge(
 				}
 			} catch (err) {
 				console.error('Failed to import backup:', err);
+				ui.showOperationError('Import Backup Failed', formatError(err));
 			}
 		})
 	);

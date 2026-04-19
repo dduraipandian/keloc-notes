@@ -131,6 +131,18 @@ export class UIStore {
 		};
 	}
 
+	showOperationError(title: string, errorMessage: string) {
+		this.appDialog = {
+			open: true,
+			canCancel: false,
+			type: 'destroy',
+			title,
+			description: errorMessage,
+			confirmLabel: 'OK',
+			onConfirm: () => {}
+		};
+	}
+
 	closeDialogs() {
 		this.noteDialog.open = false;
 		this.folderDialog.open = false;
@@ -141,5 +153,4 @@ export class UIStore {
 		return this.noteDialog.open || this.folderDialog.open || this.appDialog.open;
 	}
 }
-
 
