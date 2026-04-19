@@ -199,8 +199,10 @@ export async function getBulkNoteContents(ids: string[]): Promise<Record<string,
 export async function deleteNote(id: string) {
 	const db = await getDB();
 	return await withTransaction(['notes_meta', 'notes_contents'], 'readwrite', async (tx) => {
-		await tx.objectStore('notes_meta').delete(id);
-		await tx.objectStore('notes_contents').delete(id);
+		const metaStore = tx.objectStore('notes_meta');
+		const contentStore = tx.objectStore('notes_contents');
+		if (metaStore) await metaStore.delete!(id);
+		if (contentStore) await contentStore.delete!(id);
 	});
 }
 

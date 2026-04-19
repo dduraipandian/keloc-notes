@@ -140,7 +140,7 @@ export function initMenuBridge(callbacks?: {
 	unsubscribers.push(
 		EventsOn('menu:export-backup', async () => {
 			try {
-				const json = exportBackup();
+				const json = await exportBackup();
 				await SaveBackupFile(json);
 			} catch (err) {
 				console.error('Failed to export backup:', err);
@@ -164,8 +164,8 @@ export function initMenuBridge(callbacks?: {
 
 					// Create note with silent: true and extract its id for updating
 					const newNote = noteService.create(targetFolderId, { silent: true });
-					if (newNote && typeof newNote === 'object' && 'id' in newNote) {
-						noteService.update((newNote as any).id, {
+					if (newNote) {
+						noteService.update(newNote.id, {
 							title: importedNote.Title,
 							content: importedNote.Content
 						});
