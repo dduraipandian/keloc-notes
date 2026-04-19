@@ -1144,12 +1144,12 @@ Track progress through each phase. Do not proceed to the next item until the cur
 ├─ TDD protocol defined
 └─ File structure & API contracts specified
 
-PENDING: Phase 1 — Database & Infrastructure
-├─ [ ] tests/unit/infrastructure/idbr.test.ts
+✅ COMPLETE: Phase 1 — Database & Infrastructure — Step 1
+├─ [x] tests/unit/infrastructure/idbr.test.ts
 │   ├─ Tests for putNoteAsset, getNoteAsset, deleteNoteAssetsByNoteId
 │   ├─ Tests for getAllSettings with new keys (editorToolbar, enabledLanguages)
 │   └─ Test version 4 migration creates note_assets store with noteId index
-├─ [ ] idbr.ts implementation
+├─ [x] idbr.ts implementation
 │   ├─ DB_VERSION = 4
 │   ├─ Add note_assets to DBStore interface
 │   ├─ Add case 3 migration (note_assets store creation)
@@ -1157,11 +1157,14 @@ PENDING: Phase 1 — Database & Infrastructure
 │   ├─ Add editorToolbar & enabledLanguages to SettingsState type
 │   ├─ Implement 4 new functions: putNoteAsset, getNoteAsset, deleteNoteAsset, deleteNoteAssetsByNoteId
 │   └─ Update getAllSettings() to handle new settings keys
+└─ [x] Commit: "feat: add note_assets IndexedDB store + settings" (bce229a)
+
+PENDING: Phase 1 — Step 2
 ├─ [ ] tests/unit/infrastructure/assetsRepository.test.ts
 │   └─ Tests for repository delegation to idbr (mock idbr)
 ├─ [ ] infrastructure/assetsRepository.ts (or add to repositories.ts)
 │   └─ assetsRepository export with save(), get(), delete(), deleteByNoteId()
-└─ [ ] Commit: "feat: add note_assets IndexedDB store + settings"
+└─ [ ] Commit: "feat: add assetsRepository"
 
 PENDING: Phase 2 — Core Editor Modules
 ├─ [ ] tests/unit/editor/serializer.test.ts

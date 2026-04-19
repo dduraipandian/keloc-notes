@@ -10,7 +10,11 @@ import {
 	putNoteContent,
 	putNoteMeta,
 	putSetting,
-	restoreBackupTransactionally
+	restoreBackupTransactionally,
+	deleteNoteAsset,
+	deleteNoteAssetsByNoteId,
+	getNoteAsset,
+	putNoteAsset
 } from './idbr';
 import type { FolderItem } from '../stores/folders.svelte';
 import type { NoteID, NoteItem, NoteMeta } from '../stores/notes.svelte';
@@ -69,5 +73,20 @@ export const trashRepository = {
 	},
 	permanentlyDeleteNote(note: NoteItem, path: string, archivedAt: number) {
 		return permanentDeleteNoteTransactionally(note, path, archivedAt);
+	}
+};
+
+export const assetsRepository = {
+	save(asset: { id: string; noteId: string; mimeType: string; data: Blob }) {
+		return putNoteAsset(asset);
+	},
+	get(id: string) {
+		return getNoteAsset(id);
+	},
+	delete(id: string) {
+		return deleteNoteAsset(id);
+	},
+	deleteByNoteId(noteId: string) {
+		return deleteNoteAssetsByNoteId(noteId);
 	}
 };
