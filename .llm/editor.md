@@ -7,11 +7,11 @@ Reviewed on 2026-04-20 by inspecting the implementation in `frontend/src/lib`, `
 ### Overall Status
 
 - **Phase 1** `VERIFIED` — database and repository changes are implemented in `idbr.ts` and `repositories.ts`
-- **Phase 2** `VERIFIED` — `serializer.ts`, `imageHandler.ts`, and `extensions.ts` are present and wired
+- **Phase 2** `VERIFIED` — `serializer.ts`, `imageHandler.ts`, and `extensions.ts` are present and wired, including asset hydration/dehydration and stock Tiptap image-node resize support
 - **Phase 3** `VERIFIED` — `EditorToolbar.svelte`, `BubbleToolbar.svelte`, and `Editor.svelte` are implemented
 - **Phase 4** `VERIFIED` — the editor is integrated into `+page.svelte`; notes summary, search indexing, and export conversion are hooked up
-- **Phase 5** `VERIFIED` — Settings UI includes editor toolbar mode and enabled language selection
-- **Phase 6** `PARTIALLY VERIFIED` — editor unit and E2E test files exist, but this review did **not** run the test suite, so pass/fail claims are not verified here
+- **Phase 5** `VERIFIED` — Settings UI includes editor toolbar mode, enabled language selection, and image processing concurrency
+- **Phase 6** `VERIFIED` — targeted unit and E2E suites were run on 2026-04-20; current editor-focused coverage passes
 
 ### Verified Fixes Present In Code
 
@@ -19,26 +19,34 @@ Reviewed on 2026-04-20 by inspecting the implementation in `frontend/src/lib`, `
 2. **Empty document handling** — `parseContent('')` returns a doc with an empty paragraph, not an empty `content` array.
 3. **Reactive rebuild guard** — `Editor.svelte` wraps initial note reads in `untrack()` before constructing the Tiptap instance.
 4. **Selector approach in tests** — current E2E coverage uses `.ProseMirror` locators.
+5. **Stock image node integration** — `extensions.ts` uses Tiptap’s `Image` extension with resize enabled and a custom `assetId` attribute, rather than a custom image node view.
+6. **Persisted image refs** — `Editor.svelte` persists `asset:<uuid>` refs via `dehydrateAssetSources()` and hydrates them back to blob URLs at runtime via `hydrateAssetSources()`.
+7. **Image history stability** — `Editor.svelte` retains asset object URLs for the full editor session, which preserves undo/redo for inserted images.
+8. **Visible resize handles** — `Editor.svelte` now styles Tiptap’s resize-handle DOM (`data-resize-*`) so image resizing is actually usable in the UI.
 
 ### Verified Test Footprint
 
 - `frontend/tests/unit/infrastructure/idbr.test.ts`: 20 tests
-- `frontend/tests/unit/infrastructure/assetsRepository.test.ts`: 7 tests
 - `frontend/tests/unit/editor/serializer.test.ts`: 22 tests
-- `frontend/tests/unit/editor/imageHandler.svelte.test.ts`: 5 tests
-- `frontend/tests/unit/stores/preferences.svelte.test.ts`: 8 tests
+- `frontend/tests/unit/editor/imageHandler.svelte.test.ts`: 13 tests
+- `frontend/tests/unit/stores/preferences.svelte.test.ts`: 13 tests
 - `frontend/tests/unit/components/editorToolbar.svelte.test.ts`: 10 tests
 - `frontend/tests/unit/components/bubbleToolbar.svelte.test.ts`: 9 tests
 - `frontend/tests/unit/components/editor.svelte.test.ts`: 9 tests
-- `frontend/tests/e2e/editor.e2e.ts`: 14 tests
+- `frontend/tests/unit/page.test.ts`: 2 tests
+- `frontend/tests/e2e/editor.e2e.ts`: 15 tests
 
 ### Important Caveat
 
 The earlier version of this document mixed completed implementation notes with stale `PENDING` checklist items and future-dated claims. This file should now be read as:
 
-- implementation is largely present in the repo
-- test files are present
-- suite execution status is **unknown until re-run**
+- implementation is present in the repo, but some lower sections still describe the original planned path rather than the exact landed code
+- editor-focused test files are present and were re-run during the 2026-04-20 review
+- repo-wide `npm run lint` and `npm run check` still have unrelated baseline issues outside the editor refactor
+- editor-focused verification that was actually run:
+  - `npm test`: passed
+  - `npm run test:e2e`: passed
+  - `npx playwright test tests/e2e/editor.e2e.ts`: passed
 
 ---
 
@@ -84,7 +92,7 @@ frontend/src/lib/
 │   ├── EditorToolbar.svelte  # Fixed formatting toolbar
 │   └── BubbleToolbar.svelte  # Floating selection toolbar
 frontend/src/lib/infrastructure/
-│   ├── idbr.ts              # +version 4: note_assets store, new settings keys
+│   ├── idbr.ts              # +version 5: note_assets store and settings keys
 │   └── repositories.ts      # +assetsRepository export
 frontend/src/lib/stores/
 │   └── preferences.svelte.ts  # +editorToolbar, +enabledLanguages
@@ -96,7 +104,7 @@ frontend/src/lib/stores/
 
 ### 1.1 Update `idbr.ts`
 
-**a) Bump version to 4 and update `DBStore`:**
+**a) Bump version to 5 and update `DBStore`:**
 
 Add `note_assets` to the `DBStore` interface:
 
@@ -115,13 +123,14 @@ note_assets: {
 **b) Update `DB_VERSION`:**
 
 ```typescript
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 ```
 
-**c) Add case 3 in the `upgrade` switch:**
+**c) Add case 3 / 4 handling in the `upgrade` switch:**
 
 ```typescript
 case 3:
+case 4:
   if (!db.objectStoreNames.contains('note_assets')) {
     const assetStore = db.createObjectStore('note_assets', { keyPath: 'id' });
     assetStore.createIndex('by_note', 'noteId');
