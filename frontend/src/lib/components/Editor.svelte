@@ -36,6 +36,17 @@
 		['bubble', 'both'].includes(preferencesStore.editorToolbar ?? 'fixed')
 	);
 
+	function formatDate(dateStr: string) {
+		if (!dateStr) return '';
+		return new Date(dateStr).toLocaleDateString(undefined, {
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
+
 	async function handleImageInsert(): Promise<void> {
 		const input = document.createElement('input');
 		input.type = 'file';
@@ -139,12 +150,35 @@
 
 	<!-- Fixed toolbar -->
 	{#if showFixedToolbar && editor}
-		<EditorToolbar
-			{editor}
-			onImageInsert={handleImageInsert}
-			enabledLanguages={preferencesStore.enabledLanguages ?? []}
-		/>
+		<div class="editor-toolbar-shell">
+			<div class="editor-toolbar-inner">
+				<EditorToolbar
+					{editor}
+					onImageInsert={handleImageInsert}
+					enabledLanguages={preferencesStore.enabledLanguages ?? []}
+				/>
+			</div>
+		</div>
 	{/if}
+
+	<div class="editor-note-header">
+		<div class="editor-note-date">{formatDate(note.updatedAt)}</div>
+		<textarea
+			value={note.title}
+			oninput={(e) =>
+				noteService.update(note.id, {
+					title: (e.target as HTMLTextAreaElement).value
+				})}
+			placeholder="Note Title"
+			readonly={readonly}
+			rows="1"
+			class="editor-note-title"
+			spellcheck="false"
+			onkeydown={(e) => {
+				if (e.key === 'Enter') e.preventDefault();
+			}}
+		></textarea>
+	</div>
 
 	<!-- Tiptap mounts into this div -->
 	<div
@@ -159,16 +193,67 @@
 		flex-direction: column;
 		height: 100%;
 		min-height: 100%;
+		position: relative;
 	}
 
 	.bubble-menu {
 		position: absolute;
 	}
 
+	.editor-toolbar-shell {
+		position: sticky;
+		top: 0;
+		z-index: 10;
+		margin: 0 -3rem;
+		padding: 0;
+		background:
+			linear-gradient(to bottom, color-mix(in srgb, var(--card) 96%, transparent), color-mix(in srgb, var(--card) 88%, transparent));
+		backdrop-filter: blur(18px);
+		border-bottom: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+	}
+
+	.editor-toolbar-inner {
+		width: 100%;
+		padding: 0;
+	}
+
 	.editor-content {
 		flex: 1;
-		overflow-y: auto;
-		padding: 1rem;
+		min-height: 0;
+		padding: 0 1rem 1rem;
+	}
+
+	.editor-note-header {
+		display: flex;
+		flex-direction: column;
+		gap: 0.9rem;
+		padding: 2rem 1rem 1.5rem;
+	}
+
+	.editor-note-date {
+		font-size: 0.625rem;
+		font-weight: 700;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: color-mix(in srgb, var(--muted-foreground) 42%, transparent);
+	}
+
+	.editor-note-title {
+		width: 100%;
+		resize: none;
+		border: none;
+		background: transparent;
+		color: var(--foreground);
+		font-size: clamp(2.3rem, 4vw, 3.4rem);
+		font-weight: 800;
+		line-height: 0.95;
+		letter-spacing: -0.04em;
+		outline: none;
+		font-family: inherit;
+	}
+
+	.editor-note-title::placeholder {
+		color: color-mix(in srgb, var(--muted-foreground) 25%, transparent);
 	}
 
 	.editor-content :global(.ProseMirror) {

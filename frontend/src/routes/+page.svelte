@@ -2,7 +2,7 @@
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import Info from '@lucide/svelte/icons/info';
-	import { getUIStore, getSelectionStore, getNoteService, getTrashService, getNotesStore, getFolderStore, getFolderService, getSearchService, getPreferencesStore } from '$lib/stores/context';
+	import { getUIStore, getSelectionStore, getTrashService, getNotesStore, getFolderStore, getFolderService, getSearchService, getNoteService } from '$lib/stores/context';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import Alert from './alert.svelte';
@@ -32,17 +32,6 @@
 
 		uiStore.confirmNoteRestore(selectedNote.title, () => {
 			trashService.recoverNote(selectedNote!.id);
-		});
-	}
-
-	function formatDate(dateStr: string) {
-		if (!dateStr) return '';
-		return new Date(dateStr).toLocaleDateString(undefined, {
-			day: 'numeric',
-			month: 'long',
-			year: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
 		});
 	}
 
@@ -79,30 +68,6 @@
 		{/if}
 		<div class="custom-scrollbar flex-1 overflow-x-hidden overflow-y-auto">
 			<div class="flex min-h-full w-full flex-col px-12 pb-5">
-				<!-- Editor Header/Title -->
-				<div class="flex shrink-0 flex-col pt-10 pb-6">
-					<div
-						class="mb-4 flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] text-muted-foreground/30 uppercase"
-					>
-						<span>{formatDate(selectedNote.updatedAt)}</span>
-					</div>
-					<textarea
-						value={selectedNote.title}
-						oninput={(e) => noteService.update(selectedNote!.id, { title: (e.target as HTMLTextAreaElement).value })}
-						placeholder="Note Title"
-						readonly={selectedNote.deletedAt != null}
-						onclick={() => {
-							if (selectedNote.deletedAt != null) handleRestoreInit();
-						}}
-						rows="1"
-						class="w-full resize-none bg-transparent text-4xl font-extrabold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/10"
-						spellcheck="false"
-						onkeydown={(e) => {
-							if (e.key === 'Enter') e.preventDefault();
-						}}
-					></textarea>
-				</div>
-
 				<!-- Main Editor Body -->
 				{#if selectedNote.isContentLoaded}
 					{#key selectedNote.id}
@@ -145,7 +110,4 @@
 <Alert dialog={uiStore.folderDialog} />
 
 <style>
-	textarea {
-		font-family: inherit;
-	}
 </style>

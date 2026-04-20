@@ -219,16 +219,16 @@
 	.editor-toolbar {
 		display: flex;
 		align-items: center;
-		gap: 2px;
-		padding: 8px;
-		background: var(--muted);
-		border-bottom: 1px solid var(--border);
+		gap: 0.2rem;
+		width: 100%;
+		padding: 0.5rem 3rem;
+		background: color-mix(in srgb, var(--muted) 82%, var(--card));
 		flex-wrap: wrap;
 	}
 
 	.toolbar-btn {
-		padding: 4px 6px;
-		border-radius: 4px;
+		padding: 0.45rem 0.55rem;
+		border-radius: 0;
 		background: transparent;
 		border: none;
 		color: var(--muted-foreground);
@@ -240,11 +240,11 @@
 	}
 
 	.toolbar-btn:hover:not(:disabled) {
-		background: var(--accent);
+		background: color-mix(in srgb, var(--accent) 72%, transparent);
 	}
 
 	.toolbar-btn.is-active {
-		background: var(--accent);
+		background: color-mix(in srgb, var(--accent) 82%, transparent);
 		color: var(--foreground);
 	}
 
@@ -255,18 +255,20 @@
 
 	.toolbar-divider {
 		width: 1px;
-		height: 20px;
-		background: var(--border);
-		margin: 0 4px;
+		height: 1.3rem;
+		background: color-mix(in srgb, var(--border) 78%, transparent);
+		margin: 0 0.25rem;
 	}
 
 	.toolbar-select {
-		padding: 4px 6px;
-		border-radius: 4px;
-		border: 1px solid var(--border);
-		background: var(--background);
+		height: 2rem;
+		padding: 0 0.65rem;
+		border-radius: 0;
+		border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+		background: color-mix(in srgb, var(--card) 92%, transparent);
 		color: var(--foreground);
-		font-size: 0.875rem;
+		font-size: 0.8rem;
+		outline: none;
 	}
 
 	.toolbar-select:disabled {
