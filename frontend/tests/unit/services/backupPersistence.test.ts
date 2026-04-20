@@ -95,7 +95,8 @@ describe('Backup persistence', () => {
 			applicationTheme: 'dark',
 			folderAccentColor: 'amber',
 			editorToolbar: null,
-			enabledLanguages: null
+			enabledLanguages: null,
+			imageProcessingConcurrency: null
 		});
 		expect(backup.notes).toEqual([
 			{
@@ -207,7 +208,8 @@ describe('Backup persistence', () => {
 			applicationTheme: 'dark',
 			folderAccentColor: 'amber',
 			editorToolbar: null,
-			enabledLanguages: null
+			enabledLanguages: null,
+			imageProcessingConcurrency: null
 		});
 
 		const restoredFolders = new FolderStore();

@@ -166,6 +166,17 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 			const settings = await getAllSettings();
 			expect(settings.enabledLanguages).toEqual(languages);
 		});
+
+		it('should return imageProcessingConcurrency setting with default null', async () => {
+			const settings = await getAllSettings();
+			expect(settings.imageProcessingConcurrency).toBeNull();
+		});
+
+		it('should put and get imageProcessingConcurrency setting', async () => {
+			await putSetting('imageProcessingConcurrency', 4);
+			const settings = await getAllSettings();
+			expect(settings.imageProcessingConcurrency).toBe(4);
+		});
 	});
 
 	describe('Note Assets CRUD', () => {
@@ -264,9 +275,65 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 			const db = await initDB();
 			const backup = await db.get('backups', 'note_n1');
 			expect(backup).toBeDefined();
-			expect(backup.data).toEqual({ ...meta, content });
+			expect(backup.data).toEqual({ ...meta, content, assets: [] });
 			expect(backup.path).toBe('Home / To Delete');
 			expect(backup.archivedAt).toBe(archivedAt);
+		});
+
+		it('should move all note assets into the backup record and remove them from note_assets', async () => {
+			const meta = { id: 'n-assets', title: 'Note With Assets' };
+			const content = 'Body with images';
+			const archivedAt = Date.now();
+			const asset1 = {
+				id: 'asset-1',
+				noteId: meta.id,
+				mimeType: 'image/webp',
+				data: new Blob(['img-1'], { type: 'image/webp' })
+			};
+			const asset2 = {
+				id: 'asset-2',
+				noteId: meta.id,
+				mimeType: 'image/png',
+				data: new Blob(['img-2'], { type: 'image/png' })
+			};
+			const foreignAsset = {
+				id: 'asset-3',
+				noteId: 'other-note',
+				mimeType: 'image/webp',
+				data: new Blob(['img-3'], { type: 'image/webp' })
+			};
+
+			await putNoteMeta(meta);
+			await putNoteContent(meta.id, content);
+			await putNoteAsset(asset1);
+			await putNoteAsset(asset2);
+			await putNoteAsset(foreignAsset);
+
+			await permanentDeleteNoteTransactionally(meta, 'Home / Images', archivedAt);
+
+			const db = await initDB();
+			const backup = await db.get('backups', 'note_n-assets');
+
+			expect(backup).toBeDefined();
+			expect(backup.data.content).toBe(content);
+			expect(backup.data.assets).toHaveLength(2);
+			expect(backup.data.assets).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						id: asset1.id,
+						noteId: asset1.noteId,
+						mimeType: asset1.mimeType
+					}),
+					expect.objectContaining({
+						id: asset2.id,
+						noteId: asset2.noteId,
+						mimeType: asset2.mimeType
+					})
+				])
+			);
+			expect(await getNoteAsset(asset1.id)).toBeUndefined();
+			expect(await getNoteAsset(asset2.id)).toBeUndefined();
+			expect(await getNoteAsset(foreignAsset.id)).toBeDefined();
 		});
 	});
 });

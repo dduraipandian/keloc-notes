@@ -1,9 +1,14 @@
 import { settingsRepository } from '../infrastructure/repositories';
+import {
+	clampImageProcessingConcurrency,
+	MAX_IMAGE_PROCESSING_CONCURRENCY
+} from '../editor/imageHandler';
 
 export class PreferencesStore {
 	#folderAccentColor = $state<string>('#007aff');
 	#editorToolbar = $state<'fixed' | 'bubble' | 'both' | null>(null);
 	#enabledLanguages = $state<string[] | null>(null);
+	#imageProcessingConcurrency = $state<number | null>(null);
 
 	get folderAccentColor() {
 		return this.#folderAccentColor;
@@ -15,6 +20,10 @@ export class PreferencesStore {
 
 	get enabledLanguages() {
 		return this.#enabledLanguages;
+	}
+
+	get imageProcessingConcurrency() {
+		return this.#imageProcessingConcurrency;
 	}
 
 	async init(settings?: Record<string, unknown>) {
@@ -36,6 +45,14 @@ export class PreferencesStore {
 
 		if (savedSettings.enabledLanguages && Array.isArray(savedSettings.enabledLanguages)) {
 			this.#enabledLanguages = savedSettings.enabledLanguages as string[];
+		}
+
+		if (
+			typeof savedSettings.imageProcessingConcurrency === 'number' &&
+			savedSettings.imageProcessingConcurrency >= 1 &&
+			savedSettings.imageProcessingConcurrency <= MAX_IMAGE_PROCESSING_CONCURRENCY
+		) {
+			this.#imageProcessingConcurrency = savedSettings.imageProcessingConcurrency;
 		}
 	}
 
@@ -65,6 +82,15 @@ export class PreferencesStore {
 			console.error('Failed to save enabled languages:', err);
 		}
 	}
-}
 
+	async setImageProcessingConcurrency(value: number) {
+		const clamped = clampImageProcessingConcurrency(value);
+		this.#imageProcessingConcurrency = clamped;
+		try {
+			await settingsRepository.save('imageProcessingConcurrency', clamped);
+		} catch (err) {
+			console.error('Failed to save image processing concurrency:', err);
+		}
+	}
+}
 

@@ -154,15 +154,26 @@ export class NotesStore {
 		this.debouncer.cancel(id);
 		const note = this.notes.get(id);
 		if (note) {
+			const shouldPersistContent = forcePersistContent || this.dirtyContentNotes.has(id);
+			let noteToPersist = note;
+
+			if (shouldPersistContent && note.isContentLoaded) {
+				const summary = this.summarize(note.content);
+				if (summary !== note.summary) {
+					noteToPersist = { ...note, summary };
+					this.notes.set(id, noteToPersist);
+				}
+			}
+
 			const meta: NoteMeta = {
-				id: note.id,
-				folderId: note.folderId,
-				title: note.title,
-				summary: note.summary,
-				updatedAt: note.updatedAt,
-				isFavorite: note.isFavorite,
-				deletedAt: note.deletedAt,
-				deletedBatchId: note.deletedBatchId
+				id: noteToPersist.id,
+				folderId: noteToPersist.folderId,
+				title: noteToPersist.title,
+				summary: noteToPersist.summary,
+				updatedAt: noteToPersist.updatedAt,
+				isFavorite: noteToPersist.isFavorite,
+				deletedAt: noteToPersist.deletedAt,
+				deletedBatchId: noteToPersist.deletedBatchId
 			};
 
 			const metaWrite = Promise.resolve(notesRepository.saveMeta(meta));
@@ -172,10 +183,8 @@ export class NotesStore {
 				})
 			);
 
-			const shouldPersistContent = forcePersistContent || this.dirtyContentNotes.has(id);
-
-			if (shouldPersistContent && note.isContentLoaded) {
-				const contentWrite = Promise.resolve(notesRepository.saveContent(id, note.content));
+			if (shouldPersistContent && noteToPersist.isContentLoaded) {
+				const contentWrite = Promise.resolve(notesRepository.saveContent(id, noteToPersist.content));
 				this.trackWrite(
 					contentWrite.catch((err) => {
 						this.onPersistError?.(err, `${id}_content`);
@@ -184,7 +193,7 @@ export class NotesStore {
 				this.dirtyContentNotes.delete(id);
 
 				// Update search index incrementally
-				this.searchService?.updateNoteIndex(id, note.title, note.content);
+				this.searchService?.updateNoteIndex(id, noteToPersist.title, noteToPersist.content);
 			}
 		}
 	}
@@ -260,7 +269,6 @@ export class NotesStore {
 			const newNote = { ...note, ...updates };
 
 			if (contentChanged) {
-				newNote.summary = this.summarize(newNote.content);
 				this.dirtyContentNotes.add(id);
 			}
 

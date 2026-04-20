@@ -2,11 +2,16 @@
 	import { untrack } from 'svelte';
 	import { Editor } from '@tiptap/core';
 	import { BubbleMenu } from '@tiptap/extension-bubble-menu';
+	import { toast } from 'svelte-sonner';
 	import type { NoteItem } from '$lib/stores/notes.svelte';
 	import { getNoteService, getPreferencesStore } from '$lib/stores/context';
 	import { buildExtensions } from '$lib/editor/extensions';
 	import { parseContent } from '$lib/editor/serializer';
-	import { storeImageAsset } from '$lib/editor/imageHandler';
+	import {
+		clampImageProcessingConcurrency,
+		processImageFiles,
+		selectAcceptedImageFiles
+	} from '$lib/editor/imageHandler';
 	import EditorToolbar from './EditorToolbar.svelte';
 	import BubbleToolbar from './BubbleToolbar.svelte';
 
@@ -36,41 +41,53 @@
 		input.type = 'file';
 		input.accept = 'image/*';
 		input.onchange = async () => {
-			const file = input.files?.[0];
-			if (!file) return;
-			try {
-				const src = await storeImageAsset(note.id, file);
-				editor?.chain().focus().setImage({ src }).run();
-			} catch (err) {
-				console.error('Image insert failed:', err);
-			}
+			const files = [...(input.files ?? [])];
+			if (!files.length) return;
+			await handleIncomingFiles(files);
 		};
 		input.click();
 	}
 
 	function handleDrop(e: DragEvent): void {
 		if (readonly) return;
-		const files = [...(e.dataTransfer?.files ?? [])].filter((f) => f.type.startsWith('image/'));
+		const files = [...(e.dataTransfer?.files ?? [])];
 		if (!files.length) return;
 		e.preventDefault();
 		e.stopPropagation();
-		files.forEach((f) => processImageFile(f));
+		void handleIncomingFiles(files);
 	}
 
 	function handlePaste(e: ClipboardEvent): void {
 		if (readonly) return;
-		const files = [...(e.clipboardData?.files ?? [])].filter((f) => f.type.startsWith('image/'));
+		const files = [...(e.clipboardData?.files ?? [])];
 		if (!files.length) return;
 		e.preventDefault();
-		files.forEach((f) => processImageFile(f));
+		void handleIncomingFiles(files);
 	}
 
-	async function processImageFile(file: File): Promise<void> {
-		try {
-			const src = await storeImageAsset(note.id, file);
-			editor?.chain().focus().setImage({ src }).run();
-		} catch (err) {
-			console.error('Image insert failed:', err);
+	function notifyImageFailure(file: File, reason: string): void {
+		const fileName = file.name || 'image';
+		toast.error(`Could not add ${fileName}`, { description: reason });
+	}
+
+	async function handleIncomingFiles(files: File[]): Promise<void> {
+		const selection = selectAcceptedImageFiles(files);
+		selection.rejected.forEach(({ file, reason }) => notifyImageFailure(file, reason));
+
+		if (!selection.accepted.length) return;
+
+		const concurrency = clampImageProcessingConcurrency(
+			preferencesStore.imageProcessingConcurrency
+		);
+		const results = await processImageFiles(note.id, selection.accepted, { concurrency });
+
+		for (const result of results) {
+			if (result.src) {
+				editor?.chain().focus().setImage({ src: result.src }).run();
+				continue;
+			}
+
+			notifyImageFailure(result.file, result.error?.message ?? 'Image processing failed.');
 		}
 	}
 

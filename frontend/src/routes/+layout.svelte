@@ -40,8 +40,9 @@
 	import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
 	import About from '$lib/components/About.svelte';
 	import Settings from '$lib/components/Settings.svelte';
+	import { Toaster } from '$lib/components/ui/sonner';
 	import { PreferencesStore } from '$lib/stores/preferences.svelte';
-import { hasWailsRuntime } from '$lib/wails.svelte';
+	import { hasWailsRuntime } from '$lib/wails.svelte';
 	import { UpdateMenuState } from '$lib/wailsjs/go/main/App';
 	import { menu } from '$lib/wailsjs/go/models';
 	import { setDatabaseBlockedHandler } from '$lib/infrastructure/idbr';
@@ -539,6 +540,7 @@ import { hasWailsRuntime } from '$lib/wails.svelte';
 <Alert dialog={uiStore.appDialog} />
 <About bind:open={showAbout} onClose={() => { showAbout = false; }} />
 <Settings bind:open={showSettings} onClose={() => { showSettings = false; }} />
+<Toaster />
 
 <style>
 	.pane-resize-handle {

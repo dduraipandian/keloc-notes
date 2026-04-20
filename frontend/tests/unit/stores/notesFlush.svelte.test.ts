@@ -37,6 +37,7 @@ describe('NotesStore flushAllPendingWrites', () => {
 				id: 'n1',
 				title: 'Initial Title',
 				content: 'Initial Content',
+				summary: 'Initial Content',
 				folderId: null,
 				updatedAt: '2021-01-01T00:00:00.000Z',
 				deletedAt: null,
@@ -68,6 +69,7 @@ describe('NotesStore flushAllPendingWrites', () => {
 		expect(notesRepository.saveMeta).toHaveBeenCalledTimes(1);
 		expect(notesRepository.saveContent).toHaveBeenCalledTimes(1);
 		expect((notesRepository.saveContent as any).mock.calls[0][1]).toBe('Flushed content');
+		expect(mockNotesStore.getNote('n1')?.summary).toBe('Flushed content');
 
 		let settled = false;
 		void flushPromise.then(() => {

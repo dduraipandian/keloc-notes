@@ -9,6 +9,8 @@ import {
 	initDB, 
 	putNoteMeta, 
 	putNoteContent, 
+	putNoteAsset,
+	getNoteAsset,
 	permanentDeleteNoteTransactionally,
 	permanentDeleteFolderTransactionally
 } from '../../../src/lib/infrastructure/idbr';
@@ -95,6 +97,54 @@ describe('Backup & Export Integrity', () => {
 			const backup = await db.get('backups', `note_${note.id}`);
 			expect(backup).toBeDefined();
 			expect(backup.data.content).toBe(content);
+		});
+
+		it('should archive multiple assets per note during folder permanent delete', async () => {
+			const note1 = { id: 'batch-a', title: 'Batch A' };
+			const note2 = { id: 'batch-b', title: 'Batch B' };
+			await putNoteMeta(note1 as any);
+			await putNoteMeta(note2 as any);
+			await putNoteContent(note1.id, 'Content A');
+			await putNoteContent(note2.id, 'Content B');
+
+			await putNoteAsset({
+				id: 'asset-a1',
+				noteId: note1.id,
+				mimeType: 'image/webp',
+				data: new Blob(['a1'], { type: 'image/webp' })
+			});
+			await putNoteAsset({
+				id: 'asset-a2',
+				noteId: note1.id,
+				mimeType: 'image/png',
+				data: new Blob(['a2'], { type: 'image/png' })
+			});
+			await putNoteAsset({
+				id: 'asset-b1',
+				noteId: note2.id,
+				mimeType: 'image/webp',
+				data: new Blob(['b1'], { type: 'image/webp' })
+			});
+
+			const epoch = Date.now();
+			await permanentDeleteFolderTransactionally(
+				[
+					{ note: note1 as any, path: 'Home/Batch A' },
+					{ note: note2 as any, path: 'Home/Batch B' }
+				],
+				[],
+				epoch
+			);
+
+			const db = await initDB();
+			const backupA = await db.get('backups', `note_${note1.id}`);
+			const backupB = await db.get('backups', `note_${note2.id}`);
+
+			expect(backupA.data.assets).toHaveLength(2);
+			expect(backupB.data.assets).toHaveLength(1);
+			expect(await getNoteAsset('asset-a1')).toBeUndefined();
+			expect(await getNoteAsset('asset-a2')).toBeUndefined();
+			expect(await getNoteAsset('asset-b1')).toBeUndefined();
 		});
 	});
 });

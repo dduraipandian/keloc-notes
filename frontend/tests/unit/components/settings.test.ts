@@ -15,6 +15,7 @@ describe('Settings component', () => {
 		mockPreferencesStore = new PreferencesStore();
 		mockThemeStore = new ThemeStore();
 		vi.spyOn(mockPreferencesStore, 'setFolderAccentColor').mockImplementation(async () => {});
+		vi.spyOn(mockPreferencesStore, 'setImageProcessingConcurrency').mockImplementation(async () => {});
 		vi.spyOn(mockThemeStore, 'setTheme').mockImplementation(async () => {});
 		vi.clearAllMocks();
 	});
@@ -86,6 +87,16 @@ describe('Settings component', () => {
 			await user.click(darkOption);
 			expect(mockThemeStore.setTheme).toHaveBeenCalledWith('dark');
 		}
+	});
+
+	it('shows editor concurrency control on the Editor tab', async () => {
+		const user = userEvent.setup();
+		renderSettings();
+
+		const editorTab = screen.getByRole('button', { name: /editor/i });
+		await user.click(editorTab);
+
+		expect(screen.getByText(/image processing concurrency/i)).toBeTruthy();
 	});
 
 	it('calls onClose when close button is clicked', async () => {

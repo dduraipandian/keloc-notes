@@ -118,6 +118,20 @@ describe('NotesStore (Flat Recovery)', () => {
 			expect(note.summary).toBe('First line Second line');
 		});
 
+		it('should defer summary updates for content edits until the debounce flush', async () => {
+			vi.useFakeTimers();
+			addNoteToStore({ id: 'n1', content: 'Old line', summary: 'Old line' });
+
+			mockNotesStore.updateNote('n1', { content: 'First line\nSecond line\nThird line' });
+
+			expect(mockNotesStore.getNote('n1')?.summary).toBe('Old line');
+
+			await vi.advanceTimersByTimeAsync(400);
+
+			expect(mockNotesStore.getNote('n1')?.summary).toBe('First line Second line');
+			vi.useRealTimers();
+		});
+
 		it('should load content on demand', async () => {
 			vi.mocked(notesRepository.getContent).mockResolvedValue('loaded content');
 			addNoteToStore({ id: 'n1', content: '', isContentLoaded: false });

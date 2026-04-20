@@ -241,6 +241,7 @@ export type SettingsState = {
 	folderAccentColor: string | null;
 	editorToolbar: 'fixed' | 'bubble' | 'both' | null;
 	enabledLanguages: string[] | null;
+	imageProcessingConcurrency: number | null;
 };
 
 type SettingsKey = keyof SettingsState;
@@ -273,6 +274,7 @@ export async function getAllSettings(): Promise<SettingsState> {
 		let folderAccentColor: string | null = null;
 		let editorToolbar: 'fixed' | 'bubble' | 'both' | null = null;
 		let enabledLanguages: string[] | null = null;
+		let imageProcessingConcurrency: number | null = null;
 
 		keys.forEach((key, index) => {
 			switch (key) {
@@ -300,6 +302,9 @@ export async function getAllSettings(): Promise<SettingsState> {
 				case 'enabledLanguages':
 					enabledLanguages = (values[index] as string[] | null) ?? null;
 					break;
+				case 'imageProcessingConcurrency':
+					imageProcessingConcurrency = (values[index] as number | null) ?? null;
+					break;
 				default:
 					break;
 			}
@@ -312,7 +317,8 @@ export async function getAllSettings(): Promise<SettingsState> {
 			applicationTheme,
 			folderAccentColor,
 			editorToolbar,
-			enabledLanguages
+			enabledLanguages,
+			imageProcessingConcurrency
 		};
 	});
 }
@@ -403,23 +409,32 @@ export async function permanentDeleteFolderTransactionally(
 	foldersToDelete: FolderItem[],
 	archivedAt: number
 ) {
-	return await withTransaction(['folders', 'notes_meta', 'notes_contents', 'backups'], 'readwrite', async (tx) => {
+	return await withTransaction(
+		['folders', 'notes_meta', 'notes_contents', 'backups', 'note_assets'],
+		'readwrite',
+		async (tx) => {
 		const fStore = tx.objectStore('folders')!;
 		const mStore = tx.objectStore('notes_meta')!;
 		const cStore = tx.objectStore('notes_contents')!;
 		const bStore = tx.objectStore('backups')!;
+		const aStore = tx.objectStore('note_assets')!;
+		const assetIndex = aStore.index('by_note');
 
 		// Backup and Delete Notes
 		for (const { note, path } of notesToDelete) {
 			// Re-assembling for backup:
 			const content = await cStore.get(note.id);
+			const assets = await assetIndex.getAll(note.id);
 			await bStore.put!({
 				id: `note_${note.id}`,
 				type: 'note',
-				data: { ...note, content: content?.content ?? '' },
+				data: { ...note, content: content?.content ?? '', assets },
 				path,
 				archivedAt
 			});
+			for (const asset of assets) {
+				await aStore.delete!(asset.id);
+			}
 			await mStore.delete!(note.id);
 			await cStore.delete!(note.id);
 		}
@@ -436,21 +451,30 @@ export async function permanentDeleteNoteTransactionally(
 	path: string,
 	archivedAt: number
 ) {
-	return await withTransaction(['notes_meta', 'notes_contents', 'backups'], 'readwrite', async (tx) => {
+	return await withTransaction(
+		['notes_meta', 'notes_contents', 'backups', 'note_assets'],
+		'readwrite',
+		async (tx) => {
 		const mStore = tx.objectStore('notes_meta')!;
 		const cStore = tx.objectStore('notes_contents')!;
 		const bStore = tx.objectStore('backups')!;
+		const aStore = tx.objectStore('note_assets')!;
+		const assetIndex = aStore.index('by_note');
 
 		const contentEntry = await cStore.get(note.id);
 		const content = contentEntry?.content ?? '';
+		const assets = await assetIndex.getAll(note.id);
 
 		await bStore.put!({
 			id: `note_${note.id}`,
 			type: 'note',
-			data: { ...note, content },
+			data: { ...note, content, assets },
 			path,
 			archivedAt
 		});
+		for (const asset of assets) {
+			await aStore.delete!(asset.id);
+		}
 		await mStore.delete!(note.id);
 		await cStore.delete!(note.id);
 	});

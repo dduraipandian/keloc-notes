@@ -44,6 +44,7 @@
 		"fake-indexeddb": "^6.2.5",
 		"globals": "^17.4.0",
 		"jsdom": "^26.1.0",
+		"mode-watcher": "^1.1.0",
 		"phosphor-svelte": "^3.1.0",
 		"playwright": "^1.59.1",
 		"prettier": "^3.8.1",
@@ -74,6 +75,7 @@
 		"idb": "^8.0.3",
 		"lowlight": "^3.3.0",
 		"lucide-svelte": "^1.0.1",
-		"minisearch": "^7.2.0"
+		"minisearch": "^7.2.0",
+		"svelte-sonner": "^1.1.0"
 	}
 }

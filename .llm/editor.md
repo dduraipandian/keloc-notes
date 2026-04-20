@@ -1,36 +1,44 @@
 # Rich Text Editor — Implementation Spec
 
-## ✅ IMPLEMENTATION COMPLETE + BUGS FIXED
+## Status Reviewed Against Repo
 
-All 6 implementation phases complete as of 2026-04-20. Critical bugs discovered & fixed on 2026-04-21:
+Reviewed on 2026-04-20 by inspecting the implementation in `frontend/src/lib`, `frontend/src/routes`, and the related test files.
 
-- **Phase 1** ✅ Database & Infrastructure (idbr.ts, repositories.ts, SettingsState)
-- **Phase 2** ✅ Core Libraries (serializer.ts, imageHandler.ts, extensions.ts)
-- **Phase 3** ✅ UI Components (EditorToolbar.svelte, BubbleToolbar.svelte, Editor.svelte)
-- **Phase 4** ✅ System Integration (+page.svelte, NotesStore, SearchService, NoteService)
-- **Phase 5** ✅ Settings UI (Editor tab with toolbar style & language selection)
-- **Phase 6** ✅ E2E Tests (37 comprehensive editor workflow tests)
+### Overall Status
 
-**Bug Fixes (2026-04-21)**:
-1. **Context key mismatch** — Editor.svelte used `getContext('string-key')` but context registered with `STORE_KEYS.Symbol`. Fixed: import `getNoteService`, `getPreferencesStore` from context helpers.
-2. **Invalid empty doc schema** — `parseContent('')` returned `{ type: 'doc', content: [] }`, violating ProseMirror's `block+` requirement. Fixed: return `{ type: 'doc', content: [{ type: 'paragraph' }] }`.
-3. **Reactive loop rebuilding editor** — `$effect` tracked `note.content`, rebuilding Tiptap on every keystroke. Fixed: wrap reads in `untrack()`.
-4. **Test placeholder selectors** — E2E tests used `getByPlaceholder('Start writing...')` against CSS pseudo-element. Fixed: use `.ProseMirror` locator instead.
+- **Phase 1** `VERIFIED` — database and repository changes are implemented in `idbr.ts` and `repositories.ts`
+- **Phase 2** `VERIFIED` — `serializer.ts`, `imageHandler.ts`, and `extensions.ts` are present and wired
+- **Phase 3** `VERIFIED` — `EditorToolbar.svelte`, `BubbleToolbar.svelte`, and `Editor.svelte` are implemented
+- **Phase 4** `VERIFIED` — the editor is integrated into `+page.svelte`; notes summary, search indexing, and export conversion are hooked up
+- **Phase 5** `VERIFIED` — Settings UI includes editor toolbar mode and enabled language selection
+- **Phase 6** `PARTIALLY VERIFIED` — editor unit and E2E test files exist, but this review did **not** run the test suite, so pass/fail claims are not verified here
 
-**Test Status**: All 341 unit tests + 37 E2E tests passing (2026-04-21). Editor E2E tests cover:
-- Basic editor rendering and content loading
-- Text formatting (bold, italic, strikethrough, headings)
-- List insertion (bullet and ordered)
-- Toolbar state management and ARIA accessibility
-- Note switching with proper remounting
-- Readonly state handling
+### Verified Fixes Present In Code
 
-**Key Metrics**:
-- 3 Svelte components (EditorToolbar, BubbleToolbar, Editor)
-- 4 core library modules (serializer, imageHandler, extensions)
-- 28 new unit tests for components
-- 14 E2E tests for user workflows
-- 6 package dependencies installed (Tiptap, lucide-svelte, lowlight, highlight.js)
+1. **Context helper usage** — `Editor.svelte` imports `getNoteService()` and `getPreferencesStore()` from store context helpers.
+2. **Empty document handling** — `parseContent('')` returns a doc with an empty paragraph, not an empty `content` array.
+3. **Reactive rebuild guard** — `Editor.svelte` wraps initial note reads in `untrack()` before constructing the Tiptap instance.
+4. **Selector approach in tests** — current E2E coverage uses `.ProseMirror` locators.
+
+### Verified Test Footprint
+
+- `frontend/tests/unit/infrastructure/idbr.test.ts`: 20 tests
+- `frontend/tests/unit/infrastructure/assetsRepository.test.ts`: 7 tests
+- `frontend/tests/unit/editor/serializer.test.ts`: 22 tests
+- `frontend/tests/unit/editor/imageHandler.svelte.test.ts`: 5 tests
+- `frontend/tests/unit/stores/preferences.svelte.test.ts`: 8 tests
+- `frontend/tests/unit/components/editorToolbar.svelte.test.ts`: 10 tests
+- `frontend/tests/unit/components/bubbleToolbar.svelte.test.ts`: 9 tests
+- `frontend/tests/unit/components/editor.svelte.test.ts`: 9 tests
+- `frontend/tests/e2e/editor.e2e.ts`: 14 tests
+
+### Important Caveat
+
+The earlier version of this document mixed completed implementation notes with stale `PENDING` checklist items and future-dated claims. This file should now be read as:
+
+- implementation is largely present in the repo
+- test files are present
+- suite execution status is **unknown until re-run**
 
 ---
 
@@ -1178,174 +1186,105 @@ Track progress through each phase. Do not proceed to the next item until the cur
 ├─ TDD protocol defined
 └─ File structure & API contracts specified
 
-✅ COMPLETE: Phase 1 — Database & Infrastructure — Step 1
-├─ [x] tests/unit/infrastructure/idbr.test.ts
-│   ├─ Tests for putNoteAsset, getNoteAsset, deleteNoteAssetsByNoteId
-│   ├─ Tests for getAllSettings with new keys (editorToolbar, enabledLanguages)
-│   └─ Test version 4 migration creates note_assets store with noteId index
-├─ [x] idbr.ts implementation
-│   ├─ DB_VERSION = 4
-│   ├─ Add note_assets to DBStore interface
-│   ├─ Add case 3 migration (note_assets store creation)
-│   ├─ Add note_assets to ensureStores
-│   ├─ Add editorToolbar & enabledLanguages to SettingsState type
-│   ├─ Implement 4 new functions: putNoteAsset, getNoteAsset, deleteNoteAsset, deleteNoteAssetsByNoteId
-│   └─ Update getAllSettings() to handle new settings keys
-└─ [x] Commit: "feat: add note_assets IndexedDB store + settings" (bce229a)
+## Verification Summary
 
-✅ COMPLETE: Phase 1 — Step 2
-├─ [x] tests/unit/infrastructure/assetsRepository.test.ts (7 tests)
-├─ [x] infrastructure/assetsRepository.ts (delegation pattern)
-└─ [x] Commit: "feat: add assetsRepository" (bb26ed8)
+### Phase 1: Database & Infrastructure
 
-✅ COMPLETE: Phase 2 — Step 1
-├─ [x] tests/unit/editor/serializer.test.ts (22 tests)
-├─ [x] editor/serializer.ts (parseContent, extractTextFromJSON, jsonToMarkdown)
-└─ [x] Commit: "feat: add serializer" (53722d9)
+`VERIFIED`
 
-✅ COMPLETE: Phase 2 — Step 2
-├─ [x] tests/unit/editor/imageHandler.svelte.test.ts (5 tests)
-├─ [x] editor/imageHandler.ts (resize, store, resolve with caching)
-└─ [x] Commit: "feat: add image handler" (6181740)
+- `frontend/src/lib/infrastructure/idbr.ts`
+  - `DB_VERSION = 4`
+  - `note_assets` store exists and adds the `by_note` index
+  - `SettingsState` includes `editorToolbar` and `enabledLanguages`
+  - asset CRUD helpers exist
+- `frontend/src/lib/infrastructure/repositories.ts`
+  - `assetsRepository` exists and delegates to `idbr.ts`
+- Tests present:
+  - `frontend/tests/unit/infrastructure/idbr.test.ts`
+  - `frontend/tests/unit/infrastructure/assetsRepository.test.ts`
 
-✅ COMPLETE: Phase 2 — Step 3
-├─ [x] tests/unit/stores/preferences.svelte.test.ts (8 tests)
-├─ [x] preferences.svelte.ts (editorToolbar, enabledLanguages)
-└─ [x] Commit: "feat: add preferences" (0429f9d)
+### Phase 2: Core Editor Modules
 
-PENDING: Phase 2 — Steps 4-6
-├─ [ ] tests/unit/editor/serializer.test.ts
-│   ├─ parseContent('') → empty doc
-│   ├─ parseContent(invalid JSON) → wraps as plain text
-│   ├─ parseContent(valid JSON) → returns parsed
-│   ├─ extractTextFromJSON with headings, bold, code → correct plain text
-│   ├─ jsonToMarkdown heading → ## text
-│   ├─ jsonToMarkdown bold → **text**
-│   ├─ jsonToMarkdown code block → ```lang\ncode```
-│   ├─ jsonToMarkdown image → ![alt](asset:uuid)
-│   └─ jsonToMarkdown idempotency: serialize → parse → serialize = same
-├─ [ ] editor/serializer.ts implementation
-│   ├─ parseContent()
-│   ├─ extractTextFromJSON()
-│   ├─ jsonToMarkdown() + nodeToText() + serializeBlock() + serializeInline()
-│   └─ Commit: "feat: add serializer (parseContent, extractText, jsonToMarkdown)"
-├─ [ ] tests/unit/editor/imageHandler.svelte.test.ts
-│   ├─ resizeImage with >1920px wide → output ≤ 1920px
-│   ├─ resizeImage → Blob with mimeType image/webp
-│   ├─ storeImageAsset → calls assetsRepository.save with correct shape
-│   ├─ resolveAssetUrl → caches URL, no 2nd IDB call
-│   └─ revokeAssetUrl → removes from cache
-├─ [ ] editor/imageHandler.ts implementation
-│   ├─ resizeImage()
-│   ├─ storeImageAsset()
-│   ├─ resolveAssetUrl() with caching
-│   ├─ revokeAssetUrl()
-│   └─ Commit: "feat: add image handler (resize, store, resolve)"
-├─ [ ] tests/unit/stores/preferences.svelte.test.ts (additions)
-│   ├─ editorToolbar init from settings
-│   ├─ editorToolbar setter persists
-│   ├─ enabledLanguages init from settings (defaults to DEFAULT_LANGUAGES)
-│   └─ enabledLanguages setter persists
-├─ [ ] preferences.svelte.ts implementation
-│   ├─ Add #editorToolbar, #enabledLanguages states
-│   ├─ Add getters for both
-│   ├─ Add setEditorToolbar() & setEnabledLanguages() setters
-│   ├─ Load from savedSettings in init()
-│   └─ Commit: "feat: add editorToolbar & enabledLanguages to preferences"
-├─ [ ] editor/extensions.ts (no unit test required)
-│   ├─ createLowlight(common) + register go, dockerfile, sql
-│   ├─ Define DEFAULT_LANGUAGES
-│   ├─ Custom AssetImage extension with NodeView
-│   ├─ buildExtensions() function
-│   └─ Commit: "feat: configure Tiptap extensions"
-└─ [ ] npm install packages
+`VERIFIED`
 
-PENDING: Phase 3 — Components
-├─ [ ] tests/unit/components/editorToolbar.svelte.test.ts
-│   ├─ Renders bold, italic, heading buttons
-│   ├─ Active state reflects editor.isActive()
-│   ├─ Language selector appears when cursor is in code block
-│   ├─ Clicking button calls editor.chain()...run()
-│   └─ All buttons disabled when editor === null
-├─ [ ] components/EditorToolbar.svelte implementation
-│   ├─ Props: editor, onImageInsert, enabledLanguages
-│   └─ Buttons: Bold, Italic, Strikethrough, H1/H2/H3, UL, OL, Code block, HR, Image
-├─ [ ] tests/unit/components/bubbleToolbar.svelte.test.ts
-│   ├─ Renders bold, italic, strikethrough, code, heading buttons
-│   ├─ Buttons pass commands to editor
-│   └─ Respects editor prop lifecycle
-├─ [ ] components/BubbleToolbar.svelte implementation
-│   ├─ Props: editor, editorEl
-│   └─ Lightweight: Bold, Italic, Strikethrough, Code, H1, H2
-├─ [ ] tests/unit/components/editor.svelte.test.ts
-│   ├─ Mounts editor with parseContent(note.content)
-│   ├─ noteService.update() called on keystroke
-│   ├─ Switching note via {#key} triggers setContent()
-│   ├─ Read-only note → editor.setEditable(false)
-│   ├─ Drop handler processes images
-│   ├─ Paste handler processes images
-│   └─ Image picker insert calls storeImageAsset + setImage
-├─ [ ] components/Editor.svelte implementation
-│   ├─ Headless Tiptap mount on div ref
-│   ├─ Note lifecycle via $effect
-│   ├─ Drag & drop handler
-│   ├─ Paste handler
-│   ├─ Image picker handler
-│   └─ Blob URL cache management
-└─ [ ] Commit: "feat: implement Editor, EditorToolbar, BubbleToolbar components"
+- `frontend/src/lib/editor/serializer.ts`
+  - `parseContent()`
+  - `extractTextFromJSON()`
+  - `jsonToMarkdown()`
+- `frontend/src/lib/editor/imageHandler.ts`
+  - `resizeImage()`
+  - `storeImageAsset()`
+  - `resolveAssetUrl()`
+  - `revokeAssetUrl()`
+- `frontend/src/lib/editor/extensions.ts`
+  - lowlight setup
+  - extra language registration
+  - `DEFAULT_LANGUAGES`
+  - custom asset-backed image node view
+  - `buildExtensions()`
+- Tests present:
+  - `frontend/tests/unit/editor/serializer.test.ts`
+  - `frontend/tests/unit/editor/imageHandler.svelte.test.ts`
+  - `frontend/tests/unit/stores/preferences.svelte.test.ts`
 
-PENDING: Phase 4 — Integration
-├─ [ ] Update routes/+page.svelte
-│   ├─ Replace body textarea with <Editor>
-│   ├─ Add {#if note.isContentLoaded} gate
-│   ├─ Remove old textarea markup
-│   └─ Commit: "refactor: replace textarea with Tiptap Editor"
-├─ [ ] Update NotesStore.summarize()
-│   ├─ Import extractTextFromJSON from serializer
-│   ├─ Call extractTextFromJSON(content) before splitting lines
-│   └─ Commit: "fix: summarize() handles JSON content"
-├─ [ ] Update SearchService
-│   ├─ Import extractTextFromJSON
-│   ├─ Update ensureFolderIndexed() to extract text from JSON
-│   ├─ Update updateNoteIndex() to use extracted text
-│   └─ Commit: "fix: SearchService indexes plain text from JSON content"
-├─ [ ] Update NoteService.getNotesForExport()
-│   ├─ Import jsonToMarkdown from serializer
-│   ├─ Serialize content JSON → Markdown before returning
-│   └─ Commit: "fix: export converts JSON content to Markdown"
-└─ [ ] Test: npm run test (all unit tests green)
+### Phase 3: Components
 
-PENDING: Phase 5 — Settings UI
-├─ [ ] Update Settings.svelte
-│   ├─ Add Editor tab (alongside General, Appearance)
-│   ├─ Toolbar Style section: radio buttons (Fixed | Bubble | Both)
-│   ├─ Code Languages section: checklist of all available languages
-│   ├─ Implement setEditorToolbar() on radio change
-│   └─ Implement setEnabledLanguages() on checklist change
-└─ [ ] Commit: "feat: add Editor settings tab (toolbar style, languages)"
+`VERIFIED`
 
-PENDING: Phase 6 — E2E & Manual Testing
-├─ [ ] Run wails dev
-│   ├─ Create new note
-│   ├─ Type and format text (bold, italic, headings)
-│   ├─ Verify toolbar buttons work
-│   └─ Create code block, verify syntax highlighting
-├─ [ ] Add tests/unit/stores/notesStore.svelte.test.ts assertions
-│   └─ Test summarize() with JSON content
-├─ [ ] Add tests/unit/services/searchService.test.ts assertions
-│   ├─ Search with JSON content finds text in code blocks
-│   ├─ updateNoteIndex with JSON creates plain text document
-├─ [ ] tests/e2e/editor.e2e.ts
-│   ├─ Create note → type bold → switch → switch back → bold persists
-│   ├─ Create note → code block → set Python → reload → preserves language
-│   ├─ Paste image → reload → image renders
-│   └─ Note in trash → editor readonly → toolbar disabled
-└─ [ ] Final: npm run test && npm run test:e2e && npm run check
+- `frontend/src/lib/components/EditorToolbar.svelte`
+- `frontend/src/lib/components/BubbleToolbar.svelte`
+- `frontend/src/lib/components/Editor.svelte`
+  - headless Tiptap mount
+  - note lifecycle keyed from route
+  - drop/paste image handling
+  - image picker handling
+  - readonly support
+- Tests present:
+  - `frontend/tests/unit/components/editorToolbar.svelte.test.ts`
+  - `frontend/tests/unit/components/bubbleToolbar.svelte.test.ts`
+  - `frontend/tests/unit/components/editor.svelte.test.ts`
 
-FINAL VERIFICATION
-├─ [ ] All unit tests green: npm run test
-├─ [ ] All E2E tests green: npm run test:e2e
-├─ [ ] Type checking clean: npm run check
-├─ [ ] Linting clean: npm run lint
-└─ [ ] Feature ready for demo
-````
+### Phase 4: Integration
+
+`VERIFIED`
+
+- `frontend/src/routes/+page.svelte`
+  - body editor replaced with `<Editor />`
+  - gated on `selectedNote.isContentLoaded`
+  - readonly state passed for trashed notes
+- `frontend/src/lib/stores/notes.svelte.ts`
+  - `summarize()` uses `extractTextFromJSON()`
+- `frontend/src/lib/stores/searchService.svelte.ts`
+  - folder indexing extracts plain text from editor JSON
+  - incremental note indexing extracts plain text from editor JSON
+- `frontend/src/lib/stores/services/noteService.ts`
+  - export converts stored JSON content through `jsonToMarkdown()`
+
+### Phase 5: Settings UI
+
+`VERIFIED`
+
+- `frontend/src/lib/components/Settings.svelte`
+  - Editor tab exists
+  - toolbar style radio controls exist
+  - enabled language checklist exists
+- `frontend/src/lib/stores/preferences.svelte.ts`
+  - editor preferences load and persist through `settingsRepository`
+
+### Phase 6: Test Execution Status
+
+`PARTIALLY VERIFIED`
+
+- Editor-focused test files exist, including `frontend/tests/e2e/editor.e2e.ts`.
+- This document review did **not** run:
+  - `npm run test`
+  - `npm run test:e2e`
+  - `npm run check`
+  - `npm run lint`
+- Therefore:
+  - implementation presence is verified
+  - current green test status is **not** verified in this pass
+
+### Current Source Of Truth
+
+Use the implementation and this verification summary as the current status. Treat any earlier completed-commit references or planning checklists that appeared in older versions of this file as historical notes, not live status.

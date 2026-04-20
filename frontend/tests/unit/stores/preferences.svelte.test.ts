@@ -27,7 +27,8 @@ describe('PreferencesStore', () => {
 				applicationTheme: null,
 				folderAccentColor: null,
 				editorToolbar: null,
-				enabledLanguages: null
+				enabledLanguages: null,
+				imageProcessingConcurrency: null
 			});
 
 			await store.init();
@@ -44,7 +45,8 @@ describe('PreferencesStore', () => {
 				applicationTheme: null,
 				folderAccentColor: null,
 				editorToolbar: 'fixed',
-				enabledLanguages: null
+				enabledLanguages: null,
+				imageProcessingConcurrency: null
 			});
 
 			await store.init();
@@ -61,7 +63,8 @@ describe('PreferencesStore', () => {
 				applicationTheme: null,
 				folderAccentColor: null,
 				editorToolbar: null,
-				enabledLanguages: null
+				enabledLanguages: null,
+				imageProcessingConcurrency: null
 			});
 
 			await store.init();
@@ -83,7 +86,8 @@ describe('PreferencesStore', () => {
 				applicationTheme: null,
 				folderAccentColor: null,
 				editorToolbar: null,
-				enabledLanguages: null
+				enabledLanguages: null,
+				imageProcessingConcurrency: null
 			});
 
 			await store.init();
@@ -107,7 +111,8 @@ describe('PreferencesStore', () => {
 				applicationTheme: null,
 				folderAccentColor: null,
 				editorToolbar: null,
-				enabledLanguages: null
+				enabledLanguages: null,
+				imageProcessingConcurrency: null
 			});
 
 			await store.init();
@@ -125,7 +130,8 @@ describe('PreferencesStore', () => {
 				applicationTheme: null,
 				folderAccentColor: null,
 				editorToolbar: null,
-				enabledLanguages: languages
+				enabledLanguages: languages,
+				imageProcessingConcurrency: null
 			});
 
 			await store.init();
@@ -142,7 +148,8 @@ describe('PreferencesStore', () => {
 				applicationTheme: null,
 				folderAccentColor: null,
 				editorToolbar: null,
-				enabledLanguages: null
+				enabledLanguages: null,
+				imageProcessingConcurrency: null
 			});
 
 			await store.init();
@@ -165,7 +172,8 @@ describe('PreferencesStore', () => {
 				applicationTheme: null,
 				folderAccentColor: null,
 				editorToolbar: null,
-				enabledLanguages: null
+				enabledLanguages: null,
+				imageProcessingConcurrency: null
 			});
 
 			await store.init();
@@ -176,6 +184,85 @@ describe('PreferencesStore', () => {
 				'enabledLanguages',
 				[]
 			);
+		});
+	});
+
+	describe('imageProcessingConcurrency', () => {
+		it('should initialize with null if no saved value', async () => {
+			vi.mocked(settingsRepository.settingsRepository.getAll).mockResolvedValue({
+				selectedFolderID: null,
+				selectedNoteID: null,
+				sidebarWidth: null,
+				noteListWidth: null,
+				applicationTheme: null,
+				folderAccentColor: null,
+				editorToolbar: null,
+				enabledLanguages: null,
+				imageProcessingConcurrency: null
+			});
+
+			await store.init();
+
+			expect(store.imageProcessingConcurrency).toBeNull();
+		});
+
+		it('should initialize with saved imageProcessingConcurrency value', async () => {
+			vi.mocked(settingsRepository.settingsRepository.getAll).mockResolvedValue({
+				selectedFolderID: null,
+				selectedNoteID: null,
+				sidebarWidth: null,
+				noteListWidth: null,
+				applicationTheme: null,
+				folderAccentColor: null,
+				editorToolbar: null,
+				enabledLanguages: null,
+				imageProcessingConcurrency: 5
+			});
+
+			await store.init();
+
+			expect(store.imageProcessingConcurrency).toBe(5);
+		});
+
+		it('should persist imageProcessingConcurrency setting', async () => {
+			vi.mocked(settingsRepository.settingsRepository.getAll).mockResolvedValue({
+				selectedFolderID: null,
+				selectedNoteID: null,
+				sidebarWidth: null,
+				noteListWidth: null,
+				applicationTheme: null,
+				folderAccentColor: null,
+				editorToolbar: null,
+				enabledLanguages: null,
+				imageProcessingConcurrency: null
+			});
+
+			await store.init();
+			await store.setImageProcessingConcurrency(4);
+
+			expect(store.imageProcessingConcurrency).toBe(4);
+			expect(settingsRepository.settingsRepository.save).toHaveBeenCalledWith(
+				'imageProcessingConcurrency',
+				4
+			);
+		});
+
+		it('should ignore invalid saved imageProcessingConcurrency values', async () => {
+			vi.mocked(settingsRepository.settingsRepository.getAll).mockResolvedValue({
+				selectedFolderID: null,
+				selectedNoteID: null,
+				sidebarWidth: null,
+				noteListWidth: null,
+				applicationTheme: null,
+				folderAccentColor: null,
+				editorToolbar: null,
+				enabledLanguages: null,
+				imageProcessingConcurrency: 999
+			});
+
+			await store.init();
+
+			expect(store.imageProcessingConcurrency).toBeNull();
 		});
 	});
 });

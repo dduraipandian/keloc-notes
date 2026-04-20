@@ -10,6 +10,10 @@
 	import Palette from '@lucide/svelte/icons/palette';
 	import Code from '@lucide/svelte/icons/code';
 	import { createLowlight, common } from 'lowlight';
+	import {
+		DEFAULT_IMAGE_PROCESSING_CONCURRENCY,
+		MAX_IMAGE_PROCESSING_CONCURRENCY
+	} from '$lib/editor/imageHandler';
 	import { DEFAULT_LANGUAGES } from '$lib/editor/extensions';
 
 	interface Props {
@@ -213,6 +217,25 @@
 								</label>
 							{/each}
 						</div>
+					</div>
+					<div class="setting-group">
+						<h3 class="setting-title">Image Processing Concurrency</h3>
+						<p class="description">Control how many images mdnotes processes at the same time.</p>
+						<select
+							class="toolbar-select"
+							value={String(
+								preferencesStore.imageProcessingConcurrency ??
+									DEFAULT_IMAGE_PROCESSING_CONCURRENCY
+							)}
+							onchange={(e) =>
+								preferencesStore.setImageProcessingConcurrency(
+									Number.parseInt(e.currentTarget.value, 10)
+								)}
+						>
+							{#each Array.from({ length: MAX_IMAGE_PROCESSING_CONCURRENCY }, (_, i) => i + 1) as value}
+								<option value={value}>{value}</option>
+							{/each}
+						</select>
 					</div>
 				{/if}
 			</div>
