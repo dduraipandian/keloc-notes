@@ -4,7 +4,6 @@ import { Image } from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { common, createLowlight } from 'lowlight';
 import type { Extensions } from '@tiptap/core';
-import { resolveAssetUrl, revokeAssetUrl } from './imageHandler';
 
 // ── Language registry ─────────────────────────────────────────────────────────
 // All languages are bundled. `common` is lowlight's built-in curated set.
@@ -36,47 +35,16 @@ export const DEFAULT_LANGUAGES = [
 	'dockerfile'
 ];
 
-// ── Custom Image extension ────────────────────────────────────────────────────
-// Resolves `asset:uuid` refs to object URLs asynchronously in a NodeView.
-
 const AssetImage = Image.extend({
-	addNodeView() {
-		return ({ node }) => {
-			const wrapper = document.createElement('span');
-			wrapper.contentEditable = 'false';
-			wrapper.className = 'editor-image-wrapper';
-
-			const img = document.createElement('img');
-			img.className = 'editor-image';
-			img.draggable = false;
-			wrapper.appendChild(img);
-
-			const src = node.attrs['src'] as string;
-			let resolvedAssetId: string | null = null;
-
-			if (src?.startsWith('asset:')) {
-				resolvedAssetId = src.slice(6);
-				img.alt = 'Loading…';
-				resolveAssetUrl(resolvedAssetId).then((url) => {
-					if (url) {
-						img.src = url;
-						img.alt = node.attrs['alt'] ?? '';
-					} else {
-						img.alt = '[Image not found]';
-						wrapper.classList.add('broken-image');
-					}
-				});
-			} else if (src) {
-				img.src = src;
-				img.alt = node.attrs['alt'] ?? '';
+	addAttributes() {
+		return {
+			...this.parent?.(),
+			assetId: {
+				default: null,
+				parseHTML: (element) => element.getAttribute('data-asset-id'),
+				renderHTML: (attributes) =>
+					attributes['assetId'] ? { 'data-asset-id': attributes['assetId'] } : {}
 			}
-
-			return {
-				dom: wrapper,
-				destroy() {
-					if (resolvedAssetId) revokeAssetUrl(resolvedAssetId);
-				}
-			};
 		};
 	}
 });
@@ -101,7 +69,13 @@ export function buildExtensions(opts: ExtensionOptions = {}): Extensions {
 		}),
 		AssetImage.configure({
 			inline: false,
-			allowBase64: false
+			allowBase64: false,
+			resize: {
+				enabled: !opts.readonly,
+				minWidth: 96,
+				minHeight: 96,
+				alwaysPreserveAspectRatio: true
+			}
 		}),
 		Placeholder.configure({
 			placeholder: opts.placeholder ?? 'Start writing…'

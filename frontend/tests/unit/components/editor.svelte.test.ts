@@ -1,11 +1,59 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { tick } from 'svelte';
-import { render } from '@testing-library/svelte';
+import { cleanup, render } from '@testing-library/svelte';
 import Editor from '$lib/components/Editor.svelte';
 import type { NoteItem } from '$lib/stores/notes.svelte';
 import type { NoteService } from '$lib/stores/services/noteService';
 import type { PreferencesStore } from '$lib/stores/preferences.svelte';
 import { STORE_KEYS } from '$lib/stores/context';
+
+vi.mock('@tiptap/core', () => ({
+	Editor: class MockEditor {
+		element: HTMLElement | undefined;
+
+		constructor({
+			element
+		}: {
+			element?: HTMLElement;
+		}) {
+			this.element = element;
+			this.element?.appendChild(document.createElement('div'));
+		}
+
+		chain() {
+			const chainApi = {
+				focus: () => chainApi,
+				setImage: () => chainApi,
+				run: () => true
+			};
+
+			return chainApi;
+		}
+
+		isActive() {
+			return false;
+		}
+
+		getAttributes() {
+			return {};
+		}
+
+		getJSON() {
+			return { type: 'doc', content: [] };
+		}
+
+		destroy() {}
+	}
+}));
+
+vi.mock('@tiptap/extension-bubble-menu', () => ({
+	BubbleMenu: {
+		configure: () => ({})
+	}
+}));
+
+vi.mock('$lib/editor/extensions', () => ({
+	buildExtensions: () => []
+}));
 
 describe('Editor.svelte', () => {
 	const mockNoteService: NoteService = {
@@ -38,8 +86,7 @@ describe('Editor.svelte', () => {
 	});
 
 	afterEach(async () => {
-		await new Promise<void>((r) => requestAnimationFrame(() => r()));
-		await tick();
+		cleanup();
 	});
 
 	it('should render editor root', () => {

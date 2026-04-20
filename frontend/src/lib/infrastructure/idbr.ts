@@ -4,7 +4,7 @@ import type { NoteItem } from '../stores/notes.svelte';
 import type { UIStore } from '../stores/dialog.svelte';
 
 const DEFAULT_DB_NAME = 'mdnotes-db';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 export interface DBStore {
 	folders: {
@@ -92,7 +92,9 @@ export function initDB() {
 					ensureStores(db);
 					break;
 				case 3:
-					// v4: add note_assets store
+				case 4:
+					// v5: ensure note_assets exists for databases that reached v4
+					// before the store was added in code.
 					if (!db.objectStoreNames.contains('note_assets')) {
 						const assetStore = db.createObjectStore('note_assets', { keyPath: 'id' });
 						assetStore.createIndex('by_note', 'noteId');

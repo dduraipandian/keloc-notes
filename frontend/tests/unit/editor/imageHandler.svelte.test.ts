@@ -6,7 +6,10 @@ import {
 	processImageFiles,
 	clampImageProcessingConcurrency,
 	DEFAULT_IMAGE_PROCESSING_CONCURRENCY,
-	MAX_IMAGE_FILE_SIZE_BYTES
+	MAX_IMAGE_FILE_SIZE_BYTES,
+	collectAssetIds,
+	hydrateAssetSources,
+	dehydrateAssetSources
 } from '../../../src/lib/editor/imageHandler';
 import * as assetsRepository from '../../../src/lib/infrastructure/repositories';
 
@@ -187,6 +190,110 @@ describe('imageHandler', () => {
 
 			await resolveAssetUrl('asset-1');
 			expect(assetsRepository.assetsRepository.get).toHaveBeenCalled();
+		});
+	});
+
+	describe('collectAssetIds', () => {
+		it('should collect asset ids from both assetId and asset: src attributes', () => {
+			const doc = {
+				type: 'doc',
+				content: [
+					{
+						type: 'paragraph',
+						content: [
+							{
+								type: 'image',
+								attrs: {
+									src: 'asset:asset-1'
+								}
+							}
+						]
+					},
+					{
+						type: 'image',
+						attrs: {
+							src: 'blob:runtime-url',
+							assetId: 'asset-2'
+						}
+					}
+				]
+			};
+
+			expect([...collectAssetIds(doc)]).toEqual(['asset-1', 'asset-2']);
+		});
+	});
+
+	describe('hydrateAssetSources', () => {
+		it('should replace persisted asset refs with object URLs and preserve assetId', async () => {
+			const blob = new Blob(['image data'], { type: 'image/webp' });
+			vi.mocked(assetsRepository.assetsRepository.get).mockResolvedValue({
+				id: 'asset-1',
+				noteId: 'note-1',
+				mimeType: 'image/webp',
+				data: blob
+			});
+
+			const hydrated = await hydrateAssetSources({
+				type: 'doc',
+				content: [
+					{
+						type: 'image',
+						attrs: {
+							src: 'asset:asset-1',
+							alt: 'diagram'
+						}
+					}
+				]
+			});
+
+			const imageNode = hydrated.content?.[0];
+			expect(imageNode?.attrs?.['assetId']).toBe('asset-1');
+			expect(imageNode?.attrs?.['src']).toMatch(/^blob:/);
+			expect(imageNode?.attrs?.['alt']).toBe('diagram');
+		});
+
+		it('should keep image nodes stable when the asset is missing', async () => {
+			vi.mocked(assetsRepository.assetsRepository.get).mockResolvedValue(undefined);
+
+			const hydrated = await hydrateAssetSources({
+				type: 'doc',
+				content: [
+					{
+						type: 'image',
+						attrs: {
+							src: 'asset:missing-asset'
+						}
+					}
+				]
+			});
+
+			expect(hydrated.content?.[0]?.attrs?.['assetId']).toBe('missing-asset');
+			expect(hydrated.content?.[0]?.attrs?.['src']).toBe('');
+		});
+	});
+
+	describe('dehydrateAssetSources', () => {
+		it('should persist asset ids back to asset: refs and strip runtime fields', () => {
+			const dehydrated = dehydrateAssetSources({
+				type: 'doc',
+				content: [
+					{
+						type: 'image',
+						attrs: {
+							src: 'blob:runtime-url',
+							assetId: 'asset-1',
+							alt: 'diagram',
+							width: 640
+						}
+					}
+				]
+			});
+
+			expect(dehydrated.content?.[0]?.attrs).toEqual({
+				src: 'asset:asset-1',
+				alt: 'diagram',
+				width: 640
+			});
 		});
 	});
 });

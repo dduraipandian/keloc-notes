@@ -247,7 +247,7 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 			expect(await getNoteAsset('asset-3')).toBeDefined();
 		});
 
-		it('should create note_assets store with noteId index on v4 migration', async () => {
+		it('should create note_assets store with noteId index on the current migration', async () => {
 			const db = await initDB();
 			const storeNames = Array.from(db.objectStoreNames);
 			expect(storeNames).toContain('note_assets');

@@ -1,14 +1,64 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import Page from '../../src/routes/+page.svelte';
 import { NotesStore } from '../../src/lib/stores/notes.svelte';
 import { FolderStore } from '../../src/lib/stores/folders.svelte';
 import { UIStateStore } from '../../src/lib/stores/uiState.svelte';
 import { ThemeStore } from '../../src/lib/stores/theme.svelte';
+import type { PreferencesStore } from '../../src/lib/stores/preferences.svelte';
 import { STORE_KEYS } from '../../src/lib/stores/context';
 import { SelectionStore } from '../../src/lib/stores/selection.svelte';
 import { UIStore } from '../../src/lib/stores/dialog.svelte';
 import { SvelteMap } from 'svelte/reactivity';
+
+vi.mock('@tiptap/core', () => ({
+	Editor: class MockEditor {
+		element: HTMLElement | undefined;
+
+		constructor({
+			element
+		}: {
+			element?: HTMLElement;
+		}) {
+			this.element = element;
+			this.element?.appendChild(document.createElement('div'));
+		}
+
+		chain() {
+			const chainApi = {
+				focus: () => chainApi,
+				setImage: () => chainApi,
+				run: () => true
+			};
+
+			return chainApi;
+		}
+
+		isActive() {
+			return false;
+		}
+
+		getAttributes() {
+			return {};
+		}
+
+		getJSON() {
+			return { type: 'doc', content: [] };
+		}
+
+		destroy() {}
+	}
+}));
+
+vi.mock('@tiptap/extension-bubble-menu', () => ({
+	BubbleMenu: {
+		configure: () => ({})
+	}
+}));
+
+vi.mock('$lib/editor/extensions', () => ({
+	buildExtensions: () => []
+}));
 
 const mockFolderService = {
 	getFolderPath: vi.fn(),
@@ -52,21 +102,31 @@ describe('+page.svelte', () => {
 	let mockThemeStore: ThemeStore;
 	let mockUIStore: UIStore;
 	let mockSelectionStore: SelectionStore;
-    let mockNotesStore: NotesStore;
-    let mockFolderStore: FolderStore;
+	let mockNotesStore: NotesStore;
+	let mockFolderStore: FolderStore;
+	let mockPreferencesStore: PreferencesStore;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockUIStateStore = new UIStateStore();
 		mockThemeStore = new ThemeStore();
 		mockUIStore = new UIStore();
-        mockFolderStore = new FolderStore();
+		mockFolderStore = new FolderStore();
 		mockSelectionStore = new SelectionStore(mockFolderStore);
-        mockNotesStore = new NotesStore();
+		mockNotesStore = new NotesStore();
+		mockPreferencesStore = {
+			editorToolbar: 'fixed',
+			enabledLanguages: ['javascript'],
+			imageProcessingConcurrency: 3
+		} as PreferencesStore;
 
 		(mockNotesStore as any).notes = new SvelteMap();
 		(mockNotesStore as any).selectedNoteID = null;
-        (mockNotesStore as any).isInitialized = true;
+		(mockNotesStore as any).isInitialized = true;
+	});
+
+	afterEach(() => {
+		cleanup();
 	});
 
 	function renderPage(props = {}) {
@@ -77,10 +137,11 @@ describe('+page.svelte', () => {
 				[STORE_KEYS.THEME, mockThemeStore],
 				[STORE_KEYS.UI, mockUIStore],
 				[STORE_KEYS.SELECTION, mockSelectionStore],
-                [STORE_KEYS.FOLDERS, mockFolderStore],
-                [STORE_KEYS.NOTES, mockNotesStore],
+				[STORE_KEYS.FOLDERS, mockFolderStore],
+				[STORE_KEYS.NOTES, mockNotesStore],
 				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
-				[STORE_KEYS.TRASH_SERVICE, mockTrashService]
+				[STORE_KEYS.TRASH_SERVICE, mockTrashService],
+				[STORE_KEYS.PREFERENCES, mockPreferencesStore]
 			])
 		});
 	}
@@ -92,7 +153,8 @@ describe('+page.svelte', () => {
 			title: 'Note 1',
 			content: 'Content 1',
 			updatedAt: now,
-			folderId: 'f1'
+			folderId: 'f1',
+			isContentLoaded: true
 		} as any);
 		mockNotesStore.selectedNoteID = 'n1';
 

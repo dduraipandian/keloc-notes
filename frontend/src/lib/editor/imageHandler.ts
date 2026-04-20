@@ -1,3 +1,4 @@
+import type { JSONContent } from '@tiptap/core';
 import { assetsRepository } from '$lib/infrastructure/repositories';
 
 const MAX_WIDTH = 1920;
@@ -150,6 +151,94 @@ export async function processImageFiles(
 	await Promise.all(Array.from({ length: normalizedConcurrency }, () => worker()));
 
 	return results;
+}
+
+export function collectAssetIds(node: JSONContent): Set<string> {
+	const assetIds = new Set<string>();
+
+	function visit(current: JSONContent) {
+		const attrs = current.attrs as Record<string, unknown> | undefined;
+		const assetId = typeof attrs?.['assetId'] === 'string'
+			? attrs['assetId']
+			: typeof attrs?.['src'] === 'string' && attrs['src'].startsWith('asset:')
+				? attrs['src'].slice(6)
+				: null;
+
+		if (assetId) {
+			assetIds.add(assetId);
+		}
+
+		current.content?.forEach(visit);
+	}
+
+	visit(node);
+	return assetIds;
+}
+
+export async function hydrateAssetSources(node: JSONContent): Promise<JSONContent> {
+	async function visit(current: JSONContent): Promise<JSONContent> {
+		const nextContent = current.content
+			? await Promise.all(current.content.map((child) => visit(child)))
+			: current.content;
+
+		if (current.type === 'image') {
+			const attrs = (current.attrs ?? {}) as Record<string, unknown>;
+			const src = typeof attrs['src'] === 'string' ? attrs['src'] : '';
+
+			if (src.startsWith('asset:')) {
+				const assetId = src.slice(6);
+				const resolvedUrl = await resolveAssetUrl(assetId);
+
+				return {
+					...current,
+					content: nextContent,
+					attrs: {
+						...attrs,
+						src: resolvedUrl ?? '',
+						assetId
+					}
+				};
+			}
+		}
+
+		return {
+			...current,
+			content: nextContent
+		};
+	}
+
+	return visit(node);
+}
+
+export function dehydrateAssetSources(node: JSONContent): JSONContent {
+	function visit(current: JSONContent): JSONContent {
+		const nextContent = current.content?.map((child) => visit(child));
+
+		if (current.type === 'image') {
+			const attrs = (current.attrs ?? {}) as Record<string, unknown>;
+			const assetId = typeof attrs['assetId'] === 'string' ? attrs['assetId'] : null;
+
+			if (assetId) {
+				const { assetId: _assetId, ...remainingAttrs } = attrs;
+
+				return {
+					...current,
+					content: nextContent,
+					attrs: {
+						...remainingAttrs,
+						src: `asset:${assetId}`
+					}
+				};
+			}
+		}
+
+		return {
+			...current,
+			content: nextContent
+		};
+	}
+
+	return visit(node);
 }
 
 // ── Object URL cache ──────────────────────────────────────────────────────────

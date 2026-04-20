@@ -8,8 +8,13 @@
 	import { buildExtensions } from '$lib/editor/extensions';
 	import { parseContent } from '$lib/editor/serializer';
 	import {
+		collectAssetIds,
 		clampImageProcessingConcurrency,
+		dehydrateAssetSources,
 		processImageFiles,
+		hydrateAssetSources,
+		resolveAssetUrl,
+		revokeAssetUrl,
 		selectAcceptedImageFiles
 	} from '$lib/editor/imageHandler';
 	import EditorToolbar from './EditorToolbar.svelte';
@@ -25,6 +30,7 @@
 	let editorContainer: HTMLElement | undefined = $state();
 	let bubbleMenuEl: HTMLElement | undefined = $state();
 	let editor = $state<Editor | null>(null);
+	let renderedAssetIds = new Set<string>();
 
 	const noteService = getNoteService();
 	const preferencesStore = getPreferencesStore();
@@ -81,6 +87,16 @@
 		toast.error(`Could not add ${fileName}`, { description: reason });
 	}
 
+	function syncRenderedAssetIds(nextAssetIds: Set<string>): void {
+		for (const assetId of renderedAssetIds) {
+			if (!nextAssetIds.has(assetId)) {
+				revokeAssetUrl(assetId);
+			}
+		}
+
+		renderedAssetIds = new Set(nextAssetIds);
+	}
+
 	async function handleIncomingFiles(files: File[]): Promise<void> {
 		const selection = selectAcceptedImageFiles(files);
 		selection.rejected.forEach(({ file, reason }) => notifyImageFailure(file, reason));
@@ -94,7 +110,15 @@
 
 		for (const result of results) {
 			if (result.src) {
-				editor?.chain().focus().setImage({ src: result.src }).run();
+				const assetId = result.src.slice(6);
+				const resolvedUrl = await resolveAssetUrl(assetId);
+				if (!resolvedUrl) {
+					notifyImageFailure(result.file, 'Stored image could not be loaded.');
+					continue;
+				}
+
+				editor?.chain().focus().setImage({ src: resolvedUrl, assetId } as never).run();
+				syncRenderedAssetIds(new Set([...renderedAssetIds, assetId]));
 				continue;
 			}
 
@@ -105,12 +129,14 @@
 	$effect(() => {
 		if (!editorContainer) return;
 
-		const { initialContent, noteId, isReadonly, bubbleEl } = untrack(() => ({
-			initialContent: parseContent(note.content),
+		const { parsedContent, noteId, isReadonly, bubbleEl } = untrack(() => ({
+			parsedContent: parseContent(note.content),
 			noteId: note.id,
 			isReadonly: readonly,
 			bubbleEl: bubbleMenuEl
 		}));
+		let disposed = false;
+		let instance: Editor | null = null;
 
 		const extensions = [
 			...buildExtensions({
@@ -120,21 +146,38 @@
 			BubbleMenu.configure({ element: bubbleEl ?? undefined })
 		];
 
-		const instance = new Editor({
-			element: editorContainer,
-			extensions,
-			content: initialContent,
-			editable: !isReadonly,
-			onUpdate({ editor: e }) {
-				const json = JSON.stringify(e.getJSON());
-				noteService.update(noteId, { content: json });
-			}
-		});
+		void (async () => {
+			const hydratedContent = await hydrateAssetSources(parsedContent);
+			const hydratedAssetIds = collectAssetIds(hydratedContent);
 
-		editor = instance;
+			if (disposed) {
+				hydratedAssetIds.forEach((assetId) => revokeAssetUrl(assetId));
+				return;
+			}
+
+			syncRenderedAssetIds(hydratedAssetIds);
+
+			instance = new Editor({
+				element: editorContainer,
+				extensions,
+				content: hydratedContent,
+				editable: !isReadonly,
+				onUpdate({ editor: e }) {
+					const runtimeDoc = e.getJSON();
+					syncRenderedAssetIds(collectAssetIds(runtimeDoc));
+					const persistedDoc = dehydrateAssetSources(runtimeDoc);
+					noteService.update(noteId, { content: JSON.stringify(persistedDoc) });
+				}
+			});
+
+			editor = instance;
+		})();
 
 		return () => {
-			instance.destroy();
+			disposed = true;
+			instance?.destroy();
+			renderedAssetIds.forEach((assetId) => revokeAssetUrl(assetId));
+			renderedAssetIds = new Set();
 			editor = null;
 		};
 	});
