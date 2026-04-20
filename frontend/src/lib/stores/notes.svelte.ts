@@ -4,6 +4,7 @@ import { KeyedDebouncer } from '../utils/debounce';
 import { extractTextFromJSON } from '../editor/serializer';
 import type { FolderID } from './folders.svelte';
 import type { SearchService } from './searchService.svelte';
+import { markLibraryAsUsed } from '../infrastructure/idbr';
 
 export type NoteID = string;
 
@@ -224,6 +225,8 @@ export class NotesStore {
 	}
 
 	createNote(folderId: FolderID | null) {
+		void markLibraryAsUsed();
+
 		const targetFolderId = folderId === 'home' ? null : folderId;
 		const newNote: NoteItem = {
 			id: crypto.randomUUID(),

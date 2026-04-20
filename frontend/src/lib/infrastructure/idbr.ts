@@ -65,6 +65,7 @@ function ensureStores(db: IDBPDatabase<DBStore>) {
 }
 
 let blockedHandler: ((current: number | undefined, blocked: number | null) => void) | null = null;
+const LIBRARY_HISTORY_KEY = 'libraryHasUserData';
 
 export function setDatabaseBlockedHandler(handler: typeof blockedHandler) {
 	blockedHandler = handler;
@@ -263,6 +264,16 @@ export async function deleteSetting(property: string) {
 	return db.delete('settings', property);
 }
 
+export async function markLibraryAsUsed(): Promise<void> {
+	const db = await getDB();
+	await db.put('settings', true, LIBRARY_HISTORY_KEY);
+}
+
+export async function hasLibraryBeenUsed(): Promise<boolean> {
+	const db = await getDB();
+	return (await db.get('settings', LIBRARY_HISTORY_KEY)) === true;
+}
+
 export async function getAllSettings(): Promise<SettingsState> {
 	return await withTransaction('settings', 'readonly', async (tx) => {
 		const store = tx.objectStore('settings');
@@ -333,17 +344,36 @@ export async function putNoteAsset(asset: {
 	id: string;
 	noteId: string;
 	mimeType: string;
-	data: Blob;
+	data: Blob | Uint8Array;
 }): Promise<void> {
 	const db = await getDB();
 	await db.put('note_assets', asset);
+}
+
+function normalizeAssetRecord(asset: { id: string; noteId: string; mimeType: string; data: Blob | Uint8Array }) {
+	return {
+		...asset,
+		data: asset.data instanceof Blob ? asset.data : new Blob([asset.data], { type: asset.mimeType })
+	};
 }
 
 export async function getNoteAsset(
 	id: string
 ): Promise<{ id: string; noteId: string; mimeType: string; data: Blob } | undefined> {
 	const db = await getDB();
-	return db.get('note_assets', id);
+	const asset = await db.get('note_assets', id);
+	return asset ? normalizeAssetRecord(asset) : undefined;
+}
+
+export async function getNoteAssetsByNoteId(
+	noteId: string
+): Promise<Array<{ id: string; noteId: string; mimeType: string; data: Blob }>> {
+	const db = await getDB();
+	const tx = db.transaction('note_assets', 'readonly');
+	const index = tx.store.index('by_note');
+	const assets = await index.getAll(noteId);
+	await tx.done;
+	return assets.map((asset) => normalizeAssetRecord(asset));
 }
 
 export async function deleteNoteAsset(id: string): Promise<void> {
@@ -372,33 +402,49 @@ export async function restoreBackupTransactionally(
 		deletedAt?: number | null;
 		deletedBatchId?: string | null;
 		content: string;
+		assets?: Array<{
+			id: string;
+			noteId: string;
+			mimeType: string;
+			data: Blob | Uint8Array;
+		}>;
 	}>,
 	settings: Partial<SettingsState>
 ) {
-	return await withTransaction(['folders', 'notes_meta', 'notes_contents', 'settings'], 'readwrite', async (tx) => {
+	return await withTransaction(
+		['folders', 'notes_meta', 'notes_contents', 'settings', 'note_assets'],
+		'readwrite',
+		async (tx) => {
 		const folderStore = tx.objectStore('folders')!;
 		const metaStore = tx.objectStore('notes_meta')!;
 		const contentStore = tx.objectStore('notes_contents')!;
 		const settingsStore = tx.objectStore('settings')!;
+		const assetStore = tx.objectStore('note_assets')!;
 
 		await folderStore.clear!();
 		await metaStore.clear!();
 		await contentStore.clear!();
 		await settingsStore.clear!();
+		await assetStore.clear!();
 
 		for (const folder of folders) {
 			await folderStore.put!(folder);
 		}
 
 		for (const note of notes) {
-			const { content, ...meta } = note;
+			const { content, assets = [], ...meta } = note;
 			await metaStore.put!(meta);
 			await contentStore.put!({ id: note.id, content });
+			for (const asset of assets) {
+				await assetStore.put!(asset);
+			}
 		}
 
 		for (const [key, value] of Object.entries(settings)) {
 			await settingsStore.put!(value, key);
 		}
+
+		await settingsStore.put!(true, LIBRARY_HISTORY_KEY);
 	});
 }
 

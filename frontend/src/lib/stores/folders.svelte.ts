@@ -18,6 +18,7 @@ export type FolderItem = {
 
 import { SvelteMap } from 'svelte/reactivity';
 import { foldersRepository } from '../infrastructure/repositories';
+import { markLibraryAsUsed } from '../infrastructure/idbr';
 
 export class FolderStore {
 	items = $state<string[]>([]);
@@ -126,6 +127,8 @@ export class FolderStore {
 	}
 
 	createFolder(parentId: FolderID | null = null) {
+		void markLibraryAsUsed();
+
 		const newFolder: FolderItem = $state({
 			id: crypto.randomUUID(),
 			title: 'New Folder',

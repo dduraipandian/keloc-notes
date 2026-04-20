@@ -1,16 +1,24 @@
 import type { FolderStore } from '$lib/stores/folders.svelte';
 import type { NoteMeta, NotesStore } from '$lib/stores/notes.svelte';
-import { settingsRepository } from '$lib/infrastructure/repositories';
+import { assetsRepository, settingsRepository } from '$lib/infrastructure/repositories';
 import type { NoteService } from '$lib/stores/services/noteService';
 import { resolveProfile } from '$lib/stores/domain/profiles';
 import type { FolderItem } from '$lib/stores/folders.svelte';
+import { hasLibraryBeenUsed, withTransaction } from '$lib/infrastructure/idbr';
+
+type SerializedNoteAsset = {
+	id: string;
+	noteId: string;
+	mimeType: string;
+	dataBase64: string;
+};
 
 interface BackupPayload {
 	schemaVersion: number;
 	exportedAt: string;
 	appVersion: string;
 	folders: FolderItem[];
-	notes: Array<NoteMeta & { content: string }>;
+	notes: Array<NoteMeta & { content: string; assets?: SerializedNoteAsset[] }>;
 	settings: Record<string, unknown>;
 }
 
@@ -43,12 +51,12 @@ function buildFolderPathMap(folders: FolderItem[]) {
 function normalizeBackupNotes(
 	notes: unknown[],
 	folders: FolderItem[]
-): Array<NoteMeta & { content: string }> {
+): Array<NoteMeta & { content: string; assets?: SerializedNoteAsset[] }> {
 	if (notes.length === 0) return [];
 
 	if (typeof notes[0] === 'object' && notes[0] !== null && 'id' in notes[0]) {
 		return notes.map((note) => {
-			const typed = note as NoteMeta & { content?: string };
+			const typed = note as NoteMeta & { content?: string; assets?: SerializedNoteAsset[] };
 			return {
 				id: typed.id,
 				folderId: typed.folderId ?? null,
@@ -58,7 +66,8 @@ function normalizeBackupNotes(
 				isFavorite: typed.isFavorite ?? false,
 				deletedAt: typed.deletedAt ?? null,
 				deletedBatchId: typed.deletedBatchId ?? null,
-				content: typed.content ?? ''
+				content: typed.content ?? '',
+				assets: typed.assets ?? []
 			};
 		});
 	}
@@ -73,8 +82,98 @@ function normalizeBackupNotes(
 		isFavorite: false,
 		deletedAt: null,
 		deletedBatchId: null,
-		content: note.content ?? ''
+		content: note.content ?? '',
+		assets: []
 	}));
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+	const bytes = new Uint8Array(buffer);
+	let binary = '';
+	const CHUNK_SIZE = 0x8000;
+
+	for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+		const chunk = bytes.subarray(i, i + CHUNK_SIZE);
+		binary += String.fromCharCode(...chunk);
+	}
+
+	return btoa(binary);
+}
+
+function base64ToUint8Array(dataBase64: string): Uint8Array {
+	const binary = atob(dataBase64);
+	const bytes = new Uint8Array(binary.length);
+
+	for (let i = 0; i < binary.length; i++) {
+		bytes[i] = binary.charCodeAt(i);
+	}
+
+	return bytes;
+}
+
+async function serializeNoteAsset(asset: {
+	id: string;
+	noteId: string;
+	mimeType: string;
+	data: Blob;
+}): Promise<SerializedNoteAsset> {
+	const readViaFileReader = () =>
+		new Promise<ArrayBuffer>((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(reader.result as ArrayBuffer);
+			reader.onerror = () => reject(reader.error ?? new Error('Failed to read asset blob.'));
+			reader.readAsArrayBuffer(asset.data);
+		});
+
+	const dataBuffer =
+		typeof asset.data.arrayBuffer === 'function'
+			? await asset.data.arrayBuffer()
+			: await readViaFileReader();
+
+	return {
+		id: asset.id,
+		noteId: asset.noteId,
+		mimeType: asset.mimeType,
+		dataBase64: arrayBufferToBase64(dataBuffer)
+	};
+}
+
+function deserializeNoteAsset(asset: SerializedNoteAsset): {
+	id: string;
+	noteId: string;
+	mimeType: string;
+	data: Uint8Array;
+} {
+	return {
+		id: asset.id,
+		noteId: asset.noteId,
+		mimeType: asset.mimeType,
+		data: base64ToUint8Array(asset.dataBase64)
+	};
+}
+
+async function assertImportAllowedForNewApp(): Promise<void> {
+	if (await hasLibraryBeenUsed()) {
+		throw new Error('Backup import is only allowed on a new app.');
+	}
+
+	const hasExistingData = await withTransaction(
+		['folders', 'notes_meta', 'notes_contents'],
+		'readonly',
+		async (tx) => {
+			const [folderCount, noteMetaCount, noteContentCount] = await Promise.all([
+				tx.objectStore('folders').count(),
+				tx.objectStore('notes_meta').count(),
+				tx.objectStore('notes_contents').count()
+			]);
+
+			return folderCount > 0 || noteMetaCount > 0 || noteContentCount > 0;
+		}
+	);
+
+	if (hasExistingData) {
+		throw new Error('Backup import is only allowed on a new app.');
+	}
 }
 
 export async function exportBackup(
@@ -82,15 +181,16 @@ export async function exportBackup(
     folderStore: FolderStore,
     notesStore: NotesStore
 ): Promise<string> {
+	void noteService;
 	const folders = Array.from(folderStore.folders.values())
 		.filter((folder) => resolveProfile(folder).section === 'folders')
 		.map((folder) => ({ ...folder }));
 	const noteIds = Array.from(notesStore.notes.keys());
 	const contents = await notesStore.getBulkNoteContents(noteIds);
-	const fullNotesArr = noteIds
+	const fullNotesArr = await Promise.all(noteIds
 		.map((id) => notesStore.getNote(id))
 		.filter((note): note is NonNullable<typeof note> => note != null)
-		.map((note) => ({
+		.map(async (note) => ({
 			id: note.id,
 			folderId: note.folderId ?? null,
 			title: note.title,
@@ -99,8 +199,11 @@ export async function exportBackup(
 			isFavorite: note.isFavorite ?? false,
 			deletedAt: note.deletedAt ?? null,
 			deletedBatchId: note.deletedBatchId ?? null,
-			content: contents[note.id] ?? note.content ?? ''
-		}));
+			content: contents[note.id] ?? note.content ?? '',
+			assets: await Promise.all(
+				(await assetsRepository.getByNoteId(note.id)).map((asset) => serializeNoteAsset(asset))
+			)
+		})));
 	const settings = await settingsRepository.getAll();
 
 	const backup: BackupPayload = {
@@ -124,6 +227,7 @@ export async function importBackup(
 	void notesStore;
 
 	try {
+		await assertImportAllowedForNewApp();
 		const backup: BackupPayload = JSON.parse(json);
 
 		if (backup.schemaVersion !== 1) {
@@ -139,13 +243,18 @@ export async function importBackup(
 				deletedBatchId: folder.deletedBatchId ?? null
 			}));
 		const notes = normalizeBackupNotes(backup.notes ?? [], folders);
+		const restoredNotes = notes.map((note) => ({
+			...note,
+			assets: (note.assets ?? []).map((asset) => deserializeNoteAsset(asset))
+		}));
 
 		await settingsRepository.restore(
 			folders,
-			notes,
+			restoredNotes,
 			(backup.settings ?? {}) as Record<string, unknown>
 		);
 	} catch (err) {
-		throw new Error(`Failed to import backup: ${String(err)}`);
+		const message = err instanceof Error ? err.message : String(err);
+		throw new Error(`Failed to import backup: ${message}`);
 	}
 }

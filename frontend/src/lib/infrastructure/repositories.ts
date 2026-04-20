@@ -14,6 +14,7 @@ import {
 	deleteNoteAsset,
 	deleteNoteAssetsByNoteId,
 	getNoteAsset,
+	getNoteAssetsByNoteId,
 	putNoteAsset
 } from './idbr';
 import type { FolderItem } from '../stores/folders.svelte';
@@ -56,7 +57,17 @@ export const settingsRepository = {
 	},
 	restore(
 		folders: FolderItem[],
-		notes: Array<NoteMeta & { content: string }>,
+		notes: Array<
+			NoteMeta & {
+				content: string;
+				assets?: Array<{
+					id: string;
+					noteId: string;
+					mimeType: string;
+					data: Blob | Uint8Array;
+				}>;
+			}
+		>,
 		settings: Partial<SettingsState>
 	) {
 		return restoreBackupTransactionally(folders, notes, settings);
@@ -77,11 +88,14 @@ export const trashRepository = {
 };
 
 export const assetsRepository = {
-	save(asset: { id: string; noteId: string; mimeType: string; data: Blob }) {
+	save(asset: { id: string; noteId: string; mimeType: string; data: Blob | Uint8Array }) {
 		return putNoteAsset(asset);
 	},
 	get(id: string) {
 		return getNoteAsset(id);
+	},
+	getByNoteId(noteId: string) {
+		return getNoteAssetsByNoteId(noteId);
 	},
 	delete(id: string) {
 		return deleteNoteAsset(id);

@@ -46,6 +46,7 @@
 	import { UpdateMenuState } from '$lib/wailsjs/go/main/App';
 	import { menu } from '$lib/wailsjs/go/models';
 	import { setDatabaseBlockedHandler } from '$lib/infrastructure/idbr';
+	import BackupImportOverlay from '$lib/components/BackupImportOverlay.svelte';
 
 	const folderStore = new FolderStore();
 	const themeStore = new ThemeStore();
@@ -540,6 +541,11 @@
 <Alert dialog={uiStore.appDialog} />
 <About bind:open={showAbout} onClose={() => { showAbout = false; }} />
 <Settings bind:open={showSettings} onClose={() => { showSettings = false; }} />
+<BackupImportOverlay
+	open={uiStateStore.backupImportStatus?.active ?? false}
+	title={uiStateStore.backupImportStatus?.title ?? ''}
+	description={uiStateStore.backupImportStatus?.description ?? ''}
+/>
 <Toaster />
 
 <style>

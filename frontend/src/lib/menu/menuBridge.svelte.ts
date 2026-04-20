@@ -37,11 +37,13 @@ export function initMenuBridge(
 	callbacks?: {
 		onOpenAbout?: () => void;
 		onOpenPreferences?: () => void;
+		onReload?: () => void;
 	}
 ): () => void {
 	const { uiState, theme, ui, selection, folders, notes, folderService, noteService, trashService } = stores;
 	const unsubscribers: Array<() => void> = [];
 	const formatError = (err: unknown) => (err instanceof Error ? err.message : String(err));
+	const triggerReload = callbacks?.onReload ?? (() => window.location.reload());
 
 	// File menu events
 	unsubscribers.push(
@@ -198,14 +200,25 @@ export function initMenuBridge(
 
 	unsubscribers.push(
 		EventsOn('menu:import-backup', async () => {
+			if (uiState.backupImportStatus?.active) {
+				return;
+			}
+
 			try {
 				const json = await ReadBackupFile();
 				if (json) {
+					uiState.showBackupImportStatus(
+						'Importing backup...',
+						'Rebuilding your library. The app will reopen when finished.'
+					);
 					await importBackup(json, folders, notes);
-					// Reload the page to reinitialize with restored data
-					window.location.reload();
+					uiState.showBackupImportStatus('Import complete', 'Reloading your library...');
+					setTimeout(() => {
+						triggerReload();
+					}, 150);
 				}
 			} catch (err) {
+				uiState.clearBackupImportStatus();
 				console.error('Failed to import backup:', err);
 				ui.showOperationError('Import Backup Failed', formatError(err));
 			}
