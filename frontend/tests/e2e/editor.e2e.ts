@@ -10,6 +10,17 @@ async function gotoApp(page) {
 	await page.waitForTimeout(500);
 }
 
+async function openFirstNote(page) {
+	const noteItem = page.locator('[data-testid="note-item"]').first();
+	if (!(await noteItem.isVisible())) {
+		return false;
+	}
+
+	await noteItem.click();
+	await page.waitForTimeout(500);
+	return true;
+}
+
 test.describe('Editor E2E', () => {
 	test('should display editor when note is selected', async ({ page }) => {
 		await gotoApp(page);
@@ -331,5 +342,55 @@ test.describe('Editor E2E', () => {
 			const ariaLabel = await boldBtn.getAttribute('aria-label');
 			expect(ariaLabel).toBe('Bold');
 		}
+	});
+
+	test('should undo and redo inserted images', async ({ page }) => {
+		await gotoApp(page);
+
+		if (!(await openFirstNote(page))) {
+			return;
+		}
+
+		const imageButton = page.locator('button[aria-label="Image"]').first();
+		await expect(imageButton).toBeVisible();
+
+		const fileChooserPromise = page.waitForEvent('filechooser');
+		await imageButton.click();
+		const fileChooser = await fileChooserPromise;
+		await fileChooser.setFiles({
+			name: 'undo-redo-image.png',
+			mimeType: 'image/png',
+			buffer: Buffer.from(
+				'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wn9l6sAAAAASUVORK5CYII=',
+				'base64'
+			)
+		});
+
+		const insertedImage = page.locator('.ProseMirror img').last();
+		await expect(insertedImage).toBeVisible();
+		await expect
+			.poll(() =>
+				insertedImage.evaluate((img) => ({
+					complete: img.complete,
+					naturalWidth: img.naturalWidth
+				}))
+			)
+			.toEqual({ complete: true, naturalWidth: 1 });
+
+		await page.locator('.ProseMirror').first().click();
+		await page.keyboard.press('Control+Z');
+		await expect(page.locator('.ProseMirror img')).toHaveCount(0);
+
+		await page.keyboard.press('Control+Y');
+		const redoneImage = page.locator('.ProseMirror img').first();
+		await expect(redoneImage).toBeVisible();
+		await expect
+			.poll(() =>
+				redoneImage.evaluate((img) => ({
+					complete: img.complete,
+					naturalWidth: img.naturalWidth
+				}))
+			)
+			.toEqual({ complete: true, naturalWidth: 1 });
 	});
 });

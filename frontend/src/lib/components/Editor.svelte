@@ -30,7 +30,7 @@
 	let editorContainer: HTMLElement | undefined = $state();
 	let bubbleMenuEl: HTMLElement | undefined = $state();
 	let editor = $state<Editor | null>(null);
-	let renderedAssetIds = new Set<string>();
+	let sessionAssetIds = new Set<string>();
 
 	const noteService = getNoteService();
 	const preferencesStore = getPreferencesStore();
@@ -87,14 +87,8 @@
 		toast.error(`Could not add ${fileName}`, { description: reason });
 	}
 
-	function syncRenderedAssetIds(nextAssetIds: Set<string>): void {
-		for (const assetId of renderedAssetIds) {
-			if (!nextAssetIds.has(assetId)) {
-				revokeAssetUrl(assetId);
-			}
-		}
-
-		renderedAssetIds = new Set(nextAssetIds);
+	function rememberSessionAssetIds(nextAssetIds: Set<string>): void {
+		sessionAssetIds = new Set([...sessionAssetIds, ...nextAssetIds]);
 	}
 
 	async function handleIncomingFiles(files: File[]): Promise<void> {
@@ -118,7 +112,7 @@
 				}
 
 				editor?.chain().focus().setImage({ src: resolvedUrl, assetId } as never).run();
-				syncRenderedAssetIds(new Set([...renderedAssetIds, assetId]));
+				rememberSessionAssetIds(new Set([assetId]));
 				continue;
 			}
 
@@ -155,7 +149,7 @@
 				return;
 			}
 
-			syncRenderedAssetIds(hydratedAssetIds);
+			rememberSessionAssetIds(hydratedAssetIds);
 
 			instance = new Editor({
 				element: editorContainer,
@@ -164,7 +158,7 @@
 				editable: !isReadonly,
 				onUpdate({ editor: e }) {
 					const runtimeDoc = e.getJSON();
-					syncRenderedAssetIds(collectAssetIds(runtimeDoc));
+					rememberSessionAssetIds(collectAssetIds(runtimeDoc));
 					const persistedDoc = dehydrateAssetSources(runtimeDoc);
 					noteService.update(noteId, { content: JSON.stringify(persistedDoc) });
 				}
@@ -176,8 +170,8 @@
 		return () => {
 			disposed = true;
 			instance?.destroy();
-			renderedAssetIds.forEach((assetId) => revokeAssetUrl(assetId));
-			renderedAssetIds = new Set();
+			sessionAssetIds.forEach((assetId) => revokeAssetUrl(assetId));
+			sessionAssetIds = new Set();
 			editor = null;
 		};
 	});
@@ -325,14 +319,79 @@
 		font-size: 0.875rem;
 	}
 
-	.editor-content :global(.editor-image-wrapper) {
-		display: block;
-		margin: 1rem 0;
+	.editor-content :global([data-resize-container]) {
+		display: flex;
+		justify-content: flex-start;
+		margin: 1.25rem 0;
 	}
 
-	.editor-content :global(.editor-image) {
+	.editor-content :global([data-resize-wrapper]) {
+		display: inline-block;
+		max-width: 100%;
+	}
+
+	.editor-content :global([data-resize-wrapper] img) {
+		display: block;
 		max-width: 100%;
 		border-radius: 4px;
+		box-shadow: 0 0 0 1px color-mix(in srgb, var(--border) 55%, transparent);
+	}
+
+	.editor-content :global(.ProseMirror-selectednode[data-resize-container] [data-resize-wrapper] img),
+	.editor-content :global([data-resize-container][data-resize-state='true'] [data-resize-wrapper] img) {
+		box-shadow:
+			0 0 0 2px color-mix(in srgb, var(--ring) 70%, transparent),
+			0 10px 28px color-mix(in srgb, black 14%, transparent);
+	}
+
+	.editor-content :global([data-resize-handle]) {
+		width: 14px;
+		height: 14px;
+		border-radius: 999px;
+		border: 2px solid var(--card);
+		background: var(--ring);
+		box-shadow: 0 0 0 1px color-mix(in srgb, var(--ring) 65%, transparent);
+		opacity: 0;
+		transform: scale(0.82);
+		transition:
+			opacity 140ms ease,
+			transform 140ms ease,
+			box-shadow 140ms ease;
+		pointer-events: none;
+		touch-action: none;
+	}
+
+	.editor-content :global([data-resize-handle*='top']) {
+		margin-top: -7px;
+	}
+
+	.editor-content :global([data-resize-handle*='bottom']) {
+		margin-bottom: -7px;
+	}
+
+	.editor-content :global([data-resize-handle*='left']) {
+		margin-left: -7px;
+	}
+
+	.editor-content :global([data-resize-handle*='right']) {
+		margin-right: -7px;
+	}
+
+	.editor-content :global([data-resize-handle='top-left']),
+	.editor-content :global([data-resize-handle='bottom-right']) {
+		cursor: nwse-resize;
+	}
+
+	.editor-content :global([data-resize-handle='top-right']),
+	.editor-content :global([data-resize-handle='bottom-left']) {
+		cursor: nesw-resize;
+	}
+
+	.editor-content :global(.ProseMirror-selectednode[data-resize-container] [data-resize-handle]),
+	.editor-content :global([data-resize-container][data-resize-state='true'] [data-resize-handle]) {
+		opacity: 1;
+		transform: scale(1);
+		pointer-events: auto;
 	}
 
 	.editor-content :global(.broken-image) {
