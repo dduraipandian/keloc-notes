@@ -45,6 +45,9 @@ We use IndexedDB for local-first storage, wrapped in repository patterns.
 - **Transactional Restore**: Backup imports restore folders, note metadata, note contents, and settings transactionally into IndexedDB before the app reloads.
 - **Authoritative Export Source**: Backups are exported from repositories / IndexedDB-backed state, not from incidental UI-only state like `localStorage`.
 - **User-visible Failure Paths**: Import/export flows are expected to surface actionable UI errors rather than console-only failures.
+- **New-App Backup Guard**: Backup import is allowed only for a fresh app. If IndexedDB already contains user history or persisted note/folder data, the import must abort instead of replacing the existing library.
+- **Markdown ZIP Rooting**: Markdown ZIP export/import is folder-aware. Export scopes to the selected real folder subtree and writes ZIP paths relative to that folder; import applies incoming paths relative to the selected real folder.
+- **Markdown Asset Persistence**: Markdown ZIP flows support note images by exporting markdown files plus sidecar asset files, then restoring those files back into the `note_assets` store during import.
 
 ## 5. Reactivity Patterns (Svelte 5 Runes)
 - **`$state.snapshot()`**: Used heavily before sending data to the Go backend or IndexedDB to strip reactive proxies.

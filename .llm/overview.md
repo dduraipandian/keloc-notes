@@ -36,6 +36,12 @@ To maintain a "snappy" feel even with thousands of notes:
 - **Metadata First**: The UI predominantly interacts with note metadata (titles, timestamps).
 - **Lazy Content Loading**: Full note bodies are stored in a separate IndexedDB object store and loaded only when the editor or the search indexer requires them.
 - **Atomic Cascade**: Complex operations like folder deletions use batch IDs (`crypto.randomUUID()`) to ensure consistent restoration of entire subtrees.
+- **Binary Note Assets**: Embedded note images are stored separately in IndexedDB (`note_assets`) and are translated during markdown ZIP export/import so archives remain portable.
+
+## Import / Export Model
+- **Backup Import**: Full backup restore is only valid for a new app. Existing libraries must reject backup import instead of overwriting current data.
+- **Markdown ZIP Scope**: Markdown ZIP export/import is relative to the selected real folder. Export includes that folder subtree and writes relative archive paths; import recreates those paths beneath the selected folder.
+- **Conflict Safety**: Markdown ZIP import performs conflict analysis first and requires explicit user confirmation before overwriting or duplicating notes.
 
 ## Search Architecture
 `mdnotes` implements a local full-text search using `MiniSearch`.

@@ -173,5 +173,7 @@ npm run check          # Type checking
 ## Recent Regression Areas Worth Guarding
 
 - **Backup persistence**: Export/import tests should verify restart durability, not just DTO generation.
+- **Backup import guard**: Keep explicit tests proving backup import fails for pre-populated or previously used libraries and succeeds only for a fresh app.
 - **Menu bridge**: Native menu actions need tests for user-visible failure paths and dynamic enablement.
+- **Markdown ZIP import/export**: Guard selected-folder-relative path handling, conflict confirmation behavior, and image asset round-tripping.
 - **Search**: Folder-scoped search needs explicit coverage for soft-deleted notes, stale index entries, and subtree scoping.

@@ -67,10 +67,14 @@
 - **Recursive Path Resolution**: Implemented `FolderService.ensurePath(path: string)`, which recursively finds or creates a nested folder structure for imports.
 - **Import Efficiency**: Implemented a `silent` creation mode in `FolderService` and `NoteService`. During bulk imports, we bypass global selection updates (`selectionStore`) for every note/folder created. This eliminates "UI selection churn" and significantly improves performance.
 - **ID Resolution**: Standardized on extracting the `.id` property from newly created Note objects before passing them to `noteService.update`, resolving a common type-mismatch bug where full objects were passed to the backend-style internal services.
+- **Markdown ZIP Scope Rule**: Markdown archive export/import is now relative to the currently selected real folder. Export includes only the selected folder subtree, and import roots incoming archive paths under that selected folder. Root export/import still works; virtual views should not be treated as archive roots.
+- **Markdown Conflict Resolution**: Archive import no longer writes immediately when filename/path conflicts exist. The menu flow first analyzes conflicts, opens an explicit confirmation dialog, and lets the user choose `overwrite` or `keep both` before any note mutations occur.
+- **Markdown Asset Round-Trip**: Markdown ZIP export rewrites editor `asset:<uuid>` image references into note-local sidecar folders like `Note Title.assets/...` and includes the binary image files in the archive. Import reads those referenced files back, persists them into `note_assets`, and rewrites imported content back into editor JSON image nodes.
 - **Trustworthiness Work Completed**:
   - Export now reads from repositories / IndexedDB-backed state, not `localStorage`.
   - Import restores notes, folders, note contents, and settings transactionally before reload.
   - Menu-driven import/export failures are surfaced to the user rather than logged silently.
+  - Backup import is intentionally restricted to a brand-new app. Existing or previously used libraries must reject backup import rather than overwrite in place.
 
 ## macOS Native Text Editing (Undo/Copy/Paste/Select All)
 
