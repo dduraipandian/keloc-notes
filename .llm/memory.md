@@ -2,7 +2,7 @@
 
 ## Checklist Execution Pattern
 
-- The user is working through [CHECKLIST.md](/Users/dduraipandian/apps/mdnotes/CHECKLIST.md) item by item and expects status to stay aligned with the actual codebase.
+- The user is working through [CHECKLIST.md](/Users/dduraipandian/apps/keloc-notes/CHECKLIST.md) item by item and expects status to stay aligned with the actual codebase.
 - We have successfully transitioned from Release Blockers (Part A) to MVP Readiness (Part B).
 
 ## Testing Expectations
@@ -16,14 +16,14 @@
 - **Library**: `MiniSearch` is the standard for high-performance, local-first search in this project.
 - **Precision over Recall**: Global fuzzy matching is **disabled** by default to prevent "noisy" results (e.g., "God" matching "good"). The app favors exact/prefix matching for predictability.
 - **Scoped Search**: Search is restricted to the active folder and its subtree.
-- **Indexing Strategy**: 
+- **Indexing Strategy**:
   - On-demand indexing: Content is loaded from IndexedDB only when a folder tree becomes active.
   - Incremental updates: Notes are added/replaced in the index during the `persistNote` lifecycle.
 - **Incident Resolved**: We hit a real bug where soft-deleted notes could remain searchable inside a folder because MiniSearch and store visibility drifted apart. The implemented fix now updates the index during trash/restore flows and filters final search results against canonical `deletedAt` state.
 
 ## Architectural Stabilization
 
-- **Circular Dependency Resolution**: Avoid top-level singleton imports between `NotesStore` and `SearchService`. 
+- **Circular Dependency Resolution**: Avoid top-level singleton imports between `NotesStore` and `SearchService`.
 - **Pattern**: Use **Setter-based Dependency Injection** in `NotesStore`. The `SearchService` is initialized in a registry (like `services.ts`) and injected into the store post-initialization.
 - **Wails v2 Alignment**: The project has reverted to **Wails v2** and **Go 1.23.0** for stability. Future backend work (menus/events) must adhere to the v2 API.
 
@@ -41,19 +41,18 @@
 ## Deletion Model
 
 - `deletedAt` is a timestamp only.
-- `deletedBatchId` (UUID) is used for grouping cascade deletions and restorations.
--耦合警告: `deletedAt` and `deletedBatchId` must be updated together in delete/restore paths.
+- `deletedBatchId` (UUID) is used for grouping cascade deletions and restorations. -耦合警告: `deletedAt` and `deletedBatchId` must be updated together in delete/restore paths.
 
 ## Native Menu Reactivity (Wails v2 + Svelte 5)
 
 - **Problem**: `File > Export > Current Note` stayed disabled because `$effect.root` inside the `menuBridge` utility module failed to re-track dependencies (getters) after the initial run.
-- **Fix**: Implemented a nested `$effect` within the `$effect.root` block in `menuBridge.svelte.ts`. 
-- **Pattern**: 
+- **Fix**: Implemented a nested `$effect` within the `$effect.root` block in `menuBridge.svelte.ts`.
+- **Pattern**:
   ```ts
   $effect.root(() => {
     return $effect(() => {
-       const noteId = notesStore.selectedNoteID; // Explicit access for tracking
-       // update logic...
+      const noteId = notesStore.selectedNoteID; // Explicit access for tracking
+      // update logic...
     });
   });
   ```
@@ -79,7 +78,7 @@
 ## macOS Native Text Editing (Undo/Copy/Paste/Select All)
 
 - **Resolution**: Native macOS text editing functionality (Select All, Copy, Paste, Undo) has been restored by using Wails v2 **native roles** in `menu_darwin.go`.
-- **Implementation**: 
+- **Implementation**:
   - The Edit menu must use `menu.EditMenu()` (Role 2) and the Window menu must use `menu.WindowMenu()` (Role 3).
   - On macOS, when a menu item has these roles, Wails tells the native AppKit layer to handle the menu in a standard way. This allows the OS to route shortcuts directly to the `WKWebView`'s first responder (the focused textarea) without Go-side interception.
 - **Limitation**: The native `EditMenuRole` provides a hardcoded list of standard items that cannot be easily extended in Wails v2. Consequently, the **Find** command (Cmd+F) was relocated to the **View** menu to maintain its functionality without breaking the native Edit shortcuts.
@@ -91,6 +90,6 @@
 - Implemented macOS menu actions now include:
   - `Close Window`
   - `Enter Full Screen`
-  - `mdnotes Help`
+  - `keloc-notes Help`
   - `Report a Bug`
 - When auditing release-readiness items, check the actual menu handlers in Go, not just the checklist state.

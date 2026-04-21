@@ -322,7 +322,7 @@
 				}
 
 				try {
-					var dbName = window.__MDNOTES_DB_NAME__ || 'mdnotes-db';
+					var dbName = window.__NOTES_DB_NAME__ || 'kelocnotes-db';
 					var request = window.indexedDB.open(dbName);
 					request.onerror = revealBody;
 					request.onsuccess = function (event) {

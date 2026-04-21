@@ -1,8 +1,8 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
   "wailsjsdir": "./frontend/src/lib",
-  "name": "mdnotes",
-  "outputfilename": "mdnotes",
+  "name": "Keloc Notes",
+  "outputfilename": "keloc-notes",
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",

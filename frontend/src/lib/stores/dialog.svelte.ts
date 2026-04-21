@@ -109,7 +109,7 @@ export class UIStore {
 			canCancel: false,
 			type: 'destroy',
 			title: title,
-			description: `mdnotes could not load your data. This is usually caused by a corrupted database or
+			description: `Keloc Notes could not load your data. This is usually caused by a corrupted database or
 				insufficient storage permissions.
 				<br/> <br/>
 				<span class="font-mono text-xs text-destructive">${initError}</span>`,
@@ -153,4 +153,3 @@ export class UIStore {
 		return this.noteDialog.open || this.folderDialog.open || this.appDialog.open;
 	}
 }
-

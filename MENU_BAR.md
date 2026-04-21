@@ -1,6 +1,6 @@
-# mdnotes — Native Menu Bar Implementation Plan
+# keloc-notes — Native Menu Bar Implementation Plan
 
-**Scope.** Build a professional-grade native menu bar for mdnotes that follows the Apple Human Interface Guidelines (HIG). macOS only in this pass; Go code is structured so Windows / Linux menu builders can be added later without a refactor.
+**Scope.** Build a professional-grade native menu bar for keloc-notes that follows the Apple Human Interface Guidelines (HIG). macOS only in this pass; Go code is structured so Windows / Linux menu builders can be added later without a refactor.
 
 **Deliverables.**
 
@@ -45,18 +45,18 @@ wails dev                                      # full-stack dev
 ### Menu tree
 
 ```
-mdnotes (App menu)
-├─ About mdnotes                  → opens About dialog
+keloc-notes (App menu)
+├─ About keloc-notes                  → opens About dialog
 ├─ ─────
 ├─ Preferences...  ⌘,             → opens Preferences window
 ├─ ─────
 ├─ Services                       → macOS system services (role)
 ├─ ─────
-├─ Hide mdnotes       ⌘H          (role)
+├─ Hide keloc-notes       ⌘H          (role)
 ├─ Hide Others        ⌥⌘H         (role)
 ├─ Show All                       (role)
 ├─ ─────
-└─ Quit mdnotes       ⌘Q          (role)
+└─ Quit keloc-notes       ⌘Q          (role)
 
 File
 ├─ New Note           ⌘N          → noteService.create
@@ -107,7 +107,7 @@ Window
 └─ Bring All to Front             (role)
 
 Help
-├─ mdnotes Help                   → placeholder, emits menu:help (bridge no-op for now)
+├─ keloc-notes Help                   → placeholder, emits menu:help (bridge no-op for now)
 └─ Report a Bug                   → placeholder, emits menu:help (bridge no-op for now)
 ```
 
@@ -201,7 +201,7 @@ type MenuState struct {
 ### Step 1 — Write the Go integration test first
 
 1. Create `menu/menu_test.go`.
-2. Assert `BuildMacMenu(host)` returns a `*menu.Menu` whose first submenu is titled `mdnotes` and contains items with labels: `About mdnotes`, `Preferences...`, `Quit mdnotes`.
+2. Assert `BuildMacMenu(host)` returns a `*menu.Menu` whose first submenu is titled `keloc-notes` and contains items with labels: `About keloc-notes`, `Preferences...`, `Quit keloc-notes`.
 3. Assert the `Preferences...` accelerator is `Cmd+,`.
 4. **Test gate:** `go test ./menu/...` fails because the package does not exist.
 
@@ -218,7 +218,7 @@ type MenuState struct {
    ```
 3. Implement `BuildMacMenu(host MenuHost) *menu.Menu` using `github.com/wailsapp/wails/v2/pkg/menu` and `pkg/menu/keys`.
 4. Populate the App submenu:
-   - About mdnotes → `host.OnOpenAbout()`
+   - About keloc-notes → `host.OnOpenAbout()`
    - Separator
    - Preferences... with `keys.CmdOrCtrl(",")` → `host.OnOpenPreferences()`
    - Separator
@@ -238,7 +238,7 @@ type MenuState struct {
 ### Step 4 — Manual verification
 
 1. `wails dev`.
-2. The macOS menu bar shows **mdnotes** at the left with `About mdnotes`, `Preferences...`, standard Services/Hide/Quit.
+2. The macOS menu bar shows **keloc-notes** at the left with `About Keloc Notes`, `Preferences...`, standard Services/Hide/Quit.
 3. Click `Preferences...` — no visible effect (Svelte side not wired yet). In DevTools, confirm the `menu:open-preferences` event fires.
 4. ⌘Q quits the app.
 
@@ -375,7 +375,7 @@ Assert Edit submenu contains role-based items for Undo, Redo, Cut, Copy, Paste, 
 ### Steps
 
 1. **Window:** use `menu.WindowMenu()` if available — provides Minimize, Zoom, Bring All to Front. Otherwise build manually (`menu.MinimizeRole`, `menu.ZoomRole`).
-2. **Help:** add `mdnotes Help` and `Report a Bug` items. Both call `host.OnHelp(topic string)` which emits `menu:help` with a string payload (`'help' | 'report-bug'`). Bridge handler is a no-op that logs for now.
+2. **Help:** add `Keloc Notes Help` and `Report a Bug` items. Both call `host.OnHelp(topic string)` which emits `menu:help` with a string payload (`'help' | 'report-bug'`). Bridge handler is a no-op that logs for now.
 3. **Test:** integration test confirms both menus exist with expected items.
 4. **Verification:** `wails dev` — ⌘M minimizes the window; Help menu shows both items.
 
@@ -494,7 +494,7 @@ Assert Edit submenu contains role-based items for Undo, Redo, Cut, Copy, Paste, 
 
 ### Step 4 — Verification
 
-1. `wails dev`. mdnotes → About mdnotes shows the dialog with correct app name, version, copyright.
+1. `wails dev`. keloc-notes → About Keloc Notes shows the dialog with correct app name, version, copyright.
 
 **PR title:** `feat(menu): About dialog`.
 

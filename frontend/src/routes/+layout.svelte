@@ -7,9 +7,9 @@
 	import { settingsRepository } from '$lib/infrastructure/repositories';
 	import { ThemeStore } from '$lib/stores/theme.svelte';
 	import { UIStateStore } from '$lib/stores/uiState.svelte';
-	import { 
-		setThemeStore, 
-		setUIStateStore, 
+	import {
+		setThemeStore,
+		setUIStateStore,
 		setPreferencesStore,
 		setUIStore,
 		setSelectionStore,
@@ -81,7 +81,7 @@
 	setDatabaseBlockedHandler((current, blocked) => {
 		uiStore.confirmAppQuit(
 			'Database blocked',
-			`Another mdnotes window is open and is blocking a database upgrade (current: ${current ?? 'unknown'}, target: ${blocked ?? 'unknown'}). Please close the other window and restart mdnotes.`,
+			`Another Keloc Notes window is open and is blocking a database upgrade (current: ${current ?? 'unknown'}, target: ${blocked ?? 'unknown'}). Please close the other window and restart Keloc Notes.`,
 			() => {}
 		);
 	});
@@ -104,7 +104,6 @@
 
 	setFolderSidebarView(folderSidebarView);
 	setNoteListView(noteListView);
-
 
 	let { children } = $props();
 
@@ -133,14 +132,15 @@
 	let resizeStartSidebarWidth = DEFAULT_SIDEBAR_WIDTH;
 	let resizeStartNoteListWidth = DEFAULT_NOTE_LIST_WIDTH;
 
-
-
 	$effect(() => {
 		document.documentElement.dataset.appReady = isInitializing ? 'false' : 'true';
 	});
 
 	$effect(() => {
-		document.documentElement.style.setProperty('--folder-accent', preferencesStore.folderAccentColor);
+		document.documentElement.style.setProperty(
+			'--folder-accent',
+			preferencesStore.folderAccentColor
+		);
 	});
 
 	function clamp(value: number, min: number, max: number) {
@@ -321,7 +321,9 @@
 					activateEditor: () => {
 						uiStateStore.setActivePane('editor');
 						setTimeout(() => {
-							const titleInput = document.querySelector('[data-testid="editor-pane"] textarea:first-of-type') as HTMLTextAreaElement;
+							const titleInput = document.querySelector(
+								'[data-testid="editor-pane"] textarea:first-of-type'
+							) as HTMLTextAreaElement;
 							if (titleInput) titleInput.focus();
 						}, 10);
 					},
@@ -336,7 +338,9 @@
 		handleGlobalShortcut(event, {
 			focusSearch: () => {
 				uiStateStore.setActivePane('notes');
-				const input = document.querySelector('[data-testid="notes-pane"] input') as HTMLInputElement;
+				const input = document.querySelector(
+					'[data-testid="notes-pane"] input'
+				) as HTMLInputElement;
 				if (input) input.focus();
 			}
 		});
@@ -347,12 +351,12 @@
 		const selectedNoteTitle = selectedNote?.title.trim();
 		const selectedFolderId = selectionStore.selectedFolderID;
 		const selectedFolderTitle = selectedFolderId ? selectionStore.getSelectedFolder()?.title : null;
-		const nextTitle = selectedNoteTitle || selectedFolderTitle || 'mdnotes';
+		const nextTitle = selectedNoteTitle || selectedFolderTitle || 'Keloc Notes';
 
 		if (hasWailsRuntime()) {
-			WindowSetTitle(isInitializing ? 'mdnotes' : nextTitle);
+			WindowSetTitle(isInitializing ? 'Keloc Notes' : nextTitle);
 		} else {
-			document.title = isInitializing ? 'mdnotes' : nextTitle;
+			document.title = isInitializing ? 'Keloc Notes' : nextTitle;
 		}
 	});
 
@@ -393,10 +397,10 @@
 
 		const offMenuBridge = hasWailsRuntime()
 			? initMenuBridge(
-					{ 
-						uiState: uiStateStore, 
-						theme: themeStore, 
-						ui: uiStore, 
+					{
+						uiState: uiStateStore,
+						theme: themeStore,
+						ui: uiStore,
 						selection: selectionStore,
 						folders: folderStore,
 						notes: notesStore,
@@ -405,16 +409,19 @@
 						trashService
 					},
 					{
-					onOpenAbout: () => {
-						showAbout = true;
-					},
-					onOpenPreferences: () => {
-						showSettings = true;
+						onOpenAbout: () => {
+							showAbout = true;
+						},
+						onOpenPreferences: () => {
+							showSettings = true;
+						}
 					}
-				})
+				)
 			: () => {};
 
-		const offMenuState = hasWailsRuntime() ? initMenuStateEffect({ theme: themeStore, notes: notesStore }) : () => {};
+		const offMenuState = hasWailsRuntime()
+			? initMenuStateEffect({ theme: themeStore, notes: notesStore })
+			: () => {};
 
 		void (async () => {
 			try {
@@ -485,12 +492,17 @@
 					activeResizeHandle && 'pointer-events-none select-none',
 					!uiStateStore.sidebarVisible && 'hidden'
 				]}
-				style={uiStateStore.sidebarVisible ? 'width: var(--app-sidebar-width);' : 'width: 0; display: none;'}
+				style={uiStateStore.sidebarVisible
+					? 'width: var(--app-sidebar-width);'
+					: 'width: 0; display: none;'}
 			>
 				<Folders />
 			</div>
 			<div
-				class={['pane-resize-handle hidden shrink-0 md:flex', !uiStateStore.sidebarVisible && 'hidden']}
+				class={[
+					'pane-resize-handle hidden shrink-0 md:flex',
+					!uiStateStore.sidebarVisible && 'hidden'
+				]}
 				role="separator"
 				aria-label="Resize folders pane"
 				aria-orientation="vertical"
@@ -509,12 +521,17 @@
 					activeResizeHandle && 'pointer-events-none select-none',
 					!uiStateStore.noteListVisible && 'hidden'
 				]}
-				style={uiStateStore.noteListVisible ? 'width: var(--app-note-list-width);' : 'width: 0; display: none;'}
+				style={uiStateStore.noteListVisible
+					? 'width: var(--app-note-list-width);'
+					: 'width: 0; display: none;'}
 			>
 				<NoteItems />
 			</div>
 			<div
-				class={['pane-resize-handle hidden shrink-0 md:flex', !uiStateStore.noteListVisible && 'hidden']}
+				class={[
+					'pane-resize-handle hidden shrink-0 md:flex',
+					!uiStateStore.noteListVisible && 'hidden'
+				]}
 				role="separator"
 				aria-label="Resize note list pane"
 				aria-orientation="vertical"
@@ -540,8 +557,18 @@
 </div>
 
 <Alert dialog={uiStore.appDialog} />
-<About bind:open={showAbout} onClose={() => { showAbout = false; }} />
-<Settings bind:open={showSettings} onClose={() => { showSettings = false; }} />
+<About
+	bind:open={showAbout}
+	onClose={() => {
+		showAbout = false;
+	}}
+/>
+<Settings
+	bind:open={showSettings}
+	onClose={() => {
+		showSettings = false;
+	}}
+/>
 <BackupImportOverlay
 	open={uiStateStore.backupImportStatus?.active ?? false}
 	title={uiStateStore.backupImportStatus?.title ?? ''}

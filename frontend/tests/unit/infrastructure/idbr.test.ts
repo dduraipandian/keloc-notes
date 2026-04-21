@@ -32,7 +32,7 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 
 	it('should initialize the database and create stores', async () => {
 		const db = await initDB();
-		expect(db.name).toBe('mdnotes-db');
+		expect(db.name).toBe('kelocnotes-db');
 		expect(db.objectStoreNames).toContain('folders');
 		expect(db.objectStoreNames).toContain('notes_meta');
 		expect(db.objectStoreNames).toContain('notes_contents');
@@ -44,11 +44,11 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 	it('should surface a user-visible dialog when the database is blocked', () => {
 		const mockUIStore = new UIStore();
 		const confirmSpy = vi.spyOn(mockUIStore, 'confirmAppQuit').mockImplementation(() => {});
-		
+
 		setDatabaseBlockedHandler((current, blocked) => {
 			mockUIStore.confirmAppQuit(
 				'Database blocked',
-				'Another mdnotes window is open and preventing the update. Please close other windows to avoid data loss.',
+				'Another Keloc Notes window is open and preventing the update. Please close other windows to avoid data loss.',
 				() => {}
 			);
 		});
@@ -57,7 +57,7 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 
 		expect(confirmSpy).toHaveBeenCalledWith(
 			'Database blocked',
-			expect.stringContaining('Another mdnotes window is open'),
+			expect.stringContaining('Another Keloc Notes window is open'),
 			expect.any(Function)
 		);
 	});
@@ -116,7 +116,7 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 			await putNoteMeta({ id: 'n1', title: 'T' });
 			await putNoteContent('n1', 'C');
 			await deleteNote('n1');
-			
+
 			const meta = await getNoteMeta('n1');
 			const content = await getNoteContent('n1');
 			expect(meta).toBeUndefined();

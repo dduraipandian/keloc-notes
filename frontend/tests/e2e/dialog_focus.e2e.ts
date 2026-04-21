@@ -1,13 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 async function gotoApp(page: import('@playwright/test').Page) {
-	const dbName = `mdnotes-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	const dbName = `keloc-notes-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	await page.addInitScript(() => {
 		window.localStorage.clear();
 		window.sessionStorage.clear();
 	}, {});
 	await page.addInitScript((name: string) => {
-		(window as Window & { __MDNOTES_DB_NAME__?: string }).__MDNOTES_DB_NAME__ = name;
+		(window as Window & { __NOTES_DB_NAME__?: string }).__NOTES_DB_NAME__ = name;
 	}, dbName);
 	await page.goto('/');
 	await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true');

@@ -1,6 +1,6 @@
 # Svelte 5 Guidelines
 
-This document outlines the best practices and critical "gotchas" for Svelte 5 reactivity in the `mdnotes` project.
+This document outlines the best practices and critical "gotchas" for Svelte 5 reactivity in the `keloc-notes` project.
 
 ## 1. Rune-Based State Management
 

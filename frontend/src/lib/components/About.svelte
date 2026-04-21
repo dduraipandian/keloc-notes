@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
+	import {
+		AlertDialog,
+		AlertDialogContent,
+		AlertDialogHeader,
+		AlertDialogTitle
+	} from './ui/alert-dialog';
 	import appIcon from '$lib/assets/app-icon.svg';
 
 	interface Props {
@@ -12,7 +17,13 @@
 	const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0';
 </script>
 
-<AlertDialog {open} onOpenChange={(isOpen) => { open = isOpen; if (!isOpen) onClose?.(); }}>
+<AlertDialog
+	{open}
+	onOpenChange={(isOpen) => {
+		open = isOpen;
+		if (!isOpen) onClose?.();
+	}}
+>
 	<AlertDialogContent class="about-dialog">
 		<div class="about-container">
 			<div class="macos-titlebar">
@@ -28,17 +39,15 @@
 
 			<div class="about-content">
 				<div class="app-icon-wrapper">
-					<img src={appIcon} alt="mdnotes icon" class="app-icon" />
+					<img src={appIcon} alt="keloc-notes icon" class="app-icon" />
 				</div>
 				<div class="app-info">
-					<AlertDialogTitle><span class="app-name">mdnotes</span></AlertDialogTitle>
+					<AlertDialogTitle><span class="app-name">Keloc Notes</span></AlertDialogTitle>
 					<p class="version">Version {appVersion}</p>
 				</div>
 
 				<div class="about-footer">
-					<p class="copyright">
-						© 2025 mdnotes. All rights reserved.
-					</p>
+					<p class="copyright">© 2025 Keloc Notes. All rights reserved.</p>
 
 					<div class="acknowledgements">
 						<p class="ack-text">

@@ -40,7 +40,7 @@ type MenuRefs struct {
 	AppearanceSystem  *menu.MenuItem
 }
 
-// BuildMacMenu constructs the macOS menu bar for mdnotes and returns menu + item references for dynamic updates.
+// BuildMacMenu constructs the macOS menu bar for keloc-notes and returns menu + item references for dynamic updates.
 func BuildMacMenu(host MenuHost) (*menu.Menu, *MenuRefs) {
 	refs := &MenuRefs{}
 	mainMenu := menu.NewMenu()
@@ -55,7 +55,7 @@ func BuildMacMenu(host MenuHost) (*menu.Menu, *MenuRefs) {
 
 func buildAppMenu(host MenuHost) *menu.MenuItem {
 	appMenuItems := menu.NewMenu()
-	appMenuItems.Append(menu.Text("About mdnotes", nil, func(cd *menu.CallbackData) {
+	appMenuItems.Append(menu.Text("About Keloc Notes", nil, func(cd *menu.CallbackData) {
 		host.OnOpenAbout()
 	}))
 	appMenuItems.Append(menu.Separator())
@@ -65,7 +65,7 @@ func buildAppMenu(host MenuHost) *menu.MenuItem {
 	appMenuItems.Append(menu.Separator())
 	appMenuItems.Append(menu.AppMenu())
 
-	return menu.SubMenu("mdnotes", appMenuItems)
+	return menu.SubMenu("Keloc Notes", appMenuItems)
 }
 
 func buildFileMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
@@ -184,7 +184,7 @@ func buildWindowMenu(host MenuHost) *menu.MenuItem {
 
 func buildHelpMenu(host MenuHost) *menu.MenuItem {
 	helpMenuItems := menu.NewMenu()
-	helpMenuItems.Append(menu.Text("mdnotes Help", nil, func(cd *menu.CallbackData) {
+	helpMenuItems.Append(menu.Text("Keloc Notes Help", nil, func(cd *menu.CallbackData) {
 		host.OnHelp("help")
 	}))
 	helpMenuItems.Append(menu.Separator())

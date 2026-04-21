@@ -8,33 +8,33 @@ import { UIStateStore } from '../../../src/lib/stores/uiState.svelte';
 import { STORE_KEYS } from '../../../src/lib/stores/context';
 
 describe('About component', () => {
-    let mockThemeStore: ThemeStore;
-    let mockUIStateStore: UIStateStore;
+	let mockThemeStore: ThemeStore;
+	let mockUIStateStore: UIStateStore;
 
-    beforeEach(() => {
-        mockThemeStore = new ThemeStore();
-        mockUIStateStore = new UIStateStore();
-    });
+	beforeEach(() => {
+		mockThemeStore = new ThemeStore();
+		mockUIStateStore = new UIStateStore();
+	});
 
-    // Flush bits-ui PresenceManager's rAF-based animation callbacks before
-    // @testing-library cleanup destroys the component (describe-scope runs first).
-    afterEach(async () => {
-        await new Promise<void>((r) => requestAnimationFrame(() => r()));
-        await tick();
-    });
+	// Flush bits-ui PresenceManager's rAF-based animation callbacks before
+	// @testing-library cleanup destroys the component (describe-scope runs first).
+	afterEach(async () => {
+		await new Promise<void>((r) => requestAnimationFrame(() => r()));
+		await tick();
+	});
 
-    function renderAbout(props: { open?: boolean; onClose?: () => void } = { open: true }) {
-        return render(About, {
-            props,
-            context: new Map<any, any>([
-                [STORE_KEYS.THEME, mockThemeStore],
-                [STORE_KEYS.UI_STATE, mockUIStateStore]
-            ])
-        });
-    }
+	function renderAbout(props: { open?: boolean; onClose?: () => void } = { open: true }) {
+		return render(About, {
+			props,
+			context: new Map<any, any>([
+				[STORE_KEYS.THEME, mockThemeStore],
+				[STORE_KEYS.UI_STATE, mockUIStateStore]
+			])
+		});
+	}
 	it('renders app name', () => {
 		renderAbout();
-		expect(screen.getByText('mdnotes')).toBeTruthy();
+		expect(screen.getByText('Keloc Notes')).toBeTruthy();
 	});
 
 	it('renders version', () => {

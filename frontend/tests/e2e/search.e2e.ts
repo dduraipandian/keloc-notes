@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
 async function gotoApp(page: import('@playwright/test').Page) {
-	const dbName = `mdnotes-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	const dbName = `keloc-notes-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	await page.addInitScript((name: string) => {
-		(window as any).__MDNOTES_DB_NAME__ = name;
+		(window as any).__NOTES_DB_NAME__ = name;
 	}, dbName);
 	await page.goto('/');
 	await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true', { timeout: 30000 });
@@ -35,7 +35,7 @@ test.describe('Search Functionality', () => {
 		// 2. Search for a word in the content
 		const searchInput = page.getByPlaceholder('Search notes...');
 		await searchInput.fill('thermodynamics');
-		
+
 		// Wait for search debounce (150ms + buffer)
 		await page.waitForTimeout(400);
 

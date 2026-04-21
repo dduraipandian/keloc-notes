@@ -1,4 +1,4 @@
-# mdnotes
+# keloc-notes
 
 Local-first desktop notes for people who want Apple Notes simplicity, markdown portability, and no cloud dependency.
 
@@ -10,7 +10,7 @@ Most note apps force a tradeoff:
 - markdown files, but the UX feels like a text editor instead of a notes app
 - sync-first products, but you lose the speed and privacy of local storage
 
-`mdnotes` takes a different approach. It is a desktop notes app with an Apple Notes-style three-pane layout, local IndexedDB persistence, and practical import/export paths so your notes stay yours.
+`keloc-notes` takes a different approach. It is a desktop notes app with an Apple Notes-style three-pane layout, local IndexedDB persistence, and practical import/export paths so your notes stay yours.
 
 This project is for:
 
@@ -34,7 +34,7 @@ This project is for:
 
 ## How It Works
 
-Think of `mdnotes` as a thin native shell around a local-first frontend application:
+Think of `keloc-notes` as a thin native shell around a local-first frontend application:
 
 1. The Svelte app boots and loads folders, notes, and saved UI settings from IndexedDB.
 2. Note metadata and note content are stored separately, so the app can load the note list first and fetch full content on demand.
@@ -76,8 +76,8 @@ go install github.com/wailsapp/wails/v2/cmd/wails@latest
 ### Run The App
 
 ```bash
-git clone https://github.com/dduraipandian/mdnotes.git
-cd mdnotes/frontend
+git clone https://github.com/dduraipandian/keloc-notes.git
+cd keloc-notes/frontend
 npm install
 cd ..
 wails dev
@@ -123,7 +123,7 @@ Most configuration is inside the app, not through environment variables.
 - Folder accent color: customize the folder icon color from Settings.
 - Pane sizes: sidebar and note-list widths are persisted locally.
 - Selected note and folder: restored locally on next launch.
-- IndexedDB database name: defaults to `mdnotes-db`. Tests can override this with `window.__MDNOTES_DB_NAME__`.
+- IndexedDB database name: defaults to `kelocnotes-db`. Tests can override this with `window.__NOTES_DB_NAME__`.
 
 Important assumptions:
 
@@ -232,7 +232,7 @@ Apache License 2.0. See [LICENSE](LICENSE).
 
 ## Support
 
-If you try `mdnotes`, open an issue with:
+If you try `keloc-notes`, open an issue with:
 
 - what you expected to do
 - what blocked you

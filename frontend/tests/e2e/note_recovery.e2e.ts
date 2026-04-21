@@ -5,13 +5,13 @@ function uniqueName(prefix: string) {
 }
 
 async function gotoApp(page: import('@playwright/test').Page) {
-	const dbName = `mdnotes-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+	const dbName = `keloc-notes-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 	await page.addInitScript(() => {
 		window.localStorage.clear();
 		window.sessionStorage.clear();
 	}, {});
 	await page.addInitScript((name: string) => {
-		(window as Window & { __MDNOTES_DB_NAME__?: string }).__MDNOTES_DB_NAME__ = name;
+		(window as Window & { __NOTES_DB_NAME__?: string }).__NOTES_DB_NAME__ = name;
 	}, dbName);
 	await page.goto('/');
 	await expect(page.locator('html')).toHaveAttribute('data-app-ready', 'true');
@@ -80,7 +80,9 @@ test.describe('Note Recovery (Flat Model)', () => {
 		await gotoApp(page);
 	});
 
-	test('should recover a note to Home (Root) if its original folder was deleted', async ({ page }) => {
+	test('should recover a note to Home (Root) if its original folder was deleted', async ({
+		page
+	}) => {
 		const folderName = uniqueName('DeletedParentFolder');
 		const noteName = uniqueName('NoteToHome');
 
@@ -113,7 +115,7 @@ test.describe('Note Recovery (Flat Model)', () => {
 		// 7. Verify we STAY in trash and the note is removed from the trash list
 		await expect(getNotePaneTitle(page, 'Recently Deleted')).toBeVisible();
 		await expect(getNoteTitleInPane(page).getByText(noteName, { exact: true })).toBeHidden();
-		
+
 		// 8. Manually go to Home to verify the note was actually restored
 		await page.getByText('Home', { exact: true }).first().click();
 		await expect(getNotePaneTitle(page, 'Home')).toBeVisible();
@@ -121,7 +123,9 @@ test.describe('Note Recovery (Flat Model)', () => {
 		await expect(getNoteEditorTitle(page)).toHaveValue(noteName);
 	});
 
-	test('should recover a note to its original folder if the folder is still active', async ({ page }) => {
+	test('should recover a note to its original folder if the folder is still active', async ({
+		page
+	}) => {
 		const folderName = uniqueName('ActiveFolder');
 		const noteName = uniqueName('NoteToFolder');
 

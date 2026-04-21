@@ -1,6 +1,6 @@
-# mdnotes — Technical Readiness Roadmap
+# keloc-notes — Technical Readiness Roadmap
 
-This file is the authoritative roadmap for getting mdnotes to a public release. It is split into two parts:
+This file is the authoritative roadmap for getting keloc-notes to a public release. It is split into two parts:
 
 - **Part A — Release Blockers** (new). Seven items (R1–R7) that must be completed before public release. This section is structured for junior contributors with test-first discipline and step-by-step instructions.
 - **Part B — MVP Readiness Backlog** (current). The current high-level backlog after the release blockers. This root file is the single source of truth.
@@ -330,7 +330,7 @@ Each item is an ordered set of steps. **Do not proceed to step N+1 until step N'
    blocked(currentVersion, blockedVersion) { /* user dialog */ },
    blocking(currentVersion, blockedVersion) { /* also user dialog */ },
    ```
-2. The handlers should call a user-facing alert reusing `uiStore.confirmAppQuit` with a message like "Another mdnotes window is open; please close it and restart."
+2. The handlers should call a user-facing alert reusing `uiStore.confirmAppQuit` with a message like "Another keloc-notes window is open; please close it and restart."
 3. **Test:** rerun `idbr.test.ts`. Case (b) must pass.
 
 #### Step 4 — Verification

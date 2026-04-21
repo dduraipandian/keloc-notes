@@ -56,10 +56,10 @@ func TestBuildMacMenuStructure(t *testing.T) {
 		t.Fatalf("expected at least 5 menu items, got %d", len(mainMenu.Items))
 	}
 
-	// First item should be the App menu titled "mdnotes"
+	// First item should be the App menu titled "Keloc Notes"
 	appMenum := mainMenu.Items[0]
-	if appMenum.Label != "mdnotes" {
-		t.Errorf("expected first menu 'mdnotes', got '%s'", appMenum.Label)
+	if appMenum.Label != "Keloc Notes" {
+		t.Errorf("expected first menu 'Keloc Notes', got '%s'", appMenum.Label)
 	}
 
 	if appMenum.SubMenu == nil {
@@ -76,7 +76,7 @@ func TestBuildMacMenuStructure(t *testing.T) {
 		if item == nil {
 			continue
 		}
-		if item.Label == "About mdnotes" {
+		if item.Label == "About Keloc Notes" {
 			hasAbout = true
 		}
 		if item.Label == "Settings..." {
@@ -88,7 +88,7 @@ func TestBuildMacMenuStructure(t *testing.T) {
 	}
 
 	if !hasAbout {
-		t.Error("App menu missing 'About mdnotes' item")
+		t.Error("App menu missing 'About Keloc Notes' item")
 	}
 
 	if !hasPreferences {
@@ -214,7 +214,7 @@ func TestBuildMacMenuStructure(t *testing.T) {
 			continue
 		}
 		switch item.Label {
-		case "mdnotes Help":
+		case "Keloc Notes Help":
 			hasHelpItem = true
 		case "Report a Bug":
 			hasReportBug = true
@@ -222,7 +222,7 @@ func TestBuildMacMenuStructure(t *testing.T) {
 	}
 
 	if !hasHelpItem {
-		t.Error("Help menu missing 'mdnotes Help' item")
+		t.Error("Help menu missing 'Keloc Notes Help' item")
 	}
 	if !hasReportBug {
 		t.Error("Help menu missing 'Report a Bug' item")
@@ -274,7 +274,7 @@ func TestMacMenuCallbacksInvokeHostActions(t *testing.T) {
 			continue
 		}
 		switch item.Label {
-		case "mdnotes Help":
+		case "Keloc Notes Help":
 			helpItem = item
 		case "Report a Bug":
 			reportBugItem = item

@@ -37,6 +37,7 @@ wails build                  # Production binary
 ## Architecture
 
 ### Stack
+
 - **Desktop shell**: Go + Wails v2 — thin native layer for window management, native menus (macOS), file dialogs, and single-instance lock. Business logic lives in the frontend, not Go.
 - **Frontend**: Svelte 5 (Runes mode), SvelteKit, Vite
 - **Storage**: IndexedDB (local-first, no sync, no cloud)
@@ -79,25 +80,36 @@ The frontend enforces a strict 4-layer separation:
 Location: `frontend/tests/unit/` organized by layer: `stores/`, `services/`, `views/`, `infrastructure/`, `components/`
 
 **Store reset pattern** — always use `.clear()`, never reassign:
+
 ```typescript
 beforeEach(() => {
   vi.clearAllMocks();
   (notesStore as any).notes.clear();
   (folderStore as any).folders.clear();
   // Re-initialize mandatory system items after clearing
-  folderStore.folders.set("home", { id: "home", title: "Home", items: [], profile: "home" } as any);
+  folderStore.folders.set("home", {
+    id: "home",
+    title: "Home",
+    items: [],
+    profile: "home",
+  } as any);
 });
 ```
 
 **Reactivity verification** — use `$derived.by` watchers to confirm signals fire:
+
 ```typescript
 let signals = 0;
-const watcher = $derived.by(() => { signals++; return store.value; });
+const watcher = $derived.by(() => {
+  signals++;
+  return store.value;
+});
 store.update();
 expect(signals).toBe(2);
 ```
 
 **bits-ui AlertDialog** — add this `afterEach` in every `describe` block that uses AlertDialog, to flush rAF callbacks before jsdom teardown:
+
 ```typescript
 afterEach(async () => {
   await new Promise<void>((r) => requestAnimationFrame(() => r()));
@@ -110,31 +122,37 @@ afterEach(async () => {
 Location: `frontend/tests/e2e/`
 
 Each test gets an isolated IndexedDB instance:
+
 ```typescript
 async function gotoApp(page: Page) {
-  const dbName = `mdnotes-e2e-${Date.now()}`;
-  await page.addInitScript((name) => { window.__MDNOTES_DB_NAME__ = name; }, dbName);
+  const dbName = `keloc-notes-e2e-${Date.now()}`;
+  await page.addInitScript((name) => {
+    window.__NOTES_DB_NAME__ = name;
+  }, dbName);
   await page.goto("/");
 }
 ```
+
 Always wait for `[data-app-ready="true"]` before interacting.
 
 ### Test file naming
+
 - `camelCase.test.ts` — standard
 - `camelCase.svelte.test.ts` — uses Svelte 5 runes/effects
 - `camelCase.e2e.ts` — Playwright E2E
 
 ### Refactoring rule
+
 Refactoring must never reduce total `it()`/`test()` count unless a mapping of every assertion to its replacement is shown first.
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
-| `app.go` | Wails lifecycle, export/import file dialogs, menu event handlers |
-| `menu/menu_darwin.go` | macOS native menu — `MenuHost` interface, keyboard shortcut definitions |
-| `frontend/src/routes/+layout.svelte` | App boot, store/service wiring, keyboard handling, menu bridge |
-| `frontend/src/lib/infrastructure/idbr.ts` | IndexedDB schema, migrations, transactional ops |
-| `frontend/src/lib/stores/folders.svelte.ts` | Folder hierarchy, soft-delete, batch cascade |
-| `frontend/src/lib/stores/notes.svelte.ts` | Note metadata CRUD, content lazy-load, selection |
-| `frontend/src/lib/stores/services.ts` | DI registry, circular dependency resolution via setters |
+| File                                        | Purpose                                                                 |
+| ------------------------------------------- | ----------------------------------------------------------------------- |
+| `app.go`                                    | Wails lifecycle, export/import file dialogs, menu event handlers        |
+| `menu/menu_darwin.go`                       | macOS native menu — `MenuHost` interface, keyboard shortcut definitions |
+| `frontend/src/routes/+layout.svelte`        | App boot, store/service wiring, keyboard handling, menu bridge          |
+| `frontend/src/lib/infrastructure/idbr.ts`   | IndexedDB schema, migrations, transactional ops                         |
+| `frontend/src/lib/stores/folders.svelte.ts` | Folder hierarchy, soft-delete, batch cascade                            |
+| `frontend/src/lib/stores/notes.svelte.ts`   | Note metadata CRUD, content lazy-load, selection                        |
+| `frontend/src/lib/stores/services.ts`       | DI registry, circular dependency resolution via setters                 |

@@ -137,7 +137,7 @@
 				{:else if activeTab === 'appearance'}
 					<div class="setting-group">
 						<h3 class="setting-title">Appearance Mode</h3>
-						<p class="description">Select how mdnotes should look on your system.</p>
+						<p class="description">Select how Keloc Notes should look on your system.</p>
 						<div class="appearance-options">
 							<button
 								class={['appearance-card', themeStore.theme === 'light' && 'selected']}
@@ -198,13 +198,17 @@
 					</div>
 					<div class="setting-group">
 						<h3 class="setting-title">Code Block Languages</h3>
-						<p class="description">Select which languages appear in the code block language picker.</p>
+						<p class="description">
+							Select which languages appear in the code block language picker.
+						</p>
 						<div class="languages-grid">
 							{#each availableLanguages as lang}
 								<label class="language-checkbox">
 									<input
 										type="checkbox"
-										checked={(preferencesStore.enabledLanguages ?? DEFAULT_LANGUAGES).includes(lang)}
+										checked={(preferencesStore.enabledLanguages ?? DEFAULT_LANGUAGES).includes(
+											lang
+										)}
 										onchange={(e) => {
 											const current = preferencesStore.enabledLanguages ?? DEFAULT_LANGUAGES;
 											const updated = e.currentTarget.checked
@@ -220,12 +224,13 @@
 					</div>
 					<div class="setting-group">
 						<h3 class="setting-title">Image Processing Concurrency</h3>
-						<p class="description">Control how many images mdnotes processes at the same time.</p>
+						<p class="description">
+							Control how many images Keloc Notes processes at the same time.
+						</p>
 						<select
 							class="toolbar-select"
 							value={String(
-								preferencesStore.imageProcessingConcurrency ??
-									DEFAULT_IMAGE_PROCESSING_CONCURRENCY
+								preferencesStore.imageProcessingConcurrency ?? DEFAULT_IMAGE_PROCESSING_CONCURRENCY
 							)}
 							onchange={(e) =>
 								preferencesStore.setImageProcessingConcurrency(
@@ -233,7 +238,7 @@
 								)}
 						>
 							{#each Array.from({ length: MAX_IMAGE_PROCESSING_CONCURRENCY }, (_, i) => i + 1) as value}
-								<option value={value}>{value}</option>
+								<option {value}>{value}</option>
 							{/each}
 						</select>
 					</div>

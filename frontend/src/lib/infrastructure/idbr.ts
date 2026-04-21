@@ -3,7 +3,7 @@ import type { FolderItem } from '../stores/folders.svelte';
 import type { NoteItem } from '../stores/notes.svelte';
 import type { UIStore } from '../stores/dialog.svelte';
 
-const DEFAULT_DB_NAME = 'mdnotes-db';
+const DEFAULT_DB_NAME = 'kelocnotes-db';
 const DB_VERSION = 5;
 
 export interface DBStore {
@@ -38,7 +38,7 @@ let dbPromise: Promise<IDBPDatabase<DBStore>>;
 function getDBName() {
 	if (typeof window === 'undefined') return DEFAULT_DB_NAME;
 
-	const override = (window as typeof window & { __MDNOTES_DB_NAME__?: string }).__MDNOTES_DB_NAME__;
+	const override = (window as typeof window & { __NOTES_DB_NAME__?: string }).__NOTES_DB_NAME__;
 	return typeof override === 'string' && override.length > 0 ? override : DEFAULT_DB_NAME;
 }
 

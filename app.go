@@ -6,15 +6,16 @@ import (
 	"strings"
 	"time"
 
+	exp "keloc-notes/exporter"
+	"keloc-notes/menu"
+
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	exp "mdnotes/exporter"
-	"mdnotes/menu"
 )
 
 const (
-	helpURL      = "https://github.com/dduraipandian/mdnotes#readme"
-	reportBugURL = "https://github.com/dduraipandian/mdnotes/issues/new"
+	helpURL      = "https://github.com/dduraipandian/keloc-notes#readme"
+	reportBugURL = "https://github.com/dduraipandian/keloc-notes/issues/new"
 )
 
 // App struct
@@ -194,7 +195,7 @@ func (a *App) ExportNoteToFile(title, content string) error {
 // ExportNotesZip exports multiple notes as a zip archive
 func (a *App) ExportNotesZip(notes []exp.NoteDTO) error {
 	filepath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		DefaultFilename: "notes_export.zip",
+		DefaultFilename: "kelocnotes_export.zip",
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "ZIP Archives",
@@ -247,7 +248,7 @@ func (a *App) ImportNotesZip() ([]exp.ImportedNoteDTO, error) {
 // SaveBackupFile saves a JSON backup file
 func (a *App) SaveBackupFile(content string) error {
 	filepath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		DefaultFilename: "mdnotes_backup.json",
+		DefaultFilename: "kelocnotes_backup.json",
 		Filters: []runtime.FileFilter{
 			{
 				DisplayName: "JSON Files",

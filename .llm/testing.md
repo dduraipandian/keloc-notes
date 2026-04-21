@@ -79,9 +79,9 @@ Every E2E test runs against a unique, ephemeral IndexedDB instance:
 
 ```typescript
 async function gotoApp(page: Page) {
-  const dbName = `mdnotes-e2e-${Date.now()}`;
+  const dbName = `keloc-notes-e2e-${Date.now()}`;
   await page.addInitScript((name) => {
-    window.__MDNOTES_DB_NAME__ = name; // Driver uses this name if present
+    window.__NOTES_DB_NAME__ = name; // Driver uses this name if present
   }, dbName);
   await page.goto("/");
 }

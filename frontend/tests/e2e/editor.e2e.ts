@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 async function gotoApp(page) {
-	const dbName = `mdnotes-e2e-${Date.now()}`;
+	const dbName = `keloc-notes-e2e-${Date.now()}`;
 	await page.addInitScript((name) => {
-		window.__MDNOTES_DB_NAME__ = name;
+		window.__NOTES_DB_NAME__ = name;
 	}, dbName);
 	await page.goto('/');
 	await page.waitForSelector('[data-app-ready="true"]', { timeout: 5000 }).catch(() => {});
