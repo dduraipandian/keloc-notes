@@ -47,6 +47,7 @@
 	import { menu } from '$lib/wailsjs/go/models';
 	import { setDatabaseBlockedHandler } from '$lib/infrastructure/idbr';
 	import BackupImportOverlay from '$lib/components/BackupImportOverlay.svelte';
+	import MarkdownImportConflictDialog from '$lib/components/MarkdownImportConflictDialog.svelte';
 
 	const folderStore = new FolderStore();
 	const themeStore = new ThemeStore();
@@ -546,6 +547,7 @@
 	title={uiStateStore.backupImportStatus?.title ?? ''}
 	description={uiStateStore.backupImportStatus?.description ?? ''}
 />
+<MarkdownImportConflictDialog uiState={uiStateStore} />
 <Toaster />
 
 <style>

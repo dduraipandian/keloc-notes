@@ -1,9 +1,24 @@
 export namespace exporter {
 	
+	export class AssetDTO {
+	    Path: string;
+	    DataBase64: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AssetDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Path = source["Path"];
+	        this.DataBase64 = source["DataBase64"];
+	    }
+	}
 	export class ImportedNoteDTO {
 	    Title: string;
 	    Content: string;
 	    FolderPath: string;
+	    Assets: AssetDTO[];
 	
 	    static createFrom(source: any = {}) {
 	        return new ImportedNoteDTO(source);
@@ -14,13 +29,33 @@ export namespace exporter {
 	        this.Title = source["Title"];
 	        this.Content = source["Content"];
 	        this.FolderPath = source["FolderPath"];
+	        this.Assets = this.convertValues(source["Assets"], AssetDTO);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class NoteDTO {
 	    Title: string;
 	    Content: string;
 	    FolderPath: string;
 	    UpdatedAt: string;
+	    Assets: AssetDTO[];
 	
 	    static createFrom(source: any = {}) {
 	        return new NoteDTO(source);
@@ -32,7 +67,26 @@ export namespace exporter {
 	        this.Content = source["Content"];
 	        this.FolderPath = source["FolderPath"];
 	        this.UpdatedAt = source["UpdatedAt"];
+	        this.Assets = this.convertValues(source["Assets"], AssetDTO);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }

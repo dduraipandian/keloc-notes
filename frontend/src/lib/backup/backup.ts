@@ -117,6 +117,19 @@ async function serializeNoteAsset(asset: {
 	mimeType: string;
 	data: Blob;
 }): Promise<SerializedNoteAsset> {
+	const readAsDataURL = () =>
+		new Promise<string>((resolve, reject) => {
+			if (typeof FileReader === 'undefined') {
+				reject(new Error('FileReader is unavailable.'));
+				return;
+			}
+
+			const reader = new FileReader();
+			reader.onload = () => resolve(String(reader.result ?? ''));
+			reader.onerror = () => reject(reader.error ?? new Error('Failed to read asset blob.'));
+			reader.readAsDataURL(asset.data);
+		});
+
 	const readViaFileReader = () =>
 		new Promise<ArrayBuffer>((resolve, reject) => {
 			const reader = new FileReader();
@@ -125,16 +138,30 @@ async function serializeNoteAsset(asset: {
 			reader.readAsArrayBuffer(asset.data);
 		});
 
-	const dataBuffer =
-		typeof asset.data.arrayBuffer === 'function'
-			? await asset.data.arrayBuffer()
-			: await readViaFileReader();
+	let dataBase64 = '';
+
+	if (typeof FileReader !== 'undefined') {
+		const dataUrl = await readAsDataURL();
+		dataBase64 = dataUrl.includes(',') ? dataUrl.split(',', 2)[1] : dataUrl;
+	}
+
+	if (!dataBase64) {
+		const dataBuffer =
+			typeof asset.data.arrayBuffer === 'function'
+				? await asset.data.arrayBuffer()
+				: await readViaFileReader();
+		dataBase64 = arrayBufferToBase64(dataBuffer);
+	}
+
+	if (!dataBase64 && asset.data.size > 0) {
+		dataBase64 = btoa(await asset.data.text());
+	}
 
 	return {
 		id: asset.id,
 		noteId: asset.noteId,
 		mimeType: asset.mimeType,
-		dataBase64: arrayBufferToBase64(dataBuffer)
+		dataBase64
 	};
 }
 
@@ -177,9 +204,9 @@ async function assertImportAllowedForNewApp(): Promise<void> {
 }
 
 export async function exportBackup(
-    noteService: NoteService,
-    folderStore: FolderStore,
-    notesStore: NotesStore
+	noteService: NoteService,
+	folderStore: FolderStore,
+	notesStore: NotesStore
 ): Promise<string> {
 	void noteService;
 	const folders = Array.from(folderStore.folders.values())
@@ -187,23 +214,28 @@ export async function exportBackup(
 		.map((folder) => ({ ...folder }));
 	const noteIds = Array.from(notesStore.notes.keys());
 	const contents = await notesStore.getBulkNoteContents(noteIds);
-	const fullNotesArr = await Promise.all(noteIds
-		.map((id) => notesStore.getNote(id))
-		.filter((note): note is NonNullable<typeof note> => note != null)
-		.map(async (note) => ({
-			id: note.id,
-			folderId: note.folderId ?? null,
-			title: note.title,
-			summary: note.summary,
-			updatedAt: note.updatedAt,
-			isFavorite: note.isFavorite ?? false,
-			deletedAt: note.deletedAt ?? null,
-			deletedBatchId: note.deletedBatchId ?? null,
-			content: contents[note.id] ?? note.content ?? '',
-			assets: await Promise.all(
-				(await assetsRepository.getByNoteId(note.id)).map((asset) => serializeNoteAsset(asset))
-			)
-		})));
+	const fullNotesArr = await Promise.all(
+		noteIds
+			.map((id) => notesStore.getNote(id))
+			.filter((note): note is NonNullable<typeof note> => note != null)
+			.map(async (note) => ({
+				id: note.id,
+				folderId: note.folderId ?? null,
+				title: note.title,
+				summary: note.summary,
+				updatedAt: note.updatedAt,
+				isFavorite: note.isFavorite ?? false,
+				deletedAt: note.deletedAt ?? null,
+				deletedBatchId: note.deletedBatchId ?? null,
+				content: contents[note.id] ?? note.content ?? '',
+				...(await (async () => {
+					const assets = await Promise.all(
+						(await assetsRepository.getByNoteId(note.id)).map((asset) => serializeNoteAsset(asset))
+					);
+					return assets.length > 0 ? { assets } : {};
+				})())
+			}))
+	);
 	const settings = await settingsRepository.getAll();
 
 	const backup: BackupPayload = {
@@ -219,9 +251,9 @@ export async function exportBackup(
 }
 
 export async function importBackup(
-    json: string,
-    folderStore: FolderStore,
-    notesStore: NotesStore
+	json: string,
+	folderStore: FolderStore,
+	notesStore: NotesStore
 ): Promise<void> {
 	void folderStore;
 	void notesStore;
@@ -234,7 +266,10 @@ export async function importBackup(
 			throw new Error(`Unsupported backup schema version: ${backup.schemaVersion}`);
 		}
 		const folders = (backup.folders ?? [])
-			.filter((folder): folder is FolderItem => typeof folder === 'object' && folder !== null && 'id' in folder)
+			.filter(
+				(folder): folder is FolderItem =>
+					typeof folder === 'object' && folder !== null && 'id' in folder
+			)
 			.filter((folder) => resolveProfile(folder).section === 'folders')
 			.map((folder) => ({
 				...folder,

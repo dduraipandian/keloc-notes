@@ -17,6 +17,13 @@ import type { ThemeStore } from '$lib/stores/theme.svelte';
 import type { UIStateStore } from '$lib/stores/uiState.svelte';
 import { hasWailsRuntime } from '$lib/wails.svelte';
 import { exportBackup, importBackup } from '$lib/backup/backup';
+import { importedMarkdownToEditorContent } from '$lib/editor/serializer';
+import {
+	analyzeMarkdownImportConflicts,
+	buildMarkdownImportExecutionPlan,
+	type MarkdownImportAction
+} from '$lib/import/markdownImport';
+import { resolveProfile } from '$lib/stores/domain/profiles';
 
 /**
  * Initialize menu event listeners and wire them to store actions.
@@ -40,10 +47,109 @@ export function initMenuBridge(
 		onReload?: () => void;
 	}
 ): () => void {
-	const { uiState, theme, ui, selection, folders, notes, folderService, noteService, trashService } = stores;
+	const {
+		uiState,
+		theme,
+		ui,
+		selection,
+		folders,
+		notes,
+		folderService,
+		noteService,
+		trashService
+	} = stores;
 	const unsubscribers: Array<() => void> = [];
 	const formatError = (err: unknown) => (err instanceof Error ? err.message : String(err));
 	const triggerReload = callbacks?.onReload ?? (() => window.location.reload());
+	const getSelectedRegularFolderId = () => {
+		const selectedFolderId = selection.selectedFolderID;
+		if (!selectedFolderId || selectedFolderId === 'home') {
+			return null;
+		}
+
+		const selectedFolder = folders.findItemById(selectedFolderId);
+		if (!selectedFolder) {
+			return null;
+		}
+
+		return resolveProfile(selectedFolder).section === 'folders' ? selectedFolderId : null;
+	};
+	const collectScopedNoteIds = () => {
+		const selectedFolderId = getSelectedRegularFolderId();
+		const scopedFolderIds = new Set<string>();
+
+		if (selectedFolderId) {
+			const visitFolder = (folderId: string) => {
+				scopedFolderIds.add(folderId);
+				const folder = folders.findItemById(folderId);
+				for (const childId of folder?.items ?? []) {
+					visitFolder(childId);
+				}
+			};
+			visitFolder(selectedFolderId);
+		}
+
+		return Array.from(notes.notes.values())
+			.filter((note) => {
+				if (note.deletedAt) {
+					return false;
+				}
+				if (!selectedFolderId) {
+					return true;
+				}
+				return note.folderId != null && scopedFolderIds.has(note.folderId);
+			})
+			.map((note) => note.id);
+	};
+	const applyImportRoot = (folderPath: string) => {
+		const selectedFolderId = getSelectedRegularFolderId();
+		if (!selectedFolderId) {
+			return folderPath;
+		}
+
+		const selectedFolderPath = folderService.getPlainFolderPath(selectedFolderId);
+		if (!selectedFolderPath) {
+			return folderPath;
+		}
+
+		return [selectedFolderPath, folderPath].filter(Boolean).join('/');
+	};
+	const executeMarkdownImportActions = async (actions: MarkdownImportAction[]) => {
+		for (const action of actions) {
+			if (action.type === 'overwrite') {
+				const nextContent =
+					action.importedAssets && action.importedAssets.length > 0
+						? await importedMarkdownToEditorContent(
+								action.noteId,
+								action.content,
+								action.importedAssets
+							)
+						: action.content;
+				noteService.update(action.noteId, {
+					title: action.title,
+					content: nextContent
+				});
+				continue;
+			}
+
+			const targetFolderId = folderService.ensurePath(action.folderPath);
+			const newNote = noteService.create(targetFolderId, { silent: true });
+			if (newNote) {
+				const createdContent =
+					action.importedAssets && action.importedAssets.length > 0
+						? await importedMarkdownToEditorContent(
+								newNote.id,
+								action.content,
+								action.importedAssets
+							)
+						: action.content;
+				noteService.update(newNote.id, {
+					title: action.title,
+					content: createdContent
+				});
+			}
+		}
+	};
 
 	// File menu events
 	unsubscribers.push(
@@ -83,7 +189,9 @@ export function initMenuBridge(
 			uiState.setActivePane('notes');
 			// Focus the search input after pane change
 			setTimeout(() => {
-				const input = document.querySelector('[data-testid="notes-pane"] input') as HTMLInputElement;
+				const input = document.querySelector(
+					'[data-testid="notes-pane"] input'
+				) as HTMLInputElement;
 				if (input) input.focus();
 			}, 0);
 		})
@@ -142,12 +250,14 @@ export function initMenuBridge(
 	unsubscribers.push(
 		EventsOn('menu:export-all-markdown', async () => {
 			try {
-				// Collect all active (non-deleted) notes
-				const activeNoteIds = Array.from(notes.notes.values())
-					.filter((n) => !n.deletedAt)
-					.map((n) => n.id);
-
-				const notesToExport = await noteService.getNotesForExport(activeNoteIds);
+				const selectedFolderId = getSelectedRegularFolderId();
+				const activeNoteIds = collectScopedNoteIds();
+				const notesToExport = selectedFolderId
+					? await noteService.getNotesForExport(activeNoteIds, {
+							relativeToFolderId: selectedFolderId,
+							includeAssets: true
+						})
+					: await noteService.getNotesForExport(activeNoteIds);
 				await (ExportNotesZip as any)(notesToExport);
 			} catch (err) {
 				console.error('Failed to export notes:', err);
@@ -170,27 +280,51 @@ export function initMenuBridge(
 
 	unsubscribers.push(
 		EventsOn('menu:import-markdown', async () => {
+			if (
+				uiState.markdownImportConflictDialog?.open ||
+				uiState.markdownImportConflictDialog?.isProcessing
+			) {
+				return;
+			}
+
 			try {
-				const importedNotes = await ImportNotesZip();
+				const importedNotes = (await ImportNotesZip())?.map((note) => ({
+					...note,
+					FolderPath: applyImportRoot(note.FolderPath ?? '')
+				}));
 
 				if (!importedNotes || importedNotes.length === 0) {
 					return;
 				}
+				const analysis = analyzeMarkdownImportConflicts(
+					importedNotes,
+					Array.from(folders.folders.values()),
+					Array.from(notes.notes.values())
+				);
 
-				// Create folders and notes
-				for (const importedNote of importedNotes) {
-					// Use the logic-encapsulated ensurePath in FolderService
-					const targetFolderId = folderService.ensurePath(importedNote.FolderPath);
-
-					// Create note with silent: true and extract its id for updating
-					const newNote = noteService.create(targetFolderId, { silent: true });
-					if (newNote) {
-						noteService.update(newNote.id, {
-							title: importedNote.Title,
-							content: importedNote.Content
-						});
-					}
+				if (analysis.conflicts.length > 0) {
+					uiState.openMarkdownImportConflictDialog({
+						conflicts: analysis.conflicts,
+						onConfirm: async (resolution) => {
+							try {
+								const plan = buildMarkdownImportExecutionPlan(analysis, resolution);
+								await executeMarkdownImportActions(plan.actions);
+								uiState.closeMarkdownImportConflictDialog();
+							} catch (err) {
+								uiState.closeMarkdownImportConflictDialog();
+								console.error('Failed to import notes:', err);
+								ui.showOperationError('Import Markdown Archive Failed', formatError(err));
+							}
+						},
+						onCancel: () => {
+							uiState.closeMarkdownImportConflictDialog();
+						}
+					});
+					return;
 				}
+
+				const plan = buildMarkdownImportExecutionPlan(analysis, 'keep-both');
+				await executeMarkdownImportActions(plan.actions);
 			} catch (err) {
 				console.error('Failed to import notes:', err);
 				ui.showOperationError('Import Markdown Archive Failed', formatError(err));
@@ -242,10 +376,7 @@ export function initMenuBridge(
  * Monitors store state and updates the native menu dynamically.
  * Returns a cleanup function to destroy the effect.
  */
-export function initMenuStateEffect(stores: {
-	theme: ThemeStore;
-	notes: NotesStore;
-}): () => void {
+export function initMenuStateEffect(stores: { theme: ThemeStore; notes: NotesStore }): () => void {
 	const { theme, notes } = stores;
 	return $effect.root(() => {
 		$effect(() => {

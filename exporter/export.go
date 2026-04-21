@@ -2,6 +2,7 @@ package exporter
 
 import (
 	"archive/zip"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"path"
@@ -10,17 +11,24 @@ import (
 	"strings"
 )
 
+type AssetDTO struct {
+	Path       string
+	DataBase64 string
+}
+
 type NoteDTO struct {
 	Title      string
 	Content    string
 	FolderPath string
 	UpdatedAt  string
+	Assets     []AssetDTO
 }
 
 type ImportedNoteDTO struct {
 	Title      string
 	Content    string
 	FolderPath string
+	Assets     []AssetDTO
 }
 
 func BuildNotesZip(w io.Writer, notes []NoteDTO) error {
@@ -40,6 +48,27 @@ func BuildNotesZip(w io.Writer, notes []NoteDTO) error {
 		if _, err := io.WriteString(f, content); err != nil {
 			return fmt.Errorf("failed to write note content: %w", err)
 		}
+
+		for _, asset := range note.Assets {
+			assetPath := strings.TrimPrefix(path.Clean(asset.Path), "/")
+			if assetPath == "." || assetPath == "" {
+				continue
+			}
+
+			assetData, err := base64.StdEncoding.DecodeString(asset.DataBase64)
+			if err != nil {
+				return fmt.Errorf("failed to decode asset %q: %w", asset.Path, err)
+			}
+
+			assetEntry, err := zw.Create(buildAssetPath(note.FolderPath, assetPath))
+			if err != nil {
+				return fmt.Errorf("failed to create asset zip entry: %w", err)
+			}
+
+			if _, err := assetEntry.Write(assetData); err != nil {
+				return fmt.Errorf("failed to write asset %q: %w", asset.Path, err)
+			}
+		}
 	}
 
 	return nil
@@ -51,16 +80,10 @@ func ParseNotesZip(r io.ReaderAt, size int64) ([]ImportedNoteDTO, error) {
 		return nil, fmt.Errorf("failed to read zip: %w", err)
 	}
 
-	var notes []ImportedNoteDTO
+	fileContents := make(map[string][]byte, len(zr.File))
 
 	for _, f := range zr.File {
-		// Skip directories
 		if strings.HasSuffix(f.Name, "/") {
-			continue
-		}
-
-		// Only process .md files
-		if filepath.Ext(f.Name) != ".md" {
 			continue
 		}
 
@@ -68,20 +91,35 @@ func ParseNotesZip(r io.ReaderAt, size int64) ([]ImportedNoteDTO, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to open zip entry: %w", err)
 		}
-		defer rc.Close()
 
 		content, err := io.ReadAll(rc)
+		rc.Close()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read zip entry: %w", err)
 		}
 
+		fileContents[f.Name] = content
+	}
+
+	var notes []ImportedNoteDTO
+
+	for _, f := range zr.File {
+		if strings.HasSuffix(f.Name, "/") {
+			continue
+		}
+
+		if filepath.Ext(f.Name) != ".md" {
+			continue
+		}
+
 		title, folderPath := parseFileNameAndPath(f.Name)
-		noteContent := extractContentFromMarkdown(string(content), title)
+		noteContent := extractContentFromMarkdown(string(fileContents[f.Name]), title)
 
 		notes = append(notes, ImportedNoteDTO{
 			Title:      title,
 			Content:    noteContent,
 			FolderPath: folderPath,
+			Assets:     extractReferencedAssets(f.Name, noteContent, fileContents),
 		})
 	}
 
@@ -93,6 +131,13 @@ func buildFilePath(folderPath, title string) string {
 		return sanitizeFilename(title) + ".md"
 	}
 	return folderPath + "/" + sanitizeFilename(title) + ".md"
+}
+
+func buildAssetPath(folderPath, assetPath string) string {
+	if folderPath == "" {
+		return assetPath
+	}
+	return folderPath + "/" + assetPath
 }
 
 func parseFileNameAndPath(zipPath string) (title string, folderPath string) {
@@ -134,4 +179,49 @@ func extractContentFromMarkdown(content, expectedTitle string) string {
 	}
 
 	return strings.TrimSpace(strings.Join(lines[startIdx:], "\n"))
+}
+
+var markdownImageRef = regexp.MustCompile(`!\[[^\]]*]\(([^)]+)\)`)
+
+func extractReferencedAssets(noteZipPath, noteContent string, files map[string][]byte) []AssetDTO {
+	matches := markdownImageRef.FindAllStringSubmatch(noteContent, -1)
+	if len(matches) == 0 {
+		return nil
+	}
+
+	noteDir := path.Dir(noteZipPath)
+	if noteDir == "." {
+		noteDir = ""
+	}
+
+	assets := make([]AssetDTO, 0, len(matches))
+	seen := make(map[string]struct{})
+
+	for _, match := range matches {
+		if len(match) < 2 {
+			continue
+		}
+
+		linkTarget := strings.TrimSpace(match[1])
+		if linkTarget == "" || strings.HasPrefix(linkTarget, "http://") || strings.HasPrefix(linkTarget, "https://") || strings.HasPrefix(linkTarget, "asset:") {
+			continue
+		}
+
+		zipAssetPath := path.Clean(path.Join(noteDir, linkTarget))
+		data, ok := files[zipAssetPath]
+		if !ok {
+			continue
+		}
+		if _, exists := seen[linkTarget]; exists {
+			continue
+		}
+		seen[linkTarget] = struct{}{}
+
+		assets = append(assets, AssetDTO{
+			Path:       linkTarget,
+			DataBase64: base64.StdEncoding.EncodeToString(data),
+		})
+	}
+
+	return assets
 }

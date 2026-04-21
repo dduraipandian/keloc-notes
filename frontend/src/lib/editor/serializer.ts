@@ -1,4 +1,6 @@
 import type { JSONContent } from '@tiptap/core';
+import { assetsRepository } from '$lib/infrastructure/repositories';
+import type { exporter } from '$lib/wailsjs/go/models';
 
 /**
  * Parse raw stored string into Tiptap-ready content.
@@ -60,6 +62,94 @@ export function jsonToMarkdown(raw: string): string {
 	return (doc.content ?? []).map(serializeBlock).join('');
 }
 
+export async function importedMarkdownToEditorContent(
+	noteId: string,
+	markdown: string,
+	importedAssets: exporter.AssetDTO[] = []
+): Promise<string> {
+	if (!importedAssets.length) {
+		return markdown;
+	}
+
+	const assetIdByPath = new Map<string, string>();
+
+	for (const asset of importedAssets) {
+		const assetId = crypto.randomUUID();
+		const mimeType = inferMimeTypeFromPath(asset.Path);
+		await assetsRepository.save({
+			id: assetId,
+			noteId,
+			mimeType,
+			data: decodeBase64ToBlob(asset.DataBase64, mimeType)
+		});
+		assetIdByPath.set(asset.Path, assetId);
+	}
+
+	const content: JSONContent[] = [];
+	let paragraphLines: string[] = [];
+
+	const flushParagraph = () => {
+		if (paragraphLines.length === 0) {
+			return;
+		}
+
+		content.push({
+			type: 'paragraph',
+			content: [{ type: 'text', text: paragraphLines.join('\n') }]
+		});
+		paragraphLines = [];
+	};
+
+	for (const rawLine of markdown.split('\n')) {
+		const line = rawLine.trim();
+
+		if (!line) {
+			flushParagraph();
+			if (content.length > 0 && content[content.length - 1]?.type !== 'paragraph') {
+				content.push({ type: 'paragraph' });
+			}
+			continue;
+		}
+
+		const headingMatch = /^(#{1,6})\s+(.+)$/.exec(line);
+		if (headingMatch) {
+			flushParagraph();
+			content.push({
+				type: 'heading',
+				attrs: { level: headingMatch[1].length },
+				content: [{ type: 'text', text: headingMatch[2] }]
+			});
+			continue;
+		}
+
+		const imageMatch = /^!\[([^\]]*)\]\(([^)]+)\)$/.exec(line);
+		if (imageMatch) {
+			flushParagraph();
+			const assetId = assetIdByPath.get(imageMatch[2]);
+			if (assetId) {
+				content.push({
+					type: 'image',
+					attrs: {
+						src: `asset:${assetId}`,
+						alt: imageMatch[1],
+						assetId
+					}
+				});
+				continue;
+			}
+		}
+
+		paragraphLines.push(line);
+	}
+
+	flushParagraph();
+
+	return JSON.stringify({
+		type: 'doc',
+		content
+	});
+}
+
 function serializeBlock(node: JSONContent): string {
 	switch (node.type) {
 		case 'paragraph':
@@ -77,9 +167,8 @@ function serializeBlock(node: JSONContent): string {
 			return (node.content ?? []).map((item) => '- ' + serializeListItem(item)).join('') + '\n';
 		case 'orderedList':
 			return (
-				(node.content ?? [])
-					.map((item, i) => `${i + 1}. ` + serializeListItem(item))
-					.join('') + '\n'
+				(node.content ?? []).map((item, i) => `${i + 1}. ` + serializeListItem(item)).join('') +
+				'\n'
 			);
 		case 'blockquote':
 			return (
@@ -100,6 +189,37 @@ function serializeBlock(node: JSONContent): string {
 		default:
 			return serializeInline(node.content);
 	}
+}
+
+function inferMimeTypeFromPath(path: string): string {
+	const extension = path.split('.').pop()?.toLowerCase() ?? '';
+
+	switch (extension) {
+		case 'png':
+			return 'image/png';
+		case 'jpg':
+		case 'jpeg':
+			return 'image/jpeg';
+		case 'gif':
+			return 'image/gif';
+		case 'svg':
+			return 'image/svg+xml';
+		case 'webp':
+			return 'image/webp';
+		default:
+			return 'application/octet-stream';
+	}
+}
+
+function decodeBase64ToBlob(dataBase64: string, mimeType: string): Blob {
+	const binary = atob(dataBase64);
+	const bytes = new Uint8Array(binary.length);
+
+	for (let i = 0; i < binary.length; i += 1) {
+		bytes[i] = binary.charCodeAt(i);
+	}
+
+	return new Blob([bytes], { type: mimeType });
 }
 
 function serializeListItem(node: JSONContent): string {

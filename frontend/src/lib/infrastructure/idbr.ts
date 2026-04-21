@@ -71,7 +71,10 @@ export function setDatabaseBlockedHandler(handler: typeof blockedHandler) {
 	blockedHandler = handler;
 }
 
-export function handleDatabaseBlocked(currentVersion: number | undefined, blockedVersion: number | null) {
+export function handleDatabaseBlocked(
+	currentVersion: number | undefined,
+	blockedVersion: number | null
+) {
 	blockedHandler?.(currentVersion, blockedVersion);
 }
 
@@ -265,11 +268,13 @@ export async function deleteSetting(property: string) {
 }
 
 export async function markLibraryAsUsed(): Promise<void> {
+	if (typeof indexedDB === 'undefined') return;
 	const db = await getDB();
 	await db.put('settings', true, LIBRARY_HISTORY_KEY);
 }
 
 export async function hasLibraryBeenUsed(): Promise<boolean> {
+	if (typeof indexedDB === 'undefined') return false;
 	const db = await getDB();
 	return (await db.get('settings', LIBRARY_HISTORY_KEY)) === true;
 }
@@ -347,13 +352,43 @@ export async function putNoteAsset(asset: {
 	data: Blob | Uint8Array;
 }): Promise<void> {
 	const db = await getDB();
-	await db.put('note_assets', asset);
+	const normalizedData =
+		asset.data instanceof Blob ? await blobToUint8Array(asset.data) : asset.data;
+	await db.put('note_assets', {
+		...asset,
+		data: normalizedData
+	});
 }
 
-function normalizeAssetRecord(asset: { id: string; noteId: string; mimeType: string; data: Blob | Uint8Array }) {
+async function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
+	if (typeof blob.arrayBuffer === 'function') {
+		return new Uint8Array(await blob.arrayBuffer());
+	}
+
+	const buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => resolve(reader.result as ArrayBuffer);
+		reader.onerror = () => reject(reader.error ?? new Error('Failed to read blob.'));
+		reader.readAsArrayBuffer(blob);
+	});
+
+	return new Uint8Array(buffer);
+}
+
+function normalizeAssetRecord(asset: {
+	id: string;
+	noteId: string;
+	mimeType: string;
+	data: Blob | Uint8Array;
+}) {
+	const normalizedBlob =
+		asset.data instanceof Blob
+			? asset.data
+			: new Blob([new Uint8Array(asset.data)], { type: asset.mimeType });
+
 	return {
 		...asset,
-		data: asset.data instanceof Blob ? asset.data : new Blob([asset.data], { type: asset.mimeType })
+		data: normalizedBlob
 	};
 }
 
@@ -415,37 +450,38 @@ export async function restoreBackupTransactionally(
 		['folders', 'notes_meta', 'notes_contents', 'settings', 'note_assets'],
 		'readwrite',
 		async (tx) => {
-		const folderStore = tx.objectStore('folders')!;
-		const metaStore = tx.objectStore('notes_meta')!;
-		const contentStore = tx.objectStore('notes_contents')!;
-		const settingsStore = tx.objectStore('settings')!;
-		const assetStore = tx.objectStore('note_assets')!;
+			const folderStore = tx.objectStore('folders')!;
+			const metaStore = tx.objectStore('notes_meta')!;
+			const contentStore = tx.objectStore('notes_contents')!;
+			const settingsStore = tx.objectStore('settings')!;
+			const assetStore = tx.objectStore('note_assets')!;
 
-		await folderStore.clear!();
-		await metaStore.clear!();
-		await contentStore.clear!();
-		await settingsStore.clear!();
-		await assetStore.clear!();
+			await folderStore.clear!();
+			await metaStore.clear!();
+			await contentStore.clear!();
+			await settingsStore.clear!();
+			await assetStore.clear!();
 
-		for (const folder of folders) {
-			await folderStore.put!(folder);
-		}
-
-		for (const note of notes) {
-			const { content, assets = [], ...meta } = note;
-			await metaStore.put!(meta);
-			await contentStore.put!({ id: note.id, content });
-			for (const asset of assets) {
-				await assetStore.put!(asset);
+			for (const folder of folders) {
+				await folderStore.put!(folder);
 			}
-		}
 
-		for (const [key, value] of Object.entries(settings)) {
-			await settingsStore.put!(value, key);
-		}
+			for (const note of notes) {
+				const { content, assets = [], ...meta } = note;
+				await metaStore.put!(meta);
+				await contentStore.put!({ id: note.id, content });
+				for (const asset of assets) {
+					await assetStore.put!(asset);
+				}
+			}
 
-		await settingsStore.put!(true, LIBRARY_HISTORY_KEY);
-	});
+			for (const [key, value] of Object.entries(settings)) {
+				await settingsStore.put!(value, key);
+			}
+
+			await settingsStore.put!(true, LIBRARY_HISTORY_KEY);
+		}
+	);
 }
 
 // ─────────────────────────────────────────────
@@ -461,37 +497,38 @@ export async function permanentDeleteFolderTransactionally(
 		['folders', 'notes_meta', 'notes_contents', 'backups', 'note_assets'],
 		'readwrite',
 		async (tx) => {
-		const fStore = tx.objectStore('folders')!;
-		const mStore = tx.objectStore('notes_meta')!;
-		const cStore = tx.objectStore('notes_contents')!;
-		const bStore = tx.objectStore('backups')!;
-		const aStore = tx.objectStore('note_assets')!;
-		const assetIndex = aStore.index('by_note');
+			const fStore = tx.objectStore('folders')!;
+			const mStore = tx.objectStore('notes_meta')!;
+			const cStore = tx.objectStore('notes_contents')!;
+			const bStore = tx.objectStore('backups')!;
+			const aStore = tx.objectStore('note_assets')!;
+			const assetIndex = aStore.index('by_note');
 
-		// Backup and Delete Notes
-		for (const { note, path } of notesToDelete) {
-			// Re-assembling for backup:
-			const content = await cStore.get(note.id);
-			const assets = await assetIndex.getAll(note.id);
-			await bStore.put!({
-				id: `note_${note.id}`,
-				type: 'note',
-				data: { ...note, content: content?.content ?? '', assets },
-				path,
-				archivedAt
-			});
-			for (const asset of assets) {
-				await aStore.delete!(asset.id);
+			// Backup and Delete Notes
+			for (const { note, path } of notesToDelete) {
+				// Re-assembling for backup:
+				const content = await cStore.get(note.id);
+				const assets = await assetIndex.getAll(note.id);
+				await bStore.put!({
+					id: `note_${note.id}`,
+					type: 'note',
+					data: { ...note, content: content?.content ?? '', assets },
+					path,
+					archivedAt
+				});
+				for (const asset of assets) {
+					await aStore.delete!(asset.id);
+				}
+				await mStore.delete!(note.id);
+				await cStore.delete!(note.id);
 			}
-			await mStore.delete!(note.id);
-			await cStore.delete!(note.id);
-		}
 
-		// Delete Folders
-		for (const f of foldersToDelete) {
-			await fStore.delete!(f.id);
+			// Delete Folders
+			for (const f of foldersToDelete) {
+				await fStore.delete!(f.id);
+			}
 		}
-	});
+	);
 }
 
 export async function permanentDeleteNoteTransactionally(
@@ -503,27 +540,28 @@ export async function permanentDeleteNoteTransactionally(
 		['notes_meta', 'notes_contents', 'backups', 'note_assets'],
 		'readwrite',
 		async (tx) => {
-		const mStore = tx.objectStore('notes_meta')!;
-		const cStore = tx.objectStore('notes_contents')!;
-		const bStore = tx.objectStore('backups')!;
-		const aStore = tx.objectStore('note_assets')!;
-		const assetIndex = aStore.index('by_note');
+			const mStore = tx.objectStore('notes_meta')!;
+			const cStore = tx.objectStore('notes_contents')!;
+			const bStore = tx.objectStore('backups')!;
+			const aStore = tx.objectStore('note_assets')!;
+			const assetIndex = aStore.index('by_note');
 
-		const contentEntry = await cStore.get(note.id);
-		const content = contentEntry?.content ?? '';
-		const assets = await assetIndex.getAll(note.id);
+			const contentEntry = await cStore.get(note.id);
+			const content = contentEntry?.content ?? '';
+			const assets = await assetIndex.getAll(note.id);
 
-		await bStore.put!({
-			id: `note_${note.id}`,
-			type: 'note',
-			data: { ...note, content, assets },
-			path,
-			archivedAt
-		});
-		for (const asset of assets) {
-			await aStore.delete!(asset.id);
+			await bStore.put!({
+				id: `note_${note.id}`,
+				type: 'note',
+				data: { ...note, content, assets },
+				path,
+				archivedAt
+			});
+			for (const asset of assets) {
+				await aStore.delete!(asset.id);
+			}
+			await mStore.delete!(note.id);
+			await cStore.delete!(note.id);
 		}
-		await mStore.delete!(note.id);
-		await cStore.delete!(note.id);
-	});
+	);
 }

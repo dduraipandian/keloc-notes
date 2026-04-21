@@ -3,7 +3,9 @@ import type { NoteID, NoteItem } from '../notes.svelte';
 import type { FolderStoreLike, NotesStoreLike, SelectionStoreLike } from './types';
 import { FolderTreeHelper } from '../domain/folderTree';
 import { resolveProfile } from '../domain/profiles';
-import { jsonToMarkdown } from '$lib/editor/serializer';
+import { assetsRepository } from '$lib/infrastructure/repositories';
+import { collectAssetIds } from '$lib/editor/imageHandler';
+import { jsonToMarkdown, parseContent } from '$lib/editor/serializer';
 
 export class NoteService {
 	private readonly tree: FolderTreeHelper;
@@ -19,8 +21,10 @@ export class NoteService {
 	}
 
 	create(folderId: FolderID | null, { silent = false }: { silent?: boolean } = {}) {
-		const actualFolderId = (folderId === 'home' || folderId === null) ? null : folderId;
-		const folder = actualFolderId ? this.folders.findItemById(actualFolderId) : this.folders.findItemById('home');
+		const actualFolderId = folderId === 'home' || folderId === null ? null : folderId;
+		const folder = actualFolderId
+			? this.folders.findItemById(actualFolderId)
+			: this.folders.findItemById('home');
 
 		if (!folder || !resolveProfile(folder).capabilities.createNote) {
 			const defaultId = this.folders.getDefaultFolderId();
@@ -32,7 +36,11 @@ export class NoteService {
 		}
 	}
 
-	update(noteId: NoteID, updates: Partial<Omit<NoteItem, 'id'>>, opts?: { updatedTimestamp?: boolean }) {
+	update(
+		noteId: NoteID,
+		updates: Partial<Omit<NoteItem, 'id'>>,
+		opts?: { updatedTimestamp?: boolean }
+	) {
 		this.notes.updateNote(noteId, updates, opts);
 	}
 
@@ -77,6 +85,7 @@ export class NoteService {
 		if (ids.length === 0) return [];
 
 		const results: Array<{
+			id: string;
 			title: string;
 			content: string;
 			updatedAt: string;
@@ -93,6 +102,7 @@ export class NoteService {
 				const note = this.notes.getNote(id);
 				if (note) {
 					results.push({
+						id,
 						title: note.title,
 						content: contents[id] ?? note.content,
 						updatedAt: note.updatedAt,
@@ -105,20 +115,112 @@ export class NoteService {
 		return results;
 	}
 
-	async getNotesForExport(ids: NoteID[]) {
+	async getNotesForExport(
+		ids: NoteID[],
+		options: { relativeToFolderId?: FolderID | null; includeAssets?: boolean } = {}
+	) {
 		const harvested = await this.getExportData(ids);
-		return harvested.map((note) => {
-			let folderPath = '';
-			if (note.folderId) {
-				folderPath = this.tree.getPlainFolderPath(note.folderId);
-			}
+		const relativeRootPath = options.relativeToFolderId
+			? this.tree.getPlainFolderPath(options.relativeToFolderId)
+			: '';
 
-			return {
-				title: note.title,
-				content: jsonToMarkdown(note.content),
-				folderPath,
-				updatedAt: new Date(note.updatedAt ?? 0).toISOString()
-			};
-		});
+		return Promise.all(
+			harvested.map(async (note) => {
+				let folderPath = '';
+				if (note.folderId) {
+					folderPath = this.tree.getPlainFolderPath(note.folderId);
+				}
+
+				if (relativeRootPath && folderPath.startsWith(relativeRootPath)) {
+					folderPath = folderPath.slice(relativeRootPath.length).replace(/^\/+/, '');
+				}
+
+				const content = jsonToMarkdown(note.content);
+				const exportNote = {
+					title: note.title,
+					content,
+					folderPath,
+					updatedAt: new Date(note.updatedAt ?? 0).toISOString()
+				};
+
+				if (!options.includeAssets) {
+					return exportNote;
+				}
+
+				const doc = parseContent(note.content);
+				const assetIds = collectAssetIds(doc);
+				if (assetIds.size === 0) {
+					return { ...exportNote, assets: [] };
+				}
+
+				const assets = await this.buildExportAssets(note.title, content, note.id, assetIds);
+				return {
+					...exportNote,
+					content: assets.content,
+					assets: assets.assets
+				};
+			})
+		);
 	}
+
+	private async buildExportAssets(
+		title: string,
+		markdown: string,
+		noteId: string,
+		assetIds: Set<string>
+	) {
+		const storedAssets = await assetsRepository.getByNoteId(noteId);
+		const assetFolder = `${sanitizeExportSegment(title)}.assets`;
+		const matchingAssets = storedAssets.filter((asset) => assetIds.has(asset.id));
+		let rewrittenMarkdown = markdown;
+		const assets: Array<{ path: string; dataBase64: string }> = [];
+
+		for (const asset of matchingAssets) {
+			const assetFilename = `${asset.id}.${mimeTypeToExtension(asset.mimeType)}`;
+			const assetPath = `${assetFolder}/${assetFilename}`;
+			rewrittenMarkdown = rewrittenMarkdown.replaceAll(`(asset:${asset.id})`, `(${assetPath})`);
+			assets.push({
+				path: assetPath,
+				dataBase64: await blobToBase64(asset.data)
+			});
+		}
+
+		return {
+			content: rewrittenMarkdown,
+			assets
+		};
+	}
+}
+
+function sanitizeExportSegment(value: string): string {
+	return value.replace(/[/:*?"<>|]/g, '').trim() || 'Untitled Note';
+}
+
+function mimeTypeToExtension(mimeType: string): string {
+	switch (mimeType) {
+		case 'image/png':
+			return 'png';
+		case 'image/jpeg':
+			return 'jpg';
+		case 'image/gif':
+			return 'gif';
+		case 'image/svg+xml':
+			return 'svg';
+		case 'image/webp':
+			return 'webp';
+		default:
+			return 'bin';
+	}
+}
+
+async function blobToBase64(blob: Blob): Promise<string> {
+	const buffer = await blob.arrayBuffer();
+	let binary = '';
+	const bytes = new Uint8Array(buffer);
+
+	for (const byte of bytes) {
+		binary += String.fromCharCode(byte);
+	}
+
+	return btoa(binary);
 }
