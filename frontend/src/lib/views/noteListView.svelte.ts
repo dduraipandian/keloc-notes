@@ -32,6 +32,49 @@ export class NoteListView {
 		return folder ? getProfileId(folder) : 'regular';
 	}
 
+	getEmptyStateTitle() {
+		switch (this.getSelectedFolderProfileId()) {
+			case 'favorites':
+				return 'Nothing in Favorites yet';
+			case 'trash':
+				return 'Recently Deleted is empty';
+			case 'home':
+				return 'No notes here yet';
+			default:
+				return 'No notes here yet';
+		}
+	}
+
+	getEmptyStateDescription() {
+		switch (this.getSelectedFolderProfileId()) {
+			case 'favorites':
+				return 'Favorite a note or folder and it will show up here.';
+			case 'trash':
+				return 'Deleted notes and folders stay here until you restore or permanently remove them.';
+			case 'home':
+				return 'Create a folder or note to start building your library.';
+			default:
+				return this.canCreateNote()
+					? 'Create your first note to start writing in this folder.'
+					: 'This view does not allow creating notes directly.';
+		}
+	}
+
+	getEditorEmptyDescription() {
+		switch (this.getSelectedFolderProfileId()) {
+			case 'favorites':
+				return 'Favorite a note or folder and it will appear here.';
+			case 'trash':
+				return 'Deleted notes and folders appear here until you restore or permanently remove them.';
+			case 'home':
+				return 'Create a folder or note, and it will open here.';
+			default:
+				return this.getVisibleNoteIds().length === 0
+					? 'Create your first note in this folder and it will open here.'
+					: 'Choose a note from the list to start editing.';
+		}
+	}
+
 	canCreateNote() {
 		const selectedFolder = this.selection.getSelectedFolder();
 		if (!selectedFolder) return true; // Default to allowing creation at root (Home)
@@ -133,5 +176,4 @@ export class NoteListView {
 		};
 	}
 }
-
 

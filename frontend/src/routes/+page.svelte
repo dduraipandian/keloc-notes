@@ -27,7 +27,7 @@
 	);
 
 	let restoreContext = $derived(noteListView.getRestoreContext(selectedNote));
-	const visibleNoteIds = $derived(noteListView.getVisibleNoteIds());
+	const editorEmptyDescription = $derived(noteListView.getEditorEmptyDescription());
 
 	function handleRestoreInit() {
 		if (!selectedNote) return;
@@ -110,11 +110,7 @@
 					Select a note to view
 				</Empty.Title>
 				<Empty.Description class="mt-1 max-w-64 text-xs leading-relaxed text-muted-foreground/60">
-					{#if visibleNoteIds.length === 0}
-						Create a folder, add your first note, and it will open here.
-					{:else}
-						Choose a note from the list to start editing.
-					{/if}
+					{editorEmptyDescription}
 				</Empty.Description>
 			</Empty.Header>
 		</Empty.Root>

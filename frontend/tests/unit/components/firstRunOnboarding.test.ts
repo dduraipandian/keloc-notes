@@ -57,6 +57,9 @@ const mockTrashService = {
 const mockNoteListView = {
 	getSections: vi.fn(),
 	getSelectedFolderTitle: vi.fn(),
+	getEmptyStateTitle: vi.fn(),
+	getEmptyStateDescription: vi.fn(),
+	getEditorEmptyDescription: vi.fn(),
 	canCreateNote: vi.fn(),
 	getCreateNoteFolderId: vi.fn(),
 	getSelectedFolderProfileId: vi.fn(),
@@ -94,6 +97,13 @@ describe('First-run onboarding copy', () => {
 
 		mockNoteListView.getSections.mockReturnValue([]);
 		mockNoteListView.getSelectedFolderTitle.mockReturnValue('Home');
+		mockNoteListView.getEmptyStateTitle.mockReturnValue('No notes here yet');
+		mockNoteListView.getEmptyStateDescription.mockReturnValue(
+			'Start by creating a folder, then create your first note.'
+		);
+		mockNoteListView.getEditorEmptyDescription.mockReturnValue(
+			'Create a folder, add your first note, and it will open here.'
+		);
 		mockNoteListView.canCreateNote.mockReturnValue(false);
 		mockNoteListView.getSelectedFolderProfileId.mockReturnValue('home');
 		mockNoteListView.canDeleteSelectedNote.mockReturnValue(false);

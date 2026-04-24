@@ -27,6 +27,8 @@
 	const canCreateNote = $derived(noteListView.canCreateNote());
 	const canDeleteSelectedNote = $derived(noteListView.canDeleteSelectedNote());
 	const selectedNoteDeleteContext = $derived(noteListView.getSelectedNoteDeleteContext());
+	const emptyStateTitle = $derived(noteListView.getEmptyStateTitle());
+	const emptyStateDescription = $derived(noteListView.getEmptyStateDescription());
 
 	function getTime(dateStr: string) {
 		return new Date(dateStr).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
@@ -110,13 +112,9 @@
 						<Empty.Media variant="icon">
 							<SquarePen size={16} />
 						</Empty.Media>
-						<Empty.Title>No notes here yet</Empty.Title>
+						<Empty.Title>{emptyStateTitle}</Empty.Title>
 						<Empty.Description class="max-w-56 text-xs">
-							{#if canCreateNote}
-								Create your first note to start writing in this folder.
-							{:else}
-								Start by creating a folder, then create your first note.
-							{/if}
+							{emptyStateDescription}
 						</Empty.Description>
 					</Empty.Header>
 				</Empty.Root>
