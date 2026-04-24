@@ -1,136 +1,162 @@
-# keloc-notes
+# Keloc Notes
 
-A local-first desktop notes app for people who like the general shape of Apple Notes or Bear, but want local storage, a native desktop shell, and straightforward export options.
+Keloc Notes is a local-first desktop notes app for macOS.
 
-## Why This Exists
+It is for people who like the simple shape of Apple Notes or Bear, but want their notes stored locally, practical Markdown export, and a codebase they can understand and improve.
 
-Most note apps force a tradeoff:
+There is no account system, no cloud sync, and no server dependency. Your notes live on your machine.
 
-- fast capture, but your data is trapped in a proprietary format
-- markdown files, but the UX feels like a text editor instead of a notes app
-- sync-first products, but you lose the speed and privacy of local storage
+## Screenshots
 
-That is what `keloc-notes` is trying to do. It keeps the familiar three-pane layout, stores data locally, and makes import/export part of the product instead of an afterthought.
+Screenshots will be added before the public release.
 
-Right now it is mainly aimed at:
+Suggested set:
 
-- developers who want a local-first notes app they can hack on
-- users who want a native-feeling desktop app without mandatory accounts
-- maintainers who care about clear data ownership and simple recovery flows
+- main three-pane notes view
+- rich text editor with toolbar
+- folder-scoped search
+- import/export or backup flow
+- first-run empty state
 
-## Features
+## What It Does
 
-- Local-first storage. Notes, folders, and settings are stored on-device in IndexedDB.
-- Native desktop shell. Built with Wails, so the app runs as a desktop window instead of a browser tab.
-- Three-pane note workflow. Browse folders, scan note lists, and edit the selected note side by side.
-- Rich text editor. Notes are edited in a Tiptap-based editor instead of a plain textarea.
-- Folder-scoped full-text search. Search matches note titles and note content inside the active folder subtree.
-- Favorites and trash views. Keep important notes close and recover deleted notes before permanent removal.
-- Folder hierarchy. Create nested folders and move through a structured note library.
-- Practical export paths. Export one note as `.md`, export all notes as a folder-preserving `.zip`, or export a JSON backup.
-- Import support. Restore from JSON backup or import markdown archives.
-- Native menu integration on macOS. Menu actions drive app behavior such as new note, search, export, theme, and trash actions.
-- Theme and appearance settings. Light, dark, or follow-system theme, plus customizable folder accent color.
-- Test coverage across stores, services, infrastructure, and end-to-end flows.
+- Three-pane notes workflow: folders, note list, editor.
+- Rich text editing with a Tiptap-based editor.
+- Local folder hierarchy with nested folders.
+- Favorites and Trash.
+- Folder-scoped search across note titles and note content.
+- Markdown export for the current note.
+- Markdown ZIP export and import for folder-preserving portability.
+- JSON backup export and restore.
+- Light, dark, and system theme support.
+- macOS native menu integration for common app actions.
+
+The app is intentionally quiet and local. It is not trying to be a team wiki, a cloud notebook, or a Markdown IDE.
 
 ## Platform Support
 
-Right now this should be treated as a macOS-first app.
+Keloc Notes is currently targeted at macOS.
 
 | Platform | Status | Notes |
 | --- | --- | --- |
-| macOS | Supported | Primary release target. Native menu integration is implemented and the app experience is designed around this path today. |
-| Windows | Preview | Core app logic may run, but native menu parity and release polish are not complete yet. |
-| Linux | Preview | Core app logic may run, but native menu parity and release polish are not complete yet. |
+| macOS | Supported target | Primary release path. Native menu behavior and packaging are built around macOS first. |
+| Windows | Preview | Core app logic may run, but release polish and native menu parity are not complete. |
+| Linux | Preview | Core app logic may run, but release polish and native menu parity are not complete. |
 
-Release policy for now:
+For now, public release messaging should treat this as a macOS app. Windows and Linux are preview paths until they receive their own release pass.
 
-- Public release messaging should treat macOS as the supported platform.
-- Windows and Linux should be described as preview or unsupported-for-production until parity work is complete.
-- Bugs that reproduce only on preview platforms should not block a macOS-first public release unless they affect shared data integrity.
+## Install On macOS
 
-## How It Works
+The intended install path is a macOS `.dmg`.
 
-The app is mostly a local-first frontend running inside a thin Wails shell:
+Once a release is published:
 
-1. The Svelte app boots and loads folders, notes, and saved UI settings from IndexedDB.
-2. Note metadata and note content are stored separately, so the app can load the note list first and fetch full content on demand.
-3. Service classes coordinate user actions such as creating folders, deleting notes, restoring from trash, and exporting data.
-4. MiniSearch builds a local full-text index for titles and content, scoped to the currently selected folder tree.
-5. The Go/Wails layer handles native window behavior, file dialogs, single-instance behavior, and the native macOS menu.
+1. Download the latest `.dmg` from GitHub Releases.
+2. Open it.
+3. Drag `Keloc Notes.app` into `Applications`.
+4. Launch the app from `Applications`.
 
-Repo layout at a glance:
+The current macOS build is not signed or notarized. That is a deliberate deferral for the current release pass, not an accidental omission.
 
-```text
-.
-├── app.go / main.go          # Wails desktop shell and file dialog bindings
-├── exporter/                 # Markdown zip import/export helpers
-├── menu/                     # Native menu integration (macOS implemented, others stubbed)
-└── frontend/
-    ├── src/lib/stores/       # App state
-    ├── src/lib/services/     # User action orchestration
-    ├── src/lib/infrastructure/ # IndexedDB and repositories
-    └── tests/                # Unit and E2E coverage
-```
+If macOS blocks the first launch:
 
-## Install
+1. Open `System Settings` -> `Privacy & Security`.
+2. Find the blocked `Keloc Notes` message.
+3. Choose `Open Anyway`.
+4. Confirm the prompt and launch again.
 
-### macOS
-
-If you just want to use the app, the intended install path is a macOS `.dmg`.
-
-Once that release artifact is published, the install flow should be:
-
-1. Download the latest `.dmg`.
-2. Open it and drag `Keloc Notes.app` into `Applications`.
-3. Open the app from `Applications`.
-
-For now, macOS notarization is still deferred. That means the first launch may be blocked by Gatekeeper.
-
-If macOS says the app cannot be opened because it is from an unidentified developer:
-
-1. Open `System Settings` → `Privacy & Security`.
-2. Scroll to the security section near the bottom.
-3. Click `Open Anyway` for `Keloc Notes`.
-4. Confirm the prompt and open the app again.
-
-You can also use the Finder shortcut:
-
-1. Open `Applications`.
-2. Right-click `Keloc Notes.app`.
-3. Choose `Open`.
-4. Confirm the dialog.
-
-This is not the long-term goal. A polished public release should be signed and notarized so this extra step is not needed.
+You can also right-click `Keloc Notes.app` in Finder and choose `Open`.
 
 ## Release Channel
 
-For now, the planned release channel is simple:
+The release channel is intentionally simple:
 
-- end users download the latest macOS `.dmg` from GitHub Releases
-- updates are manual, not automatic
-- release notes should call out platform support clearly: `macOS supported`, `Windows preview`, `Linux preview`
+- macOS builds are distributed as `.dmg` files through GitHub Releases
+- updates are manual
+- there is no auto-update system yet
 
-There is no auto-update system yet. When a new version is available, users will need to download the new `.dmg` and replace the app manually.
+When a new version is available, download the new `.dmg` and replace the app in `Applications`.
+
+## First Run
+
+On a fresh library, the app guides you through the basic flow:
+
+1. Create a folder.
+2. Create a note.
+3. Write in the editor.
+4. Search inside the active folder tree.
+5. Export or back up when you want a portable copy.
+
+The app is designed around repeated daily use: open it, write, search, organize, and leave without thinking about accounts or network state.
+
+## Data Ownership
+
+Keloc Notes is local-first in the practical sense:
+
+- notes, folders, settings, and note assets are stored on the local machine
+- the app does not require a network connection to work
+- there is no built-in sync service
+- import and export use user-chosen local files
+
+The current storage layer is IndexedDB inside the embedded desktop webview runtime. The app does not currently add its own encryption before writing notes to local storage.
+
+More detail is in [docs/security-and-storage.md](docs/security-and-storage.md).
+
+## Backup And Restore
+
+Keloc Notes has two portability paths:
+
+- Markdown export/import for human-readable note portability.
+- JSON backup export/import for app-level recovery.
+
+JSON backup behavior today:
+
+- backups use `schemaVersion: 1`
+- backup import is only for a new or reset app library
+- backup import does not merge into an existing notes library
+- a valid restore replaces the empty local database with folders, notes, note contents, settings, and note assets from the backup
+- unsupported or malformed backups fail before changing local notes
+- if any folder, note, asset, or setting cannot be restored, the whole restore fails without leaving a partial imported library
+
+Markdown ZIP import/export is useful for portability, but it is not the same thing as a full JSON backup.
+
+Recovery guidance is in [docs/recovery.md](docs/recovery.md).
+
+## Save And Failure Behavior
+
+The app tries hard not to fail silently around user data.
+
+Current save behavior:
+
+- note edits are debounced for about 400 ms
+- once a note save starts, note metadata and note content are written together in one IndexedDB transaction
+- switching notes, exporting, importing, and normal app close force pending note writes to flush
+- normal app close shows a blocking "Saving Changes" status while pending note writes are flushed
+
+Current limits:
+
+- force quit, process crash, or OS kill can still interrupt changes before a flush starts
+- Markdown import can leave already-created or already-overwritten notes in place if the app is interrupted after import actions begin
+- JSON backup restore is transactional, but you should not intentionally interrupt it
+
+Failed export operations do not change local notes. Failed JSON backup imports leave local notes unchanged when the backup is invalid or restore cannot complete. Failed Markdown imports may have already created or overwritten notes, so review the notes list before retrying.
 
 ## Run From Source
-
-If you want to run it from source:
 
 ### Prerequisites
 
 - Go `1.23+`
 - Node.js `20.19+` or `22.12+`
 - Wails CLI `v2`
-- Your OS-level Wails prerequisites installed
+- OS-specific Wails prerequisites for your machine
 
-Install the Wails CLI if you do not already have it:
+Install Wails if needed:
 
 ```bash
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 ```
 
-### Run The App
+### Start The App
 
 ```bash
 git clone https://github.com/dduraipandian/keloc-notes.git
@@ -140,32 +166,13 @@ cd ..
 wails dev
 ```
 
-What to expect after launch:
-
-1. Click `New Folder` and name it `Ideas`.
-2. Create a note called `Project ideas`.
-3. Type a few lines into the editor.
-4. Search for a word from the note body in the note-list search box.
-5. Export the current note from the File menu as markdown.
-
-Example exported markdown:
-
-```md
-# Project ideas
-
-Ship a local-first notes app with markdown export.
-```
-
-### Build A Production Binary
+### Build Locally
 
 ```bash
 wails build
 ```
 
-The built desktop app is emitted by Wails using the repo's root configuration.
-That produces the app bundle used for packaging. It is still a maintainer/developer step, not the end-user install flow.
-
-Maintainers can package the macOS release artifact with:
+To create the macOS release package:
 
 ```bash
 ./scripts/build-icon.sh frontend/src/lib/assets/app-icon.svg build/appicon
@@ -175,181 +182,74 @@ wails build
 
 More detail is in [docs/macos-release.md](docs/macos-release.md).
 
-## Use Cases
+## Project Shape
 
-- Personal knowledge base you want to keep fully local.
-- Developer notes that still need clean markdown export.
-- Offline-first writing, meeting notes, and idea capture.
-- Prototyping a native-feeling desktop app with Svelte 5 and Wails.
-- Studying a local-first architecture that keeps most product logic in the frontend.
+The desktop shell is Go + Wails. Most product logic lives in the Svelte frontend.
 
-## Who This Is For
-
-`keloc-notes` is a better fit if you want:
-
-- a notes app, not a Markdown IDE
-- local storage first, without mandatory accounts or sync
-- a desktop app that still gives you practical export paths
-
-It is probably not the right fit if you need:
-
-- collaboration or sharing
-- mobile clients
-- cloud sync
-- a mature multi-platform release story today
-
-## Configuration
-
-Most settings live in the app itself rather than environment variables.
-
-- Theme: choose `light`, `dark`, or `system`.
-- Folder accent color: customize the folder icon color from Settings.
-- Pane sizes: sidebar and note-list widths are persisted locally.
-- Selected note and folder: restored locally on next launch.
-- IndexedDB database name: defaults to `kelocnotes-db`. Tests can override this with `window.__NOTES_DB_NAME__`.
-
-Important assumptions:
-
-- This is a local-first app. There is no built-in sync service.
-- The frontend owns almost all app logic. Go mainly provides desktop capabilities and native dialogs.
-- On Linux and Windows, the menu package is currently a stub, so those platforms should be treated as preview rather than fully supported.
-
-## Security And Storage
-
-Short version:
-
-- notes are stored locally in IndexedDB inside the embedded webview runtime
-- the app does not currently implement app-level encryption at rest
-- there is no built-in sync or account system
-- import/export uses user-driven local file dialogs
-- JSON backups currently use `schemaVersion: 1`
-
-Save and shutdown guarantees today:
-
-- once a note save starts, note metadata and note content are written together in one IndexedDB transaction
-- note edits are normally debounced for about 400 ms before writing to IndexedDB
-- switching notes, exporting, importing, and normal app close force pending note writes to flush immediately
-- normal app close attempts to flush pending note writes before exit and shows a blocking "Saving Changes" status while that flush is running
-- the close-time flush is still best-effort and time-bounded by the desktop shell
-- force quit, crash, or OS kill can still lose edits that were made before a forced flush could begin
-- crash during Markdown import can leave already-created or already-overwritten notes in place; review notes before retrying the import
-- crash during JSON backup import should either leave the old local library unchanged or complete the transactional restore, but do not interrupt the app during backup restore
-
-JSON backup and restore guarantees today:
-
-- JSON backup import is only for a new or reset app library.
-- JSON backup import does not merge into an existing notes library.
-- A valid restore replaces the empty local database with the folders, notes, note contents, settings, and note assets from the backup.
-- The app currently accepts only JSON backups with `schemaVersion: 1`.
-- If the backup file is malformed or uses an unsupported schema version, restore stops before changing local notes.
-- If any folder, note, asset, or setting cannot be restored, the whole restore fails without leaving a partial imported library.
-
-Import and export failure guarantees today:
-
-- If current-note Markdown export fails, local notes are not changed and the Markdown file may not have been written.
-- If Markdown ZIP export fails, local notes are not changed and the ZIP file may not have been written.
-- If JSON backup export fails, local notes are not changed and the backup file may not have been written.
-- If Markdown import fails after import actions started, some notes may already have been created or overwritten. Review the notes list before retrying.
-- If JSON backup import fails because the backup is invalid or restore cannot complete, local notes remain unchanged.
-- Canceling a file dialog leaves local notes unchanged and usually does not show an error.
-- Permission denied usually means the chosen file or folder could not be read or written. Choose a different location and retry.
-- Invalid Markdown archives and invalid backup files are rejected; retry with a valid archive or backup file.
-
-More detail is in [docs/security-and-storage.md](docs/security-and-storage.md), recovery guidance is in [docs/recovery.md](docs/recovery.md), and the disclosure policy is in [SECURITY.md](SECURITY.md).
-
-## Development
-
-### Run Locally
-
-From the repo root:
-
-```bash
-wails dev
+```text
+.
+├── app.go / main.go              # Wails app shell and native bindings
+├── exporter/                     # Markdown ZIP import/export helpers
+├── menu/                         # Native menu integration
+└── frontend/
+    ├── src/lib/stores/           # Svelte 5 stores and local state
+    ├── src/lib/stores/services/  # Cross-store user actions
+    ├── src/lib/infrastructure/   # IndexedDB and repositories
+    ├── src/lib/editor/           # Tiptap editor helpers
+    └── tests/                    # Unit and E2E tests
 ```
 
-From `frontend/`:
-
-```bash
-npm run dev
-```
-
-### Frontend Checks
-
-```bash
-cd frontend
-npm run check
-npm run test
-npm run test:e2e
-npm run lint
-```
-
-### Go Tests
-
-From the repo root:
-
-```bash
-go test ./...
-```
-
-### What Is Worth Reading First
+Useful starting points:
 
 - `frontend/src/routes/+layout.svelte`: app boot, layout, keyboard handling, menu bridge wiring
 - `frontend/src/lib/stores/notes.svelte.ts`: note lifecycle and persistence
 - `frontend/src/lib/stores/folders.svelte.ts`: folder tree and trash behavior
-- `frontend/src/lib/infrastructure/idbr.ts`: IndexedDB schema and transactional deletion/archive logic
-- `app.go`: Wails bindings for export/import and native app events
+- `frontend/src/lib/infrastructure/idbr.ts`: IndexedDB schema and transactional persistence
+- `frontend/src/lib/menu/menuBridge.svelte.ts`: native menu event handling
+- `app.go`: Wails bindings for file dialogs and native events
 
-## Performance
+## Development Checks
 
-There are no benchmark numbers published yet, but the implementation is built around a few practical choices:
-
-- note metadata loads before full note bodies
-- note content is fetched on demand
-- search indexing is incremental and folder-scoped
-- persistence is local and debounced for note edits
-
-In practice, this should be fine for a personal notes library with hundreds to low-thousands of notes on a modern desktop. If you need hard benchmark numbers, multi-user concurrency, or anything server-backed, this project is not there yet.
-
-## Limitations
-
-- No sync, collaboration, sharing, or mobile clients.
-- Windows and Linux are preview platforms today; native menu support is not implemented yet.
-- The macOS distribution path is a `.dmg`, but notarization is still deferred for now, so first launch may require a manual Gatekeeper override.
-- Backup/import behavior exists, but the repo would benefit from clearer guarantees around backup compatibility and restore semantics across versions.
-- Search is local and scoped to the selected folder tree; there is no global cloud index or cross-device search.
-
-## Roadmap
-
-The next obvious pieces of work are:
-
-- richer editing experience beyond plain textarea input
-- polished Windows and Linux native menus
-- documented release builds and installable binaries
-- clearer backup/restore guarantees and migration strategy
-- CI for build, typecheck, lint, and test automation
-- screenshots or demo GIFs so first-time visitors can evaluate the UX immediately
-
-## Contributing
-
-Contributions are most helpful when they preserve the current architecture:
-
-- keep product logic in the frontend unless desktop-native behavior is required
-- add or update tests with behavior changes
-- avoid introducing new dependencies without a strong reason
-- run the local checks before opening a PR
-
-Suggested workflow:
+From `frontend/`:
 
 ```bash
-cd frontend
 npm run test
 npm run check
+npm run test:e2e
+npm run lint
+```
 
-cd ..
+From the repo root:
+
+```bash
 go test ./...
 ```
 
-If you are changing user-visible behavior, verify it in `wails dev` as well.
+Note: `npm run check` currently has known baseline type issues unrelated to the failure-recovery work. Unit tests are the most reliable green gate at the moment.
+
+## Current Limitations
+
+- macOS is the only supported release target for now.
+- Windows and Linux are preview paths.
+- The macOS build is distributed as a `.dmg`, but signing and notarization are deferred.
+- No sync, collaboration, sharing, mobile client, or account system.
+- No app-level encryption at rest.
+- No auto-update system.
+- No published benchmark numbers yet.
+
+## Contributing
+
+The codebase is still release-prep stage, so focused contributions are more useful than broad rewrites.
+
+Good contributions usually:
+
+- keep product logic in the frontend unless native desktop behavior is required
+- include tests for behavior changes
+- avoid new dependencies unless the tradeoff is clear
+- preserve local-first behavior and explicit recovery paths
+- verify changes in `wails dev` when they affect user-visible behavior
+
+Public maintainer hygiene is still being filled in. `SECURITY.md` exists, but `CONTRIBUTING.md`, issue templates, PR templates, and CI workflows are still pending.
 
 ## License
 
@@ -357,10 +257,11 @@ Apache License 2.0. See [LICENSE](LICENSE).
 
 ## Support
 
-If you try `keloc-notes`, opening an issue is useful, especially if you include:
+If something breaks or feels unclear, open an issue with:
 
-- what you expected to do
-- what blocked you
-- what data portability or local-first feature you care about most
+- what you were trying to do
+- what happened instead
+- whether the problem affects notes, import/export, startup, or packaging
+- your macOS version and app version
 
-The biggest gaps right now are release polish, trust documentation, and cross-platform parity rather than basic note-taking functionality.
+Reports about data safety, import/export, and first-run experience are especially useful right now.

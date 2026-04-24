@@ -54,26 +54,26 @@ Status legend:
       Landed in `docs/security-and-storage.md`.
 - [x] Document what "local-first" means in practical terms.
       Landed in `README.md` and `docs/security-and-storage.md`.
-- [ ] Ship signed binaries for the primary release platform.
-- [ ] Notarize the macOS build if macOS is the first public target.
-      Current decision: deferred for now. Known consequence: users will see macOS trust/Gatekeeper friction on first launch.
+- [x] Decide signing posture for the primary release platform.
+      Decision: macOS is the current target; signing is deferred for now.
+- [x] Decide notarization posture for the macOS build.
+      Decision: notarization is deferred for now. Known consequence: users will see macOS trust/Gatekeeper friction on first launch.
 - [x] Add `SECURITY.md` with a vulnerability disclosure path.
 
 ## 4. Failure Modes And Recovery
 
-- [-] Create a dedicated Failure Modes And Recovery plan.
+- [x] Create a dedicated Failure Modes And Recovery plan.
       Landed in `docs/failure-modes-and-recovery-plan.md`.
-- [ ] Document recovery behavior for corrupted IndexedDB or blocked upgrades.
-      See plan: `docs/failure-modes-and-recovery-plan.md` section 3.
+- [x] Document recovery behavior for corrupted IndexedDB or blocked upgrades.
+      Landed: blocked-upgrade and corrupted-storage guidance is documented in `docs/failure-modes-and-recovery-plan.md`, `docs/recovery.md`, and surfaced in startup recovery dialogs.
 - [x] Add user-facing guidance for startup failures beyond a quit dialog.
       Landed: startup failures now open a recovery dialog with retry, copy diagnostics, reset local data, and reset-then-import-backup actions.
-- [ ] Document backup restore expectations and limitations.
-      See plan: `docs/failure-modes-and-recovery-plan.md` section 4.
-- [ ] Define recovery guidance for failed imports/exports.
-      See plan: `docs/failure-modes-and-recovery-plan.md` section 5.
-- [ ] Audit crash-recovery behavior for incomplete writes and interrupted shutdown.
-      Manual interrupted-shutdown verification is complete.
-      Landed: the exact save/shutdown guarantee boundary and crash/force-quit limitations are now documented in `README.md` and `docs/security-and-storage.md`.
+- [x] Document backup restore expectations and limitations.
+      Landed: JSON backup restore guarantees are documented in `README.md`, `docs/recovery.md`, and `docs/failure-modes-and-recovery-plan.md`.
+- [x] Define recovery guidance for failed imports/exports.
+      Landed: README and `docs/recovery.md` document import/export failure guarantees; menu-driven failures now state local-data status, file-write status, and retry guidance.
+- [x] Audit crash-recovery behavior for incomplete writes and interrupted shutdown.
+      Landed: the exact save/shutdown guarantee boundary, 400 ms debounce window, forced-flush actions, and crash/force-quit limitations are documented in `README.md`, `docs/recovery.md`, and `docs/failure-modes-and-recovery-plan.md`.
 
 ## 5. Performance And Stability
 
@@ -88,12 +88,15 @@ Status legend:
 - [x] Produce a macOS `.dmg` install package.
       Current decision: `.dmg` is the chosen primary distribution format.
       Verified: maintainer packaging script added at `scripts/create-dmg.sh`, icon build script added at `scripts/build-icon.sh`, release notes added in `docs/macos-release.md`, and `.dmg` run confirmed on macOS.
-- [ ] Decide whether code signing is in scope for the first macOS release.
+- [x] Decide whether code signing is in scope for the first macOS release.
+      Decision: out of scope for the current macOS-first release pass.
 - [x] Document the exact first-run behavior for an unsigned / unnotarized build.
       Landed in `README.md` with Gatekeeper workaround steps for first launch.
 - [ ] Decide whether Homebrew should be supported.
-- [ ] Decide whether Windows installer support is release-ready or preview-only.
-- [ ] Decide whether Linux distribution support is release-ready or preview-only.
+- [x] Decide whether Windows installer support is release-ready or preview-only.
+      Decision: Windows is preview-only for now.
+- [x] Decide whether Linux distribution support is release-ready or preview-only.
+      Decision: Linux is preview-only for now.
 - [ ] Document versioning strategy for releases and binaries.
 - [ ] Decide whether auto-update is in scope for the first public release.
 - [ ] If auto-update is out of scope, document manual update expectations clearly.
@@ -105,21 +108,23 @@ Status legend:
 - [x] Split README clearly between user install flow and contributor/dev setup.
 - [x] Add a short product overview section that explains who the app is for and why it exists without sounding like marketing copy.
 - [x] Audit README section-by-section for tone, redundancy, and credibility.
-- [ ] Add a privacy and storage section to the README or docs.
-- [ ] Add backup/export/import documentation.
+- [x] Add a privacy and storage section to the README or docs.
+      Landed in `README.md`, `docs/security-and-storage.md`, and `docs/recovery.md`.
+- [x] Add backup/export/import documentation.
+      Landed: README and `docs/recovery.md` now cover JSON backup restore guarantees and import/export failure behavior.
 - [ ] Add `CONTRIBUTING.md`.
 - [ ] Add issue templates and PR template.
 - [ ] Add CI/CD documentation or workflow notes for contributors.
 
 ## 8. Adoption Readiness
 
-- [ ] Tighten the product positioning.
+- [x] Tighten the product positioning.
       Goal: clearly answer why someone should pick this over Apple Notes, Bear, Obsidian, or plain markdown files.
-- [ ] Define the primary target user.
+- [x] Define the primary target user.
       Candidate: developers who want a local-first desktop notes app with markdown portability.
-- [ ] Make the differentiation obvious in the README opening section.
+- [x] Make the differentiation obvious in the README opening section.
       Focus: local-first, simple UX, markdown portability, no account, desktop-native shell.
-- [ ] Identify the minimum feature bar required before public promotion.
+- [x] Identify the minimum feature bar required before public promotion.
       Examples: installability, trust docs, screenshots, onboarding, versioning, support policy.
 
 ## 9. Testing And Release Gates
@@ -138,25 +143,30 @@ Work in this order to maximize release readiness quickly:
 1. [x] Supported platform positioning
 2. [x] One-click install path for the primary platform
        Decision: macOS `.dmg`, with notarization deferred for now.
-3. [ ] Canonical versioning source
-4. [ ] License cleanup
-5. [ ] README overhaul with screenshots and support matrix
+3. [x] Canonical versioning source
+4. [x] License cleanup
+5. [-] README overhaul with screenshots and support matrix
        Include: human tone, user-vs-contributor split, product positioning, and trust sections.
-6. [ ] First-run onboarding
-7. [ ] Privacy/storage/backup documentation
+      Landed: human tone, product positioning, user install flow, platform support, and trust sections.
+      Remaining: screenshots/demo visuals.
+6. [x] First-run onboarding
+7. [x] Privacy/storage/backup documentation
 8. [ ] CI and release gates
-9. [ ] Secondary platform decision and positioning
+9. [x] Secondary platform decision and positioning
 10. [ ] Auto-update decision
 
 ## 11. Top 5 Highest-ROI Improvements
 
 These are the highest-impact adoption improvements from the audit:
 
-1. [ ] Ship one platform properly.
-2. [ ] Add first-run onboarding.
-3. [ ] Fix versioning and release identity.
-4. [ ] Turn the README into a product-facing landing page.
+1. [x] Ship one platform properly.
+       Landed: macOS `.dmg` packaging path exists. Signing/notarization is explicitly deferred for the current release pass.
+2. [x] Add first-run onboarding.
+3. [x] Fix versioning and release identity.
+4. [-] Turn the README into a product-facing landing page.
        Include: human tone, screenshots, clear support policy, install path, and trust details.
+      Landed: human tone, support policy, install path, trust details, and product positioning.
+      Remaining: screenshots/demo visuals.
 5. [ ] Add public maintainer hygiene: CI, `SECURITY.md`, `CONTRIBUTING.md`, templates.
 
 ## 12. Notes
