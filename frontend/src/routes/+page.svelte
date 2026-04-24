@@ -3,7 +3,17 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Info from '@lucide/svelte/icons/info';
-	import { getUIStore, getSelectionStore, getTrashService, getNotesStore, getFolderStore, getFolderService, getSearchService, getNoteService } from '$lib/stores/context';
+	import StickyNote from '@lucide/svelte/icons/sticky-note';
+	import {
+		getUIStore,
+		getSelectionStore,
+		getTrashService,
+		getNotesStore,
+		getFolderStore,
+		getFolderService,
+		getSearchService,
+		getNoteService
+	} from '$lib/stores/context';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import Alert from './alert.svelte';
@@ -89,24 +99,13 @@
 	>
 		<Empty.Root class="min-h-0 border-transparent bg-transparent text-muted-foreground/20">
 			<Empty.Header>
-				<Empty.Media class="relative mb-2 flex h-20 w-20 items-center justify-center rounded-3xl bg-accent/5" variant="default">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="40"
-						height="40"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						class="opacity-10"
-					>
-						<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-						<polyline points="14 2 14 8 20 8" />
-					</svg>
+				<Empty.Media
+					class="relative mb-2 flex h-20 w-20 items-center justify-center rounded-3xl bg-accent/50"
+					variant="default"
+				>
+					<StickyNote size={40} />
 				</Empty.Media>
-				<Empty.Title class="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40">
+				<Empty.Title class="text-[10px] font-bold tracking-[0.3em] uppercase opacity-70">
 					Select a note to view
 				</Empty.Title>
 				<Empty.Description class="mt-1 max-w-64 text-xs leading-relaxed text-muted-foreground/60">
