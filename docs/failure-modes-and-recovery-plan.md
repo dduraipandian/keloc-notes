@@ -189,6 +189,13 @@ User-facing restore contract now documented in `README.md`:
 
 ## 5. Import / Export Failure Guidance
 
+Status:
+
+- landed: README documents import/export failure guarantees for current-note Markdown export, Markdown ZIP export, JSON backup export, Markdown import, and JSON backup import
+- landed: README documents common file-operation failure cases: cancel dialog, permission denied, invalid archive, and invalid backup file
+- landed: menu-driven import/export failures now state local-data status, file-write status, and whether retry is reasonable
+- landed: focused unit coverage verifies the failure guidance contract and menu bridge usage
+
 Primary risk:
 
 - users may not know whether a failed export lost local data or whether a failed import changed anything
@@ -199,17 +206,17 @@ Required outcome:
 
 Plan:
 
-1. Define user-facing guarantees for:
+1. Keep user-facing guarantees documented in `README.md` for:
    - markdown export
    - full markdown zip export
    - backup export
    - markdown import
    - backup import
-2. Ensure every failure message answers:
+2. Keep every failure message answering:
    - did local notes change?
    - was any file written?
    - can the user retry safely?
-3. Add docs for common file-system failure cases:
+3. Keep common file-system failure cases documented in `README.md`:
    - cancel dialog
    - permission denied
    - invalid archive
@@ -220,6 +227,15 @@ Acceptance criteria:
 - users never have to infer whether their local notes are safe after a file operation fails
 
 ## 6. Crash Recovery And Interrupted Shutdown
+
+Status:
+
+- landed: audit confirmed note edits use a 400 ms debounce before IndexedDB persistence
+- landed: app close, note switch, Markdown export, Markdown ZIP export, and JSON backup export force pending note writes to flush
+- landed: Markdown import now flushes imported note writes before the import handler settles
+- landed: JSON backup import now flushes pending writes before reading and restoring a backup file
+- landed: README documents the current maximum unsaved edit window and crash/interrupted-import behavior
+- landed: focused unit coverage verifies the import forced-flush policy
 
 Primary risk:
 
@@ -232,18 +248,23 @@ Required outcome:
 
 Plan:
 
-1. Audit all deferred note writes and their timing.
-2. Verify whether writes can remain in memory only at close time.
-3. Add manual test scenarios for:
+1. Keep the deferred-write audit current:
+   - note edits are debounced for about 400 ms
+   - forced flushes occur on app close, note switch, export, Markdown import, and backup import
+2. Keep documenting where writes can remain memory-only:
+   - during the debounce window before a note write starts
+   - during an OS kill, process crash, or force quit before the flush path can run
+3. Use these manual test scenarios for release checks:
    - force quit while typing
    - close during long pending writes
    - crash during backup export
    - crash during import
-4. Decide whether certain user actions should force an immediate flush:
-   - app close
-   - note switch
-   - export
-   - backup
+4. Keep forced-flush decisions explicit:
+   - app close: force flush
+   - note switch: force flush previous selected note
+   - export: force flush before reading export data
+   - Markdown import: force flush imported note writes before completion
+   - backup import: force flush before reading/restoring backup
 
 Acceptance criteria:
 
@@ -251,6 +272,14 @@ Acceptance criteria:
 - close/quit behavior is documented and intentionally chosen
 
 ## 7. User-Facing Recovery UX
+
+Status:
+
+- landed: startup recovery dialogs now use structured sections for what happened, affected data, next action, reset warning, recovery guide, and diagnostics
+- landed: destructive startup reset actions are visually distinct from retry/copy actions
+- landed: menu-driven file-operation failures now include recovery-guide context
+- landed: dedicated user recovery guide exists at `docs/recovery.md` and is linked from README and startup recovery dialogs
+- landed: focused unit coverage verifies recovery dialog structure and file-operation recovery guide references
 
 Primary risk:
 
@@ -262,12 +291,12 @@ Required outcome:
 
 Plan:
 
-1. Standardize recovery dialog structure:
+1. Keep recovery dialog structure standardized:
    - what happened
    - what data is affected
    - what did not change
    - what the user can do now
-2. Add a dedicated recovery/help doc linked from failure dialogs.
+2. Keep `docs/recovery.md` linked from failure dialogs and README.
 3. Keep destructive actions visually distinct from retry/safe actions.
 
 Acceptance criteria:

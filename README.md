@@ -227,9 +227,13 @@ Short version:
 Save and shutdown guarantees today:
 
 - once a note save starts, note metadata and note content are written together in one IndexedDB transaction
+- note edits are normally debounced for about 400 ms before writing to IndexedDB
+- switching notes, exporting, importing, and normal app close force pending note writes to flush immediately
 - normal app close attempts to flush pending note writes before exit and shows a blocking "Saving Changes" status while that flush is running
 - the close-time flush is still best-effort and time-bounded by the desktop shell
-- force quit, crash, or OS kill can still lose edits that have not started persisting yet
+- force quit, crash, or OS kill can still lose edits that were made before a forced flush could begin
+- crash during Markdown import can leave already-created or already-overwritten notes in place; review notes before retrying the import
+- crash during JSON backup import should either leave the old local library unchanged or complete the transactional restore, but do not interrupt the app during backup restore
 
 JSON backup and restore guarantees today:
 
@@ -240,7 +244,18 @@ JSON backup and restore guarantees today:
 - If the backup file is malformed or uses an unsupported schema version, restore stops before changing local notes.
 - If any folder, note, asset, or setting cannot be restored, the whole restore fails without leaving a partial imported library.
 
-More detail is in [docs/security-and-storage.md](docs/security-and-storage.md) and the disclosure policy is in [SECURITY.md](SECURITY.md).
+Import and export failure guarantees today:
+
+- If current-note Markdown export fails, local notes are not changed and the Markdown file may not have been written.
+- If Markdown ZIP export fails, local notes are not changed and the ZIP file may not have been written.
+- If JSON backup export fails, local notes are not changed and the backup file may not have been written.
+- If Markdown import fails after import actions started, some notes may already have been created or overwritten. Review the notes list before retrying.
+- If JSON backup import fails because the backup is invalid or restore cannot complete, local notes remain unchanged.
+- Canceling a file dialog leaves local notes unchanged and usually does not show an error.
+- Permission denied usually means the chosen file or folder could not be read or written. Choose a different location and retry.
+- Invalid Markdown archives and invalid backup files are rejected; retry with a valid archive or backup file.
+
+More detail is in [docs/security-and-storage.md](docs/security-and-storage.md), recovery guidance is in [docs/recovery.md](docs/recovery.md), and the disclosure policy is in [SECURITY.md](SECURITY.md).
 
 ## Development
 

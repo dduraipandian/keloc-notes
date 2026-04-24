@@ -150,6 +150,7 @@ describe('Menu bridge backup import progress', () => {
 
 		const firstImport = importHandler?.();
 		await Promise.resolve();
+		await Promise.resolve();
 		await importHandler?.();
 
 		expect(AppModule.ReadBackupFile).toHaveBeenCalledTimes(1);

@@ -24,6 +24,10 @@ import {
 	type MarkdownImportAction
 } from '$lib/import/markdownImport';
 import { resolveProfile } from '$lib/stores/domain/profiles';
+import {
+	buildFileOperationFailureMessage,
+	type FileOperationKind
+} from '$lib/fileOperationFailures';
 
 /**
  * Initialize menu event listeners and wire them to store actions.
@@ -59,7 +63,9 @@ export function initMenuBridge(
 		trashService
 	} = stores;
 	const unsubscribers: Array<() => void> = [];
-	const formatError = (err: unknown) => (err instanceof Error ? err.message : String(err));
+	const showFileOperationError = (title: string, kind: FileOperationKind, err: unknown) => {
+		ui.showOperationError(title, buildFileOperationFailureMessage(kind, err));
+	};
 	const triggerReload = callbacks?.onReload ?? (() => window.location.reload());
 	const getSelectedRegularFolderId = () => {
 		const selectedFolderId = selection.selectedFolderID;
@@ -242,7 +248,7 @@ export function initMenuBridge(
 					}
 				} catch (err) {
 					console.error('Failed to export note:', err);
-					ui.showOperationError('Export Current Note Failed', formatError(err));
+					showFileOperationError('Export Current Note Failed', 'markdown-note-export', err);
 				}
 			}
 		})
@@ -263,7 +269,7 @@ export function initMenuBridge(
 				await (ExportNotesZip as any)(notesToExport);
 			} catch (err) {
 				console.error('Failed to export notes:', err);
-				ui.showOperationError('Export All Notes Failed', formatError(err));
+				showFileOperationError('Export All Notes Failed', 'markdown-zip-export', err);
 			}
 		})
 	);
@@ -276,7 +282,7 @@ export function initMenuBridge(
 				await SaveBackupFile(json);
 			} catch (err) {
 				console.error('Failed to export backup:', err);
-				ui.showOperationError('Export Backup Failed', formatError(err));
+				showFileOperationError('Export Backup Failed', 'backup-export', err);
 			}
 		})
 	);
@@ -312,11 +318,12 @@ export function initMenuBridge(
 							try {
 								const plan = buildMarkdownImportExecutionPlan(analysis, resolution);
 								await executeMarkdownImportActions(plan.actions);
+								await notes.flushAllPendingWrites();
 								uiState.closeMarkdownImportConflictDialog();
 							} catch (err) {
 								uiState.closeMarkdownImportConflictDialog();
 								console.error('Failed to import notes:', err);
-								ui.showOperationError('Import Markdown Archive Failed', formatError(err));
+								showFileOperationError('Import Markdown Archive Failed', 'markdown-import', err);
 							}
 						},
 						onCancel: () => {
@@ -328,9 +335,10 @@ export function initMenuBridge(
 
 				const plan = buildMarkdownImportExecutionPlan(analysis, 'keep-both');
 				await executeMarkdownImportActions(plan.actions);
+				await notes.flushAllPendingWrites();
 			} catch (err) {
 				console.error('Failed to import notes:', err);
-				ui.showOperationError('Import Markdown Archive Failed', formatError(err));
+				showFileOperationError('Import Markdown Archive Failed', 'markdown-import', err);
 			}
 		})
 	);
@@ -342,22 +350,25 @@ export function initMenuBridge(
 			}
 
 			try {
+				uiState.showBackupImportStatus(
+					'Importing backup...',
+					'Rebuilding your library. The app will reopen when finished.'
+				);
+				await notes.flushAllPendingWrites();
 				const json = await ReadBackupFile();
 				if (json) {
-					uiState.showBackupImportStatus(
-						'Importing backup...',
-						'Rebuilding your library. The app will reopen when finished.'
-					);
 					await importBackup(json, folders, notes);
 					uiState.showBackupImportStatus('Import complete', 'Reloading your library...');
 					setTimeout(() => {
 						triggerReload();
 					}, 150);
+				} else {
+					uiState.clearBackupImportStatus();
 				}
 			} catch (err) {
 				uiState.clearBackupImportStatus();
 				console.error('Failed to import backup:', err);
-				ui.showOperationError('Import Backup Failed', formatError(err));
+				showFileOperationError('Import Backup Failed', 'backup-import', err);
 			}
 		})
 	);

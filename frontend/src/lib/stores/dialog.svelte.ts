@@ -172,11 +172,14 @@ export class UIStore {
 	}) {
 		const guidance = recoveryGuidance ?? buildStartupRecoveryGuidance(errorMessage);
 		const descriptionParts = [
-			guidance.summary,
-			guidance.dataStatus,
-			guidance.primaryAction,
-			guidance.resetWarning,
-			`<span class="font-mono text-xs text-destructive">${errorMessage}</span>`
+			`<strong>What happened</strong><br/>${guidance.summary}`,
+			`<strong>Data affected</strong><br/>${guidance.dataStatus}`,
+			`<strong>What you can do now</strong><br/>${guidance.primaryAction}`,
+			guidance.resetWarning
+				? `<strong>Before reset</strong><br/>${guidance.resetWarning}`
+				: '',
+			'<strong>Recovery guide</strong><br/>See <a class="underline" href="docs/recovery.md">docs/recovery.md</a> for storage and restore guidance.',
+			`<strong>Diagnostic detail</strong><br/><span class="font-mono text-xs text-destructive">${errorMessage}</span>`
 		].filter(Boolean);
 
 		this.appDialog = {
