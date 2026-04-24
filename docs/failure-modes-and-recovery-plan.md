@@ -29,7 +29,6 @@ What is already strong:
 What is still weak:
 
 - close-time flush is best-effort and time-bounded
-- blocked-upgrade recovery still needs clearer guidance than a generic failure dialog
 - note content load failures are logged but not clearly recoverable in UI
 - corrupted local storage does not yet have a documented reset-and-restore path
 - import/export failure guarantees are not explicit enough for users
@@ -79,10 +78,11 @@ Status:
 - landed: reset flow now clears the IndexedDB database safely before reloading
 - landed: post-reset backup import can resume automatically on the next successful startup
 - landed: focused unit coverage now exists for startup recovery helpers, dialog state, and multi-action alert rendering
+- landed: startup failure wording now distinguishes temporary blocked upgrades from local data corruption, and reset actions are visually destructive
 
 Primary risk:
 
-- startup failure wording still needs to distinguish blocked upgrades from genuine local corruption more clearly
+- startup recovery still depends on users having a usable backup when reset is required
 
 Required outcome:
 

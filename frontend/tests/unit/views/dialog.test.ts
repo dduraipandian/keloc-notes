@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UIStore } from '../../../src/lib/stores/dialog.svelte';
+import { buildStartupRecoveryGuidance } from '../../../src/lib/startupRecovery';
 
 describe('UIStore', () => {
 	let uiStore: UIStore;
@@ -86,5 +87,65 @@ describe('UIStore', () => {
 		expect(onResetLocalData).toHaveBeenCalledOnce();
 		expect(onResetAndImportBackup).toHaveBeenCalledOnce();
 		expect(onQuit).toHaveBeenCalledOnce();
+	});
+
+	it('shows backup-first reset actions for recoverable storage failures', () => {
+		uiStore.showStartupRecoveryDialog({
+			errorMessage: 'IndexedDB quota exceeded',
+			recoveryGuidance: buildStartupRecoveryGuidance('IndexedDB quota exceeded'),
+			onRetry: vi.fn(),
+			onCopyDiagnostics: vi.fn(),
+			onResetLocalData: vi.fn(),
+			onResetAndImportBackup: vi.fn(),
+			onQuit: vi.fn()
+		});
+
+		expect(uiStore.appDialog.description).toContain('export a backup copy to a file');
+		expect(uiStore.appDialog.actions?.map((action) => action.label)).toEqual([
+			'Retry Startup',
+			'Copy Diagnostics',
+			'Reset Local Data',
+			'Reset And Import Backup'
+		]);
+	});
+
+	it('omits reset actions for blocked upgrades', () => {
+		uiStore.showStartupRecoveryDialog({
+			errorMessage: 'Database upgrade is blocked by another Keloc Notes window.',
+			recoveryGuidance: buildStartupRecoveryGuidance(
+				'Database upgrade is blocked by another Keloc Notes window.'
+			),
+			onRetry: vi.fn(),
+			onCopyDiagnostics: vi.fn(),
+			onResetLocalData: vi.fn(),
+			onResetAndImportBackup: vi.fn(),
+			onQuit: vi.fn()
+		});
+
+		expect(uiStore.appDialog.actions?.map((action) => action.label)).toEqual([
+			'Retry Startup',
+			'Copy Diagnostics'
+		]);
+	});
+
+	it('marks startup reset actions as destructive for storage failures', () => {
+		uiStore.showStartupRecoveryDialog({
+			errorMessage: 'IndexedDB UnknownError: database file may be corrupted',
+			recoveryGuidance: buildStartupRecoveryGuidance(
+				'IndexedDB UnknownError: database file may be corrupted'
+			),
+			onRetry: vi.fn(),
+			onCopyDiagnostics: vi.fn(),
+			onResetLocalData: vi.fn(),
+			onResetAndImportBackup: vi.fn(),
+			onQuit: vi.fn()
+		});
+
+		const resetActions = uiStore.appDialog.actions?.filter((action) =>
+			action.label.startsWith('Reset')
+		);
+
+		expect(resetActions).toHaveLength(2);
+		expect(resetActions?.every((action) => action.variant === 'destructive')).toBe(true);
 	});
 });

@@ -18,6 +18,18 @@ describe('startup recovery guidance', () => {
 		expect(guidance.appReset).toBe(false);
 	});
 
+	it('describes blocked upgrades as temporary and non-destructive', () => {
+		const guidance = buildStartupRecoveryGuidance(
+			new Error('Database upgrade is blocked by another Keloc Notes window.')
+		);
+
+		expect(guidance.kind).toBe('blocked-upgrade');
+		expect(guidance.summary).toContain('temporarily blocked');
+		expect(guidance.dataStatus).toContain('not a local data corruption warning');
+		expect(guidance.resetWarning).toBe('');
+		expect(guidance.appReset).toBe(false);
+	});
+
 	it('classifies IndexedDB corruption as local storage failure with backup recovery guidance', () => {
 		const guidance = buildStartupRecoveryGuidance(
 			new Error('IndexedDB UnknownError: database file may be corrupted')

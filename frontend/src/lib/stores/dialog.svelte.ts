@@ -171,21 +171,20 @@ export class UIStore {
 		recoveryGuidance?: StartupRecoveryGuidance;
 	}) {
 		const guidance = recoveryGuidance ?? buildStartupRecoveryGuidance(errorMessage);
+		const descriptionParts = [
+			guidance.summary,
+			guidance.dataStatus,
+			guidance.primaryAction,
+			guidance.resetWarning,
+			`<span class="font-mono text-xs text-destructive">${errorMessage}</span>`
+		].filter(Boolean);
 
 		this.appDialog = {
 			open: true,
 			canCancel: false,
 			type: 'destroy',
 			title: 'Failed to Start',
-			description: `${guidance.summary}
-				<br/>
-				${guidance.dataStatus}
-				<br/>
-				${guidance.primaryAction}
-				<br/>
-				${guidance.resetWarning}
-				<br/>
-				<span class="font-mono text-xs text-destructive">${errorMessage}</span>`,
+			description: descriptionParts.join('<br/>'),
 			allowHtml: true,
 			confirmLabel: 'Quit Application',
 			onConfirm: onQuit,
@@ -207,12 +206,12 @@ export class UIStore {
 			this.appDialog.actions?.push({
 				label: 'Reset Local Data',
 				onSelect: onResetLocalData,
-				variant: 'secondary'
+				variant: 'destructive'
 			});
 			this.appDialog.actions?.push({
 				label: 'Reset And Import Backup',
 				onSelect: onResetAndImportBackup,
-				variant: 'secondary'
+				variant: 'destructive'
 			});
 		}
 	}

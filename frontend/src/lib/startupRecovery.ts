@@ -34,9 +34,9 @@ export function buildStartupRecoveryGuidance(error: unknown): StartupRecoveryGui
 		return {
 			kind: 'blocked-upgrade',
 			summary:
-				'Keloc Notes cannot finish opening because another Keloc Notes window is blocking a database upgrade.',
+				'Keloc Notes is temporarily blocked from opening because another Keloc Notes window is holding a database upgrade.',
 			dataStatus:
-				'Your notes are likely still intact. This usually means the database is busy, not corrupted.',
+				'Your notes are likely still intact. This is not a local data corruption warning; the database is busy in another app window.',
 			primaryAction:
 				'Close every other Keloc Notes window, then choose Retry Startup or restart the app.',
 			resetWarning: '',
