@@ -5,6 +5,12 @@ export type BackupImportStatus = {
 	description: string;
 };
 
+export type ShutdownFlushStatus = {
+	active: boolean;
+	title: string;
+	description: string;
+};
+
 export type MarkdownImportResolution = 'overwrite' | 'keep-both';
 
 export type MarkdownImportConflictDialogState = {
@@ -24,6 +30,7 @@ export class UIStateStore {
 	sidebarVisible = $state(true);
 	noteListVisible = $state(true);
 	backupImportStatus = $state<BackupImportStatus | null>(null);
+	shutdownFlushStatus = $state<ShutdownFlushStatus | null>(null);
 	markdownImportConflictDialog = $state<MarkdownImportConflictDialogState | null>(null);
 	#onMarkdownImportConfirm: ((resolution: MarkdownImportResolution) => Promise<void> | void) | null =
 		null;
@@ -51,6 +58,18 @@ export class UIStateStore {
 
 	clearBackupImportStatus() {
 		this.backupImportStatus = null;
+	}
+
+	showShutdownFlushStatus(title: string, description: string) {
+		this.shutdownFlushStatus = {
+			active: true,
+			title,
+			description
+		};
+	}
+
+	clearShutdownFlushStatus() {
+		this.shutdownFlushStatus = null;
 	}
 
 	openMarkdownImportConflictDialog({
@@ -116,6 +135,7 @@ export class UIStateStore {
 		this.sidebarVisible = true;
 		this.noteListVisible = true;
 		this.backupImportStatus = null;
+		this.shutdownFlushStatus = null;
 		this.markdownImportConflictDialog = null;
 		this.#onMarkdownImportConfirm = null;
 		this.#onMarkdownImportCancel = null;

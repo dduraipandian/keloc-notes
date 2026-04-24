@@ -41,6 +41,8 @@ What is still weak:
 Status:
 
 - landed: note persistence now saves note metadata and note content in one IndexedDB transaction
+- landed: shutdown flush now shows a blocking "Saving changes" overlay while pending writes are being flushed
+- landed: flush coverage now includes multiple dirty notes and failed-write settlement
 - remaining: interrupted-shutdown behavior still needs measurement and documentation
 
 Primary risk:
@@ -54,16 +56,17 @@ Required outcome:
 Plan:
 
 1. Keep pending-write tracking, but treat one note save as one write unit.
-2. Add tests for:
-   - meta write failure
-   - content write failure
+2. Keep a blocking shutdown save status visible while pending writes are flushing.
+3. Add tests for:
    - interrupted close during pending writes
    - flush with multiple dirty notes
+   - failed write settlement during shutdown flush
 
 Acceptance criteria:
 
 - a note cannot end up with updated metadata but stale body content from the same edit batch
 - flush-before-close waits on whole-note writes, not split writes
+- users see a clear blocking save indicator while shutdown flush is in progress
 
 ## 2. Startup Failure Recovery
 

@@ -48,6 +48,7 @@
 	import { setDatabaseBlockedHandler } from '$lib/infrastructure/idbr';
 	import BackupImportOverlay from '$lib/components/BackupImportOverlay.svelte';
 	import MarkdownImportConflictDialog from '$lib/components/MarkdownImportConflictDialog.svelte';
+	import { runShutdownFlush } from '$lib/shutdownFlush';
 
 	const folderStore = new FolderStore();
 	const themeStore = new ThemeStore();
@@ -387,11 +388,13 @@
 
 		const offBeforeClose = hasWailsRuntime()
 			? EventsOn('app:before-close', async () => {
-					try {
-						await notesStore.flushAllPendingWrites();
-					} finally {
-						EventsEmit('app:flush-complete');
-					}
+					await runShutdownFlush({
+						uiState: uiStateStore,
+						flushPendingWrites: () => notesStore.flushAllPendingWrites(),
+						emitFlushComplete: () => {
+							EventsEmit('app:flush-complete');
+						}
+					});
 				})
 			: () => {};
 
@@ -571,8 +574,15 @@
 />
 <BackupImportOverlay
 	open={uiStateStore.backupImportStatus?.active ?? false}
+	eyebrow="Backup Import"
 	title={uiStateStore.backupImportStatus?.title ?? ''}
 	description={uiStateStore.backupImportStatus?.description ?? ''}
+/>
+<BackupImportOverlay
+	open={uiStateStore.shutdownFlushStatus?.active ?? false}
+	eyebrow="Saving Changes"
+	title={uiStateStore.shutdownFlushStatus?.title ?? ''}
+	description={uiStateStore.shutdownFlushStatus?.description ?? ''}
 />
 <MarkdownImportConflictDialog uiState={uiStateStore} />
 <Toaster />

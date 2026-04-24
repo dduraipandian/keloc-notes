@@ -96,4 +96,53 @@ describe('NotesStore flushAllPendingWrites', () => {
 		expect(notesRepository.saveMeta).not.toHaveBeenCalled();
 		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 	});
+
+	it('flushes multiple dirty notes before resolving', async () => {
+		mockNotesStore.notes.set(
+			'n2',
+			{
+				id: 'n2',
+				title: 'Second Note',
+				content: 'Second Content',
+				summary: 'Second Content',
+				folderId: null,
+				updatedAt: '2021-01-01T00:00:01.000Z',
+				deletedAt: null,
+				deletedBatchId: null,
+				isContentLoaded: true
+			} as any
+		);
+
+		mockNotesStore.updateNote('n1', { content: 'First dirty note' });
+		mockNotesStore.updateNote('n2', { content: 'Second dirty note' });
+
+		const flushPromise = mockNotesStore.flushAllPendingWrites();
+		await vi.advanceTimersByTimeAsync(400);
+		await flushPromise;
+
+		expect(notesRepository.save).toHaveBeenCalledTimes(2);
+		expect(notesRepository.save).toHaveBeenNthCalledWith(
+			1,
+			expect.objectContaining({ id: 'n1', content: 'First dirty note' })
+		);
+		expect(notesRepository.save).toHaveBeenNthCalledWith(
+			2,
+			expect.objectContaining({ id: 'n2', content: 'Second dirty note' })
+		);
+	});
+
+	it('waits for failed writes to settle and surfaces the persistence error', async () => {
+		const onPersistError = vi.fn();
+		(mockNotesStore as any).onPersistError = onPersistError;
+		(notesRepository.save as any).mockRejectedValueOnce(new Error('disk full'));
+
+		mockNotesStore.updateNote('n1', { content: 'Will fail' });
+
+		const flushPromise = mockNotesStore.flushAllPendingWrites();
+		await vi.advanceTimersByTimeAsync(400);
+
+		await expect(flushPromise).resolves.toBeUndefined();
+		expect(notesRepository.save).toHaveBeenCalledTimes(1);
+		expect(onPersistError).toHaveBeenCalledWith(expect.any(Error), 'n1');
+	});
 });

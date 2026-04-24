@@ -1,10 +1,12 @@
 <script lang="ts">
 	let {
 		open = false,
+		eyebrow = 'Backup Import',
 		title,
 		description
 	}: {
 		open?: boolean;
+		eyebrow?: string;
 		title: string;
 		description: string;
 	} = $props();
@@ -20,7 +22,7 @@
 			<div class="flex items-center gap-3">
 				<div class="h-3 w-3 animate-pulse rounded-full bg-[var(--folder-accent)]"></div>
 				<p class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-					Backup Import
+					{eyebrow}
 				</p>
 			</div>
 			<h2 class="mt-4 text-xl font-semibold text-foreground">{title}</h2>

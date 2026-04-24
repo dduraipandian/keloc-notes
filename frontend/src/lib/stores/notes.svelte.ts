@@ -70,7 +70,10 @@ export class NotesStore {
 	summarize(content: string): string {
 		const text = extractTextFromJSON(content);
 		if (!text) return '';
-		const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+		const lines = text
+			.split('\n')
+			.map((l) => l.trim())
+			.filter((l) => l.length > 0);
 		return lines.slice(0, 2).join(' ');
 	}
 
