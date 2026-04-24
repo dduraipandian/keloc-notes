@@ -145,6 +145,15 @@ Acceptance criteria:
 
 ## 4. Backup Restore Guarantees
 
+Status:
+
+- landed: backup import is restricted to a brand-new app and refuses previously used local libraries
+- landed: backup restore is replace-all for that new app database, not a merge into existing notes
+- landed: backup restore writes folders, note metadata, note content, settings, and note assets in one IndexedDB transaction
+- landed: focused coverage rejects unsupported schema versions, malformed JSON, asset restore failures, and malformed settings without leaving partial imported state
+- landed: backup settings must be a plain object before restore can start
+- landed: README documents the user-facing JSON backup and restore guarantees
+
 Primary risk:
 
 - users assume restore will merge, partially restore, or preserve current local state unless told otherwise
@@ -155,11 +164,11 @@ Required outcome:
 
 Plan:
 
-1. Document that backup import is allowed only on a new app.
-2. Document that restore is replace-all, not merge.
-3. Document that restore is transactional and should either fully apply or fail without partial replacement.
-4. Document backup schema compatibility expectations and failure behavior.
-5. Add tests for:
+1. Keep backup import allowed only on a new app.
+2. Keep restore as replace-all for the fresh local database, not merge.
+3. Keep restore transactional: it should either fully apply or fail without partial replacement.
+4. Keep schema compatibility explicit: unsupported schema versions fail before restore.
+5. Keep malformed backup data failures non-destructive:
    - unsupported schema version
    - malformed JSON
    - asset restore failure
@@ -169,6 +178,14 @@ Acceptance criteria:
 
 - users know exactly what restore does before they run it
 - failed restore does not leave partial imported state
+
+User-facing restore contract now documented in `README.md`:
+
+- Backup import is only for a new or reset app library.
+- Backup import does not merge with an existing library.
+- A valid restore replaces the empty local database with folders, notes, note contents, settings, and note assets from the backup.
+- If the backup schema is unsupported or the backup file is malformed, restore stops and local notes remain unchanged.
+- If any folder, note, asset, or setting cannot be restored, the whole restore fails without leaving a partial imported library.
 
 ## 5. Import / Export Failure Guidance
 

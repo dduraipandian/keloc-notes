@@ -231,6 +231,15 @@ Save and shutdown guarantees today:
 - the close-time flush is still best-effort and time-bounded by the desktop shell
 - force quit, crash, or OS kill can still lose edits that have not started persisting yet
 
+JSON backup and restore guarantees today:
+
+- JSON backup import is only for a new or reset app library.
+- JSON backup import does not merge into an existing notes library.
+- A valid restore replaces the empty local database with the folders, notes, note contents, settings, and note assets from the backup.
+- The app currently accepts only JSON backups with `schemaVersion: 1`.
+- If the backup file is malformed or uses an unsupported schema version, restore stops before changing local notes.
+- If any folder, note, asset, or setting cannot be restored, the whole restore fails without leaving a partial imported library.
+
 More detail is in [docs/security-and-storage.md](docs/security-and-storage.md) and the disclosure policy is in [SECURITY.md](SECURITY.md).
 
 ## Development

@@ -117,6 +117,19 @@ function base64ToUint8Array(dataBase64: string): Uint8Array {
 	return bytes;
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeBackupSettings(settings: unknown): Record<string, unknown> {
+	if (settings == null) return {};
+	if (!isPlainRecord(settings)) {
+		throw new Error('Backup settings must be an object.');
+	}
+
+	return settings;
+}
+
 async function serializeNoteAsset(asset: {
 	id: string;
 	noteId: string;
@@ -272,6 +285,7 @@ export async function importBackup(
 		if (backup.schemaVersion !== 1) {
 			throw new Error(`Unsupported backup schema version: ${backup.schemaVersion}`);
 		}
+		const settings = normalizeBackupSettings(backup.settings);
 		const folders = (backup.folders ?? [])
 			.filter(
 				(folder): folder is FolderItem =>
@@ -293,7 +307,7 @@ export async function importBackup(
 		await settingsRepository.restore(
 			folders,
 			restoredNotes,
-			(backup.settings ?? {}) as Record<string, unknown>
+			settings
 		);
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
