@@ -61,11 +61,18 @@ Status legend:
 
 ## 4. Failure Modes And Recovery
 
+- [-] Create a dedicated Failure Modes And Recovery plan.
+      Landed in `docs/failure-modes-and-recovery-plan.md`.
 - [ ] Document recovery behavior for corrupted IndexedDB or blocked upgrades.
+      See plan: `docs/failure-modes-and-recovery-plan.md` section 3.
 - [ ] Add user-facing guidance for startup failures beyond a quit dialog.
+      See plan: `docs/failure-modes-and-recovery-plan.md` section 2.
 - [ ] Document backup restore expectations and limitations.
+      See plan: `docs/failure-modes-and-recovery-plan.md` section 4.
 - [ ] Define recovery guidance for failed imports/exports.
+      See plan: `docs/failure-modes-and-recovery-plan.md` section 5.
 - [ ] Audit crash-recovery behavior for incomplete writes and interrupted shutdown.
+      See plan: `docs/failure-modes-and-recovery-plan.md` sections 1 and 6.
 
 ## 5. Performance And Stability
 
