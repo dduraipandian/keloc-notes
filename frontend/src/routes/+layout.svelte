@@ -50,6 +50,8 @@
 	import MarkdownImportConflictDialog from '$lib/components/MarkdownImportConflictDialog.svelte';
 	import { runShutdownFlush } from '$lib/shutdownFlush';
 	import {
+		buildDatabaseBlockedMessage,
+		buildStartupRecoveryGuidance,
 		buildStartupRecoveryDiagnostics,
 		consumePendingStartupRecoveryImport,
 		copyStartupRecoveryDiagnostics,
@@ -89,7 +91,7 @@
 	setDatabaseBlockedHandler((current, blocked) => {
 		uiStore.confirmAppQuit(
 			'Database blocked',
-			`Another Keloc Notes window is open and is blocking a database upgrade (current: ${current ?? 'unknown'}, target: ${blocked ?? 'unknown'}). Please close the other window and restart Keloc Notes.`,
+			buildDatabaseBlockedMessage(current, blocked),
 			() => {}
 		);
 	});
@@ -391,6 +393,8 @@
 		try {
 			// manual testing
 			// throw new Error('Manual startup recovery test');
+			// throw new Error('IndexedDB UnknownError: database file may be corrupted');
+			// throw new Error('Database upgrade is blocked by another Keloc Notes window.');
 			console.log('[DEBUG] Init starting');
 			const settings = await settingsRepository.getAll();
 			console.log('[DEBUG] Settings loaded');
@@ -428,10 +432,12 @@
 		} catch (err) {
 			const startupError = err instanceof Error ? err : new Error('An unexpected error occurred.');
 			initError = startupError.message;
+			const recoveryGuidance = buildStartupRecoveryGuidance(startupError);
 			const diagnostics = buildStartupRecoveryDiagnostics(startupError);
 
 			uiStore.showStartupRecoveryDialog({
 				errorMessage: initError,
+				recoveryGuidance,
 				onRetry: () => {
 					void initializeApplication();
 				},

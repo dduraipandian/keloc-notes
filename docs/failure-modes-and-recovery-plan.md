@@ -110,6 +110,13 @@ Acceptance criteria:
 
 ## 3. Corrupted IndexedDB And Blocked Upgrade Recovery
 
+Status:
+
+- landed: blocked database upgrade messages now explain that notes are likely still intact and identify the other-window recovery step
+- landed: startup recovery now classifies blocked upgrades separately from local storage corruption/unavailability
+- landed: reset guidance now warns users not to reset local data for temporary blocked-upgrade cases unless retry still fails
+- landed: focused unit coverage verifies blocked-upgrade and corrupted IndexedDB guidance
+
 Primary risk:
 
 - storage corruption or an upgrade blocked by another window can leave the app unusable

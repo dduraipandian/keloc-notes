@@ -1,3 +1,5 @@
+import { buildStartupRecoveryGuidance, type StartupRecoveryGuidance } from '$lib/startupRecovery';
+
 export type DialogType = 'destroy' | 'restore';
 
 export interface DialogAction {
@@ -157,7 +159,8 @@ export class UIStore {
 		onCopyDiagnostics,
 		onResetLocalData,
 		onResetAndImportBackup,
-		onQuit
+		onQuit,
+		recoveryGuidance
 	}: {
 		errorMessage: string;
 		onRetry: () => void;
@@ -165,15 +168,22 @@ export class UIStore {
 		onResetLocalData: () => void;
 		onResetAndImportBackup: () => void;
 		onQuit: () => void;
+		recoveryGuidance?: StartupRecoveryGuidance;
 	}) {
+		const guidance = recoveryGuidance ?? buildStartupRecoveryGuidance(errorMessage);
+
 		this.appDialog = {
 			open: true,
 			canCancel: false,
 			type: 'destroy',
 			title: 'Failed to Start',
-			description: `Keloc Notes could not open your library. Your existing local data has not been modified yet.
+			description: `${guidance.summary}
 				<br/>
-				Try retrying startup first. If the problem keeps happening, you can copy diagnostics or reset the local database and import a backup.
+				${guidance.dataStatus}
+				<br/>
+				${guidance.primaryAction}
+				<br/>
+				${guidance.resetWarning}
 				<br/>
 				<span class="font-mono text-xs text-destructive">${errorMessage}</span>`,
 			allowHtml: true,
@@ -190,19 +200,21 @@ export class UIStore {
 					onSelect: onCopyDiagnostics,
 					variant: 'secondary',
 					closeDialog: false
-				},
-				{
-					label: 'Reset Local Data',
-					onSelect: onResetLocalData,
-					variant: 'secondary'
-				},
-				{
-					label: 'Reset And Import Backup',
-					onSelect: onResetAndImportBackup,
-					variant: 'secondary'
 				}
 			]
 		};
+		if (guidance.appReset) {
+			this.appDialog.actions?.push({
+				label: 'Reset Local Data',
+				onSelect: onResetLocalData,
+				variant: 'secondary'
+			});
+			this.appDialog.actions?.push({
+				label: 'Reset And Import Backup',
+				onSelect: onResetAndImportBackup,
+				variant: 'secondary'
+			});
+		}
 	}
 
 	closeDialogs() {

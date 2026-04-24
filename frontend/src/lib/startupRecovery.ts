@@ -2,6 +2,105 @@ import { resetDatabase } from '$lib/infrastructure/idbr';
 
 const STARTUP_RECOVERY_IMPORT_KEY = 'kelocnotes:startup-recovery:import-backup';
 
+export type StartupRecoveryKind =
+	| 'blocked-upgrade'
+	| 'storage-corruption'
+	| 'storage-unavailable'
+	| 'unknown';
+
+export type StartupRecoveryGuidance = {
+	kind: StartupRecoveryKind;
+	summary: string;
+	dataStatus: string;
+	primaryAction: string;
+	resetWarning: string;
+	appReset: boolean;
+};
+
+function getErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
+
+export function buildStartupRecoveryGuidance(error: unknown): StartupRecoveryGuidance {
+	const message = getErrorMessage(error);
+	const normalized = message.toLowerCase();
+
+	if (
+		normalized.includes('blocked') ||
+		(normalized.includes('another') && normalized.includes('window'))
+	) {
+		return {
+			kind: 'blocked-upgrade',
+			summary:
+				'Keloc Notes cannot finish opening because another Keloc Notes window is blocking a database upgrade.',
+			dataStatus:
+				'Your notes are likely still intact. This usually means the database is busy, not corrupted.',
+			primaryAction:
+				'Close every other Keloc Notes window, then choose Retry Startup or restart the app.',
+			resetWarning: '',
+			appReset: false
+		};
+	}
+
+	if (
+		normalized.includes('corrupt') ||
+		normalized.includes('unknownerror') ||
+		normalized.includes('dataerror') ||
+		normalized.includes('invalidstateerror')
+	) {
+		return {
+			kind: 'storage-corruption',
+			summary: 'Keloc Notes could not read the local notes database.',
+			dataStatus:
+				'Keloc Notes cannot confirm whether the local database is recoverable from this startup attempt.',
+			primaryAction:
+				'Try Retry Startup first. If it fails again, copy diagnostics and restore from a known-good backup after reset.',
+			resetWarning:
+				'Reset Local Data removes the local database on this device. Use it only when you have a backup or accept local data loss.',
+			appReset: true
+		};
+	}
+
+	if (
+		normalized.includes('quota') ||
+		normalized.includes('indexeddb') ||
+		normalized.includes('database')
+	) {
+		return {
+			kind: 'storage-unavailable',
+			summary: 'Keloc Notes could not access browser storage for the local notes database.',
+			dataStatus:
+				'Your existing notes may still be present, but Keloc Notes cannot safely open them right now.',
+			primaryAction:
+				'Try Retry Startup. If the problem continues, copy diagnostics before choosing a reset option.',
+			resetWarning:
+				'Reset Local Data removes the local database on this device. Import a backup after reset when possible.',
+			appReset: true
+		};
+	}
+
+	return {
+		kind: 'unknown',
+		summary: 'Keloc Notes could not open your library.',
+		dataStatus: 'Your existing local data has not been modified by this failed startup attempt.',
+		primaryAction:
+			'Try Retry Startup. If the problem continues, copy diagnostics before choosing a reset option.',
+		resetWarning:
+			'Reset Local Data removes the local database on this device. Import a backup after reset when possible.',
+		appReset: true
+	};
+}
+
+export function buildDatabaseBlockedMessage(
+	currentVersion: number | undefined,
+	blockedVersion: number | null
+): string {
+	const current = currentVersion ?? 'unknown';
+	const target = blockedVersion ?? 'unknown';
+
+	return `Another Keloc Notes window is blocking a database upgrade (current: ${current}, target: ${target}). Your notes are likely still intact. Close every other Keloc Notes window, then restart Keloc Notes or retry startup. Do not reset local data unless retry still fails after the other window is closed.`;
+}
+
 export function buildStartupRecoveryDiagnostics(error: unknown): string {
 	const userAgent =
 		typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : 'unknown';

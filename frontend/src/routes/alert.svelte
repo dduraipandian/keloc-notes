@@ -129,7 +129,7 @@
 			</AlertDialog.Header>
 		{/if}
 		<AlertDialog.Footer
-			class={hasExtendedActions() ? 'sm:flex-nowrap sm:justify-start sm:gap-3' : undefined}
+			class={hasExtendedActions() ? 'sm:flex-nowrap sm:justify-center sm:gap-3' : undefined}
 		>
 			{#each getActions() as action, index (action.label)}
 				<AlertDialog.Action
