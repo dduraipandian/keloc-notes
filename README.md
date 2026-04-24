@@ -1,6 +1,6 @@
 # keloc-notes
 
-Local-first desktop notes for people who want Apple Notes simplicity, markdown portability, and no cloud dependency.
+A local-first desktop notes app for people who like the shape of Apple Notes or Bear, but want their data to stay local and export cleanly.
 
 ## Why This Exists
 
@@ -10,9 +10,9 @@ Most note apps force a tradeoff:
 - markdown files, but the UX feels like a text editor instead of a notes app
 - sync-first products, but you lose the speed and privacy of local storage
 
-`keloc-notes` takes a different approach. It is a desktop notes app with an Apple Notes-style three-pane layout, local IndexedDB persistence, and practical import/export paths so your notes stay yours.
+That is the gap `keloc-notes` is trying to fill. It uses a three-pane notes UI, keeps data on the machine, and gives you import/export paths that are actually useful.
 
-This project is for:
+It is mainly aimed at:
 
 - developers who want a local-first notes app they can hack on
 - users who want a native-feeling desktop app without mandatory accounts
@@ -32,9 +32,25 @@ This project is for:
 - Theme and appearance settings. Light, dark, or follow-system theme, plus customizable folder accent color.
 - Test coverage across stores, services, infrastructure, and end-to-end flows.
 
+## Platform Support
+
+Right now this should be treated as a macOS-first app.
+
+| Platform | Status | Notes |
+| --- | --- | --- |
+| macOS | Supported | Primary release target. Native menu integration is implemented and the app experience is designed around this path today. |
+| Windows | Preview | Core app logic may run, but native menu parity and release polish are not complete yet. |
+| Linux | Preview | Core app logic may run, but native menu parity and release polish are not complete yet. |
+
+Release policy for now:
+
+- Public release messaging should treat macOS as the supported platform.
+- Windows and Linux should be described as preview or unsupported-for-production until parity work is complete.
+- Bugs that reproduce only on preview platforms should not block a macOS-first public release unless they affect shared data integrity.
+
 ## How It Works
 
-Think of `keloc-notes` as a thin native shell around a local-first frontend application:
+The app is mostly a local-first frontend running inside a thin Wails shell:
 
 1. The Svelte app boots and loads folders, notes, and saved UI settings from IndexedDB.
 2. Note metadata and note content are stored separately, so the app can load the note list first and fetch full content on demand.
@@ -42,7 +58,7 @@ Think of `keloc-notes` as a thin native shell around a local-first frontend appl
 4. MiniSearch builds a local full-text index for titles and content, scoped to the currently selected folder tree.
 5. The Go/Wails layer handles native window behavior, file dialogs, single-instance behavior, and the native macOS menu.
 
-High-level repo layout:
+Repo layout at a glance:
 
 ```text
 .
@@ -58,7 +74,49 @@ High-level repo layout:
 
 ## Quick Start
 
-You can get the app running locally in a few minutes.
+## Install
+
+### macOS
+
+The intended install path is a macOS `.dmg`.
+
+Maintainers can package that release artifact with:
+
+```bash
+./scripts/build-icon.sh frontend/src/lib/assets/app-icon.svg build/appicon
+wails build
+./scripts/create-dmg.sh
+```
+
+More detail is in [docs/macos-release.md](docs/macos-release.md).
+
+Once that release artifact is published, the install flow should be:
+
+1. Download the latest `.dmg`.
+2. Open it and drag `Keloc Notes.app` into `Applications`.
+3. Open the app from `Applications`.
+
+For now, macOS notarization is still deferred. That means the first launch may be blocked by Gatekeeper.
+
+If macOS says the app cannot be opened because it is from an unidentified developer:
+
+1. Open `System Settings` → `Privacy & Security`.
+2. Scroll to the security section near the bottom.
+3. Click `Open Anyway` for `Keloc Notes`.
+4. Confirm the prompt and open the app again.
+
+You can also use the Finder shortcut:
+
+1. Open `Applications`.
+2. Right-click `Keloc Notes.app`.
+3. Choose `Open`.
+4. Confirm the dialog.
+
+This is not the long-term goal. A polished public release should be signed and notarized so this extra step is not needed.
+
+### Run From Source
+
+If you want to run it from source:
 
 ### Prerequisites
 
@@ -106,6 +164,7 @@ wails build
 ```
 
 The built desktop app is emitted by Wails using the repo's root configuration.
+That produces the app bundle used for packaging. It is still a maintainer/developer step, not the end-user install flow.
 
 ## Use Cases
 
@@ -117,7 +176,7 @@ The built desktop app is emitted by Wails using the repo's root configuration.
 
 ## Configuration
 
-Most configuration is inside the app, not through environment variables.
+Most settings live in the app itself rather than environment variables.
 
 - Theme: choose `light`, `dark`, or `system`.
 - Folder accent color: customize the folder icon color from Settings.
@@ -129,7 +188,7 @@ Important assumptions:
 
 - This is a local-first app. There is no built-in sync service.
 - The frontend owns almost all app logic. Go mainly provides desktop capabilities and native dialogs.
-- On Linux and Windows, the menu package is currently a stub, so the macOS native menu experience should be treated as the primary path today.
+- On Linux and Windows, the menu package is currently a stub, so those platforms should be treated as preview rather than fully supported.
 
 ## Development
 
@@ -175,27 +234,27 @@ go test ./...
 
 ## Performance
 
-The repo does not publish benchmark numbers, but the implementation suggests a practical target:
+There are no benchmark numbers published yet, but the implementation is built around a few practical choices:
 
 - note metadata loads before full note bodies
 - note content is fetched on demand
 - search indexing is incremental and folder-scoped
 - persistence is local and debounced for note edits
 
-In practice, this should suit a personal notes library with hundreds to low-thousands of notes on a modern desktop. If you need published performance guarantees, multi-user concurrency, or remote search infrastructure, this project is not there yet.
+In practice, this should be fine for a personal notes library with hundreds to low-thousands of notes on a modern desktop. If you need hard benchmark numbers, multi-user concurrency, or anything server-backed, this project is not there yet.
 
 ## Limitations
 
 - No sync, collaboration, sharing, or mobile clients.
 - The current editor is a plain textarea-based editor, not a full rich-text editor.
-- Linux and Windows native menu support is not implemented yet.
-- There are no packaged releases or installers documented in the repo today.
+- Windows and Linux are preview platforms today; native menu support is not implemented yet.
+- The macOS distribution path is a `.dmg`, but notarization is still deferred for now, so first launch may require a manual Gatekeeper override.
 - Backup/import behavior exists, but the repo would benefit from clearer guarantees around backup compatibility and restore semantics across versions.
 - Search is local and scoped to the selected folder tree; there is no global cloud index or cross-device search.
 
 ## Roadmap
 
-Based on the current codebase, the next high-value improvements are:
+The next obvious pieces of work are:
 
 - richer editing experience beyond plain textarea input
 - polished Windows and Linux native menus
@@ -206,7 +265,7 @@ Based on the current codebase, the next high-value improvements are:
 
 ## Contributing
 
-Contributions are easiest when they preserve the repo's current architecture:
+Contributions are most helpful when they preserve the current architecture:
 
 - keep product logic in the frontend unless desktop-native behavior is required
 - add or update tests with behavior changes
@@ -232,10 +291,10 @@ Apache License 2.0. See [LICENSE](LICENSE).
 
 ## Support
 
-If you try `keloc-notes`, open an issue with:
+If you try `keloc-notes`, opening an issue is useful, especially if you include:
 
 - what you expected to do
 - what blocked you
 - what data portability or local-first feature you care about most
 
-That feedback is especially useful right now because the biggest opportunity in this repo is turning a solid architecture into an easier first-run experience.
+The biggest gap right now is not the basic architecture. It is packaging, onboarding, and release polish.
