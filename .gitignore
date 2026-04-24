@@ -32,6 +32,10 @@ go.work.sum
 .vscode/
 
 build/bin
+build/tmp/
+build/.DS_Store
+build/appicon.icns
+build/appicon.iconset/
 node_modules
 frontend/dist
 frontend/build
