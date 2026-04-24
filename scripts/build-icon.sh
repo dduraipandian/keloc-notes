@@ -5,6 +5,7 @@ SVG="${1:-icon.svg}"
 NAME="${2:-AppIcon}"
 ICONSET="${NAME}.iconset"
 OUT="${NAME}.icns"
+PNG="${NAME}.png"
 
 rm -rf "$ICONSET" "$OUT"
 mkdir -p "$ICONSET"
@@ -37,6 +38,12 @@ render 256 2
 render 512 1
 render 512 2
 
+rsvg-convert \
+  -w 1024 \
+  -h 1024 \
+  "$SVG" \
+  -o "$PNG"
+
 iconutil -c icns "$ICONSET" -o "$OUT"
 
-echo "Created $OUT"
+echo "Created $PNG and $OUT"
