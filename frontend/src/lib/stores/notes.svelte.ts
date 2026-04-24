@@ -67,6 +67,19 @@ export class NotesStore {
 		}
 	}
 
+	resetForStartupRetry() {
+		this.notes.clear();
+		this.isInitialized = false;
+		this.selectedNoteID = null;
+		this.debouncer.clearAll();
+		this.inFlightWrites.clear();
+		this.dirtyContentNotes.clear();
+		this.folderNoteCounts = { null: 0 };
+		this.folderDeletedNoteCounts = { null: 0 };
+		this.favoriteCount = 0;
+		this.trashCount = 0;
+	}
+
 	summarize(content: string): string {
 		const text = extractTextFromJSON(content);
 		if (!text) return '';

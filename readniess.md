@@ -65,14 +65,15 @@ Status legend:
       Landed in `docs/failure-modes-and-recovery-plan.md`.
 - [ ] Document recovery behavior for corrupted IndexedDB or blocked upgrades.
       See plan: `docs/failure-modes-and-recovery-plan.md` section 3.
-- [ ] Add user-facing guidance for startup failures beyond a quit dialog.
-      See plan: `docs/failure-modes-and-recovery-plan.md` section 2.
+- [x] Add user-facing guidance for startup failures beyond a quit dialog.
+      Landed: startup failures now open a recovery dialog with retry, copy diagnostics, reset local data, and reset-then-import-backup actions.
 - [ ] Document backup restore expectations and limitations.
       See plan: `docs/failure-modes-and-recovery-plan.md` section 4.
 - [ ] Define recovery guidance for failed imports/exports.
       See plan: `docs/failure-modes-and-recovery-plan.md` section 5.
 - [ ] Audit crash-recovery behavior for incomplete writes and interrupted shutdown.
-      See plan: `docs/failure-modes-and-recovery-plan.md` sections 1 and 6.
+      Manual interrupted-shutdown verification is complete.
+      Landed: the exact save/shutdown guarantee boundary and crash/force-quit limitations are now documented in `README.md` and `docs/security-and-storage.md`.
 
 ## 5. Performance And Stability
 

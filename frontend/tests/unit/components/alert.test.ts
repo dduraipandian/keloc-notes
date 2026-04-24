@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { tick } from 'svelte';
-import { cleanup, render, screen } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import Alert from '../../../src/routes/alert.svelte';
 import type { ConfirmOptions } from '../../../src/lib/stores/dialog.svelte';
 
@@ -59,5 +59,48 @@ describe('Alert route', () => {
 		render(Alert, { dialog: createDialog({ description: 'Are you sure?' }) });
 
 		expect(screen.getByText('Are you sure?')).toBeDefined();
+	});
+
+	it('focuses the default confirm action when a standard dialog opens', async () => {
+		render(Alert, {
+			dialog: createDialog({
+				confirmLabel: 'Delete Note'
+			})
+		});
+
+		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+		await tick();
+
+		const confirmButton = screen.getByText('Delete Note');
+		expect(document.activeElement).toBe(confirmButton);
+	});
+
+	it('renders extra recovery actions and keeps the dialog open for non-closing actions', async () => {
+		const onRetry = vi.fn();
+		const onCopyDiagnostics = vi.fn();
+		const dialog = createDialog({
+			confirmLabel: 'Quit Application',
+			actions: [
+				{
+					label: 'Retry Startup',
+					onSelect: onRetry
+				},
+				{
+					label: 'Copy Diagnostics',
+					onSelect: onCopyDiagnostics,
+					closeDialog: false
+				}
+			]
+		});
+
+		render(Alert, { dialog });
+
+		await fireEvent.click(screen.getByText('Copy Diagnostics'));
+		expect(onCopyDiagnostics).toHaveBeenCalledOnce();
+		expect(dialog.open).toBe(true);
+
+		await fireEvent.click(screen.getByText('Retry Startup'));
+		expect(onRetry).toHaveBeenCalledOnce();
+		expect(dialog.open).toBe(false);
 	});
 });

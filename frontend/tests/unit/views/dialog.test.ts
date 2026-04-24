@@ -45,4 +45,46 @@ describe('UIStore', () => {
 		expect(uiStore.appDialog.allowHtml).toBe(true);
 		expect(uiStore.appDialog.description).toContain('quota exceeded');
 	});
+
+	it('should configure startup recovery dialog with retry and recovery actions', () => {
+		const onRetry = vi.fn();
+		const onCopyDiagnostics = vi.fn();
+		const onResetLocalData = vi.fn();
+		const onResetAndImportBackup = vi.fn();
+		const onQuit = vi.fn();
+
+		uiStore.showStartupRecoveryDialog({
+			errorMessage: 'IndexedDB quota exceeded',
+			onRetry,
+			onCopyDiagnostics,
+			onResetLocalData,
+			onResetAndImportBackup,
+			onQuit
+		});
+
+		expect(uiStore.appDialog.open).toBe(true);
+		expect(uiStore.appDialog.title).toBe('Failed to Start');
+		expect(uiStore.appDialog.description).toContain('IndexedDB quota exceeded');
+		expect(uiStore.appDialog.actions).toHaveLength(4);
+		expect(uiStore.appDialog.actions?.map((action) => action.label)).toEqual([
+			'Retry Startup',
+			'Copy Diagnostics',
+			'Reset Local Data',
+			'Reset And Import Backup'
+		]);
+		expect(uiStore.appDialog.actions?.[0].closeDialog).toBe(false);
+		expect(uiStore.appDialog.confirmLabel).toBe('Quit Application');
+
+		uiStore.appDialog.actions?.[0].onSelect();
+		uiStore.appDialog.actions?.[1].onSelect();
+		uiStore.appDialog.actions?.[2].onSelect();
+		uiStore.appDialog.actions?.[3].onSelect();
+		uiStore.appDialog.onConfirm();
+
+		expect(onRetry).toHaveBeenCalledOnce();
+		expect(onCopyDiagnostics).toHaveBeenCalledOnce();
+		expect(onResetLocalData).toHaveBeenCalledOnce();
+		expect(onResetAndImportBackup).toHaveBeenCalledOnce();
+		expect(onQuit).toHaveBeenCalledOnce();
+	});
 });

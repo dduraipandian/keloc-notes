@@ -40,15 +40,22 @@
 	import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
 	import About from '$lib/components/About.svelte';
 	import Settings from '$lib/components/Settings.svelte';
-	import { Toaster } from '$lib/components/ui/sonner';
+	import { Toaster, toast } from '$lib/components/ui/sonner';
 	import { PreferencesStore } from '$lib/stores/preferences.svelte';
 	import { hasWailsRuntime } from '$lib/wails.svelte';
-	import { UpdateMenuState } from '$lib/wailsjs/go/main/App';
+	import { OnImportBackup, UpdateMenuState } from '$lib/wailsjs/go/main/App';
 	import { menu } from '$lib/wailsjs/go/models';
 	import { setDatabaseBlockedHandler } from '$lib/infrastructure/idbr';
 	import BackupImportOverlay from '$lib/components/BackupImportOverlay.svelte';
 	import MarkdownImportConflictDialog from '$lib/components/MarkdownImportConflictDialog.svelte';
 	import { runShutdownFlush } from '$lib/shutdownFlush';
+	import {
+		buildStartupRecoveryDiagnostics,
+		consumePendingStartupRecoveryImport,
+		copyStartupRecoveryDiagnostics,
+		resetLocalDataForRecovery
+	} from '$lib/startupRecovery';
+	import { ClipboardSetText } from '$lib/wailsjs/runtime/runtime';
 
 	const folderStore = new FolderStore();
 	const themeStore = new ThemeStore();
@@ -370,6 +377,100 @@
 		}
 	});
 
+	function resetStartupStateForRetry() {
+		folderStore.resetForStartupRetry();
+		selectionStore.resetForStartupRetry();
+		notesStore.resetForStartupRetry();
+	}
+
+	async function initializeApplication() {
+		isInitializing = true;
+		initError = null;
+		resetStartupStateForRetry();
+
+		try {
+			// manual testing
+			// throw new Error('Manual startup recovery test');
+			console.log('[DEBUG] Init starting');
+			const settings = await settingsRepository.getAll();
+			console.log('[DEBUG] Settings loaded');
+			themeStore.init(settings.applicationTheme);
+			await preferencesStore.init(settings);
+			console.log('[DEBUG] Preferences initialized');
+			applyPaneWidths(
+				settings.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH,
+				settings.noteListWidth ?? DEFAULT_NOTE_LIST_WIDTH,
+				true
+			);
+			await folderStore.init();
+			console.log('[DEBUG] Folders initialized');
+			await selectionStore.init();
+			console.log('[DEBUG] Selection initialized');
+			await notesStore.init();
+			console.log('[DEBUG] Notes initialized');
+			folderStore.onPersistError = (err) => {
+				uiStore.confirmAppQuit('Save failed', String(err), () => {});
+			};
+			selectionStore.onPersistError = (err) => {
+				uiStore.confirmAppQuit('Save failed', String(err), () => {});
+			};
+			notesStore.onPersistError = (err) => {
+				uiStore.confirmAppQuit('Save failed', String(err), () => {});
+			};
+
+			uiStore.closeDialogs();
+
+			if (consumePendingStartupRecoveryImport() && hasWailsRuntime()) {
+				setTimeout(() => {
+					void OnImportBackup();
+				}, 50);
+			}
+		} catch (err) {
+			const startupError = err instanceof Error ? err : new Error('An unexpected error occurred.');
+			initError = startupError.message;
+			const diagnostics = buildStartupRecoveryDiagnostics(startupError);
+
+			uiStore.showStartupRecoveryDialog({
+				errorMessage: initError,
+				onRetry: () => {
+					void initializeApplication();
+				},
+				onCopyDiagnostics: () => {
+					void copyStartupRecoveryDiagnostics(diagnostics, {
+						writeText: hasWailsRuntime() ? (text) => ClipboardSetText(text) : undefined
+					})
+						.then(() => {
+							toast.success('Startup diagnostics copied to the clipboard.');
+						})
+						.catch((copyError) => {
+							toast.error(
+								copyError instanceof Error
+									? copyError.message
+									: 'Failed to copy startup diagnostics.'
+							);
+						});
+				},
+				onResetLocalData: () => {
+					void resetLocalDataForRecovery().catch((resetError) => {
+						toast.error(
+							resetError instanceof Error ? resetError.message : 'Failed to reset local data.'
+						);
+					});
+				},
+				onResetAndImportBackup: () => {
+					void resetLocalDataForRecovery({ importBackupAfterReset: true }).catch((resetError) => {
+						toast.error(
+							resetError instanceof Error ? resetError.message : 'Failed to reset local data.'
+						);
+					});
+				},
+				onQuit: hasWailsRuntime() ? () => void Quit() : () => {}
+			});
+		} finally {
+			isInitializing = false;
+		}
+	}
+
 	onMount(() => {
 		const handleWindowResize = () => {
 			applyPaneWidths(liveSidebarWidth, liveNoteListWidth, true);
@@ -426,41 +527,7 @@
 			? initMenuStateEffect({ theme: themeStore, notes: notesStore })
 			: () => {};
 
-		void (async () => {
-			try {
-				console.log('[DEBUG] Init starting');
-				const settings = await settingsRepository.getAll();
-				console.log('[DEBUG] Settings loaded');
-				themeStore.init(settings.applicationTheme);
-				await preferencesStore.init(settings);
-				console.log('[DEBUG] Preferences initialized');
-				applyPaneWidths(
-					settings.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH,
-					settings.noteListWidth ?? DEFAULT_NOTE_LIST_WIDTH,
-					true
-				);
-				await folderStore.init();
-				console.log('[DEBUG] Folders initialized');
-				await selectionStore.init();
-				console.log('[DEBUG] Selection initialized');
-				await notesStore.init();
-				console.log('[DEBUG] Notes initialized');
-				folderStore.onPersistError = (err) => {
-					uiStore.confirmAppQuit('Save failed', String(err), () => {});
-				};
-				selectionStore.onPersistError = (err) => {
-					uiStore.confirmAppQuit('Save failed', String(err), () => {});
-				};
-				notesStore.onPersistError = (err) => {
-					uiStore.confirmAppQuit('Save failed', String(err), () => {});
-				};
-			} catch (err) {
-				initError = err instanceof Error ? err.message : 'An unexpected error occurred.';
-				uiStore.confirmAppQuit('Failed to Start', initError, hasWailsRuntime() ? Quit : () => {});
-			} finally {
-				isInitializing = false;
-			}
-		})();
+		void initializeApplication();
 
 		return () => {
 			offBeforeClose?.();

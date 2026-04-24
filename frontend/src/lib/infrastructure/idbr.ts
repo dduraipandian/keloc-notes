@@ -33,9 +33,9 @@ export interface DBStore {
 	};
 }
 
-let dbPromise: Promise<IDBPDatabase<DBStore>>;
+let dbPromise: Promise<IDBPDatabase<DBStore>> | undefined;
 
-function getDBName() {
+export function getDBName() {
 	if (typeof window === 'undefined') return DEFAULT_DB_NAME;
 
 	const override = (window as typeof window & { __NOTES_DB_NAME__?: string }).__NOTES_DB_NAME__;
@@ -124,6 +124,29 @@ export async function getDB() {
 	return await initDB();
 }
 
+export async function resetDatabase() {
+	if (typeof indexedDB === 'undefined') return;
+
+	if (dbPromise) {
+		try {
+			const db = await dbPromise;
+			db.close();
+		} catch {
+			// Reset should still try to delete the database even if opening it failed.
+		}
+	}
+
+	dbPromise = undefined;
+
+	await new Promise<void>((resolve, reject) => {
+		const request = indexedDB.deleteDatabase(getDBName());
+		request.onsuccess = () => resolve();
+		request.onerror = () => reject(request.error ?? new Error('Failed to reset local database.'));
+		request.onblocked = () =>
+			reject(new Error('Database reset is blocked by another Keloc Notes window.'));
+	});
+}
+
 // ─────────────────────────────────────────────
 // Transaction Helpers
 // ─────────────────────────────────────────────
@@ -204,8 +227,10 @@ export async function saveNoteTransactionally(
 	}
 ) {
 	return await withTransaction(['notes_meta', 'notes_contents'], 'readwrite', async (tx) => {
-		await tx.objectStore('notes_meta').put(note);
-		await tx.objectStore('notes_contents').put({ id: note.id, content: note.content });
+		const metaStore = tx.objectStore('notes_meta')!;
+		const contentStore = tx.objectStore('notes_contents')!;
+		await metaStore.put(note);
+		await contentStore.put({ id: note.id, content: note.content });
 	});
 }
 

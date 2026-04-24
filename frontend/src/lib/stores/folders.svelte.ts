@@ -45,6 +45,10 @@ export class FolderStore {
 	});
 
 	constructor() {
+		this.seedSystemViews();
+	}
+
+	private seedSystemViews() {
 		this.folders.clear();
 
 		// Initialize system folders from central registry
@@ -61,6 +65,19 @@ export class FolderStore {
 			});
 			this.folders.set(id, folder);
 		}
+	}
+
+	resetForStartupRetry() {
+		this.items = [];
+		this.editingId = null;
+		this.editingTitle = '';
+		this.rejectedRename = null;
+		if (this.rejectedRenameTimer) {
+			clearTimeout(this.rejectedRenameTimer);
+			this.rejectedRenameTimer = null;
+		}
+		this.isInitialized = false;
+		this.seedSystemViews();
 	}
 
 	loadItems(initialItems: any[] = []) {

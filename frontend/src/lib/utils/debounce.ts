@@ -46,6 +46,11 @@ export class KeyedDebouncer {
 		}
 	}
 
+	clearAll() {
+		const keys = Array.from(this.timers.keys());
+		keys.forEach((key) => this.cancel(key));
+	}
+
 	private execute(key: string) {
 		const pending = this.timers.get(key);
 		if (pending) {

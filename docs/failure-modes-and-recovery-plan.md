@@ -29,7 +29,7 @@ What is already strong:
 What is still weak:
 
 - close-time flush is best-effort and time-bounded
-- startup failures mostly end in a quit dialog
+- blocked-upgrade recovery still needs clearer guidance than a generic failure dialog
 - note content load failures are logged but not clearly recoverable in UI
 - corrupted local storage does not yet have a documented reset-and-restore path
 - import/export failure guarantees are not explicit enough for users
@@ -43,7 +43,8 @@ Status:
 - landed: note persistence now saves note metadata and note content in one IndexedDB transaction
 - landed: shutdown flush now shows a blocking "Saving changes" overlay while pending writes are being flushed
 - landed: flush coverage now includes multiple dirty notes and failed-write settlement
-- remaining: interrupted-shutdown behavior still needs measurement and documentation
+- landed: interrupted-shutdown behavior has been manually verified
+- landed: the guarantee boundary is now documented for maintainers and users
 
 Primary risk:
 
@@ -67,12 +68,21 @@ Acceptance criteria:
 - a note cannot end up with updated metadata but stale body content from the same edit batch
 - flush-before-close waits on whole-note writes, not split writes
 - users see a clear blocking save indicator while shutdown flush is in progress
+- interrupted shutdown behavior is verified and written down in practical terms
 
 ## 2. Startup Failure Recovery
 
+Status:
+
+- landed: startup failures now open a recovery dialog instead of ending in a quit-only dead end
+- landed: the recovery dialog offers retry, copy diagnostics, reset local data, and reset-then-import-backup paths
+- landed: reset flow now clears the IndexedDB database safely before reloading
+- landed: post-reset backup import can resume automatically on the next successful startup
+- landed: focused unit coverage now exists for startup recovery helpers, dialog state, and multi-action alert rendering
+
 Primary risk:
 
-- if IndexedDB init or settings load fails, the app currently tells the user it failed and exits
+- startup failure wording still needs to distinguish blocked upgrades from genuine local corruption more clearly
 
 Required outcome:
 
@@ -80,18 +90,17 @@ Required outcome:
 
 Plan:
 
-1. Replace the single quit-only startup error dialog with a recovery dialog.
+1. Keep the recovery dialog as the default startup failure path.
 2. Offer:
    - retry startup
-   - open recovery help
    - copy diagnostic details
    - reset local database
    - import backup after reset
-3. Separate user-facing wording from raw exception details.
-4. Add tests for:
-   - IndexedDB init failure
+3. Keep separating user-facing wording from raw exception details.
+4. Extend tests for:
    - blocked upgrade at startup
    - malformed settings data
+   - retry success after an initial failure
 
 Acceptance criteria:
 

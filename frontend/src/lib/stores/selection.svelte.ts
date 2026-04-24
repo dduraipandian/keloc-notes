@@ -58,10 +58,14 @@ export class SelectionStore {
 		this.onPersistError = null;
 	}
 
+	resetForStartupRetry() {
+		this.selectedFolderID = null;
+		this.isInitialized = false;
+	}
+
 	private resolveFolderId(id: FolderID | null) {
 		if (!id) return null;
 		return this.folders.findItemById(id) ? id : null;
 	}
 }
-
 
