@@ -11,6 +11,7 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
 	notesRepository: { 
 		list: vi.fn(), 
+		save: vi.fn(),
 		saveMeta: vi.fn(), 
 		saveContent: vi.fn(),
 		getContent: vi.fn()
@@ -148,7 +149,7 @@ describe('NotesStore (Flat Recovery)', () => {
 			vi.useFakeTimers();
 			const onPersistError = vi.fn();
 			(mockNotesStore as any).onPersistError = onPersistError;
-			vi.mocked(notesRepository.saveMeta).mockRejectedValueOnce(new Error('save failed'));
+			vi.mocked(notesRepository.save).mockRejectedValueOnce(new Error('save failed'));
 
 			addNoteToStore({ id: 'n1', title: 'Old' });
 			mockNotesStore.updateNote('n1', { title: 'New' });
@@ -163,7 +164,7 @@ describe('NotesStore (Flat Recovery)', () => {
 		it('does not invoke onPersistError for successful saves', async () => {
 			const onPersistError = vi.fn();
 			(mockNotesStore as any).onPersistError = onPersistError;
-			vi.mocked(notesRepository.saveMeta).mockResolvedValueOnce('n1' as any);
+			vi.mocked(notesRepository.save).mockResolvedValueOnce('n1' as any);
 
 			addNoteToStore({ id: 'n1', title: 'Old' });
 			mockNotesStore.updateNote('n1', { title: 'New' });

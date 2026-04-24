@@ -74,7 +74,7 @@ const mockFolderService = {
 	rename: vi.fn(),
 	toggle: vi.fn(),
 	delete: vi.fn(),
-    ensurePath: vi.fn()
+	ensurePath: vi.fn()
 };
 
 const mockNoteService = {
@@ -82,11 +82,18 @@ const mockNoteService = {
 	select: vi.fn(),
 	create: vi.fn(),
 	delete: vi.fn(),
-	setFavorite: vi.fn()
+	setFavorite: vi.fn(),
+	getNotesForFolder: vi.fn().mockReturnValue([])
 };
 
 const mockTrashService = {
 	recoverNote: vi.fn()
+};
+
+const mockSearchService = {
+	ensureFolderIndexed: vi.fn(),
+	search: vi.fn().mockReturnValue([]),
+	version: 0
 };
 
 vi.mock('../../src/routes/alert.svelte', () => ({
@@ -139,8 +146,10 @@ describe('+page.svelte', () => {
 				[STORE_KEYS.SELECTION, mockSelectionStore],
 				[STORE_KEYS.FOLDERS, mockFolderStore],
 				[STORE_KEYS.NOTES, mockNotesStore],
+				[STORE_KEYS.FOLDER_SERVICE, mockFolderService],
 				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
 				[STORE_KEYS.TRASH_SERVICE, mockTrashService],
+				[STORE_KEYS.SEARCH_SERVICE, mockSearchService],
 				[STORE_KEYS.PREFERENCES, mockPreferencesStore]
 			])
 		});

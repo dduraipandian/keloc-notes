@@ -28,7 +28,6 @@ What is already strong:
 
 What is still weak:
 
-- note metadata and note content are persisted separately
 - close-time flush is best-effort and time-bounded
 - startup failures mostly end in a quit dialog
 - note content load failures are logged but not clearly recoverable in UI
@@ -39,10 +38,14 @@ What is still weak:
 
 ### 1. Live Editing And Save Integrity
 
+Status:
+
+- landed: note persistence now saves note metadata and note content in one IndexedDB transaction
+- remaining: interrupted-shutdown behavior still needs measurement and documentation
+
 Primary risk:
 
-- title / summary / timestamp can be persisted separately from note content
-- a crash or forced quit can leave partial note state
+- a crash or forced quit can still interrupt pending writes that have not started flushing yet
 
 Required outcome:
 
@@ -50,10 +53,8 @@ Required outcome:
 
 Plan:
 
-1. Add a repository path that persists note meta and content in one IndexedDB transaction.
-2. Route debounced note persistence through that transactional path.
-3. Keep pending-write tracking, but treat one note save as one write unit.
-4. Add tests for:
+1. Keep pending-write tracking, but treat one note save as one write unit.
+2. Add tests for:
    - meta write failure
    - content write failure
    - interrupted close during pending writes

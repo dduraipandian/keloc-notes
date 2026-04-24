@@ -9,6 +9,7 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
 	notesRepository: { 
 		list: vi.fn(), 
+		save: vi.fn().mockResolvedValue(undefined),
 		saveMeta: vi.fn().mockResolvedValue(undefined),
 		saveContent: vi.fn().mockResolvedValue(undefined)
 	},

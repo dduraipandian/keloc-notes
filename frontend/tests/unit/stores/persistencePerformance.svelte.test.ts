@@ -10,6 +10,7 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
 	notesRepository: { 
 		list: vi.fn(), 
+		save: vi.fn().mockResolvedValue(undefined),
 		saveMeta: vi.fn().mockResolvedValue(undefined),
 		saveContent: vi.fn().mockResolvedValue(undefined)
 	},
@@ -47,32 +48,38 @@ describe('Phase B: Persistence Performance', () => {
 		mockNotesStore.updateNote('n1', { content: 'typed' });
 		
 		// Should NOT call save immediately
+		expect(notesRepository.save).not.toHaveBeenCalled();
 		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 
 		// Advance time partially
 		vi.advanceTimersByTime(200);
+		expect(notesRepository.save).not.toHaveBeenCalled();
 		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 
 		// Advance to trigger debounce
 		vi.advanceTimersByTime(200);
-		expect(notesRepository.saveContent).toHaveBeenCalledTimes(1);
+		expect(notesRepository.save).toHaveBeenCalledTimes(1);
 		
-		// Verify meta was also updated (updatedAt)
-		expect(notesRepository.saveMeta).toHaveBeenCalledTimes(1);
+		// Verify meta/content were not persisted as separate writes
+		expect(notesRepository.saveMeta).not.toHaveBeenCalled();
+		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 	});
 
 	it('Item 4.1: should flush pending debounce on note switch', () => {
 		mockNotesStore.selectNote('n1');
 		mockNotesStore.updateNote('n1', { content: 'unsaved content' });
 		
+		expect(notesRepository.save).not.toHaveBeenCalled();
 		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 
 		// Switch to another note
 		mockNotesStore.selectNote('n2');
 
 		// n1 should have been flushed immediately
-		expect(notesRepository.saveContent).toHaveBeenCalledTimes(1);
-		expect(notesRepository.saveContent).toHaveBeenCalledWith('n1', 'unsaved content');
+		expect(notesRepository.save).toHaveBeenCalledTimes(1);
+		expect(notesRepository.save).toHaveBeenCalledWith(
+			expect.objectContaining({ id: 'n1', content: 'unsaved content' })
+		);
 	});
 
 	it('Item 4.2: should separate selection persistence from note persistence', () => {
@@ -85,7 +92,8 @@ describe('Phase B: Persistence Performance', () => {
 		// Advance timers so persistence fires
 		vi.advanceTimersByTime(400);
 		
-		expect(notesRepository.saveContent).toHaveBeenCalled();
+		expect(notesRepository.save).toHaveBeenCalled();
+		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 		// settingsRepository.save ONLY for selectedNoteID should NOT be called during note update
 		const selectionCalls = (settingsRepository.save as any).mock.calls.filter(
 			(call: any) => call[0] === 'selectedNoteID'

@@ -177,20 +177,19 @@ export class NotesStore {
 				deletedBatchId: noteToPersist.deletedBatchId
 			};
 
-			const metaWrite = Promise.resolve(notesRepository.saveMeta(meta));
+			const noteWrite = Promise.resolve(
+				notesRepository.save({
+					...meta,
+					content: noteToPersist.isContentLoaded ? noteToPersist.content : ''
+				})
+			);
 			this.trackWrite(
-				metaWrite.catch((err) => {
+				noteWrite.catch((err) => {
 					this.onPersistError?.(err, id);
 				})
 			);
 
 			if (shouldPersistContent && noteToPersist.isContentLoaded) {
-				const contentWrite = Promise.resolve(notesRepository.saveContent(id, noteToPersist.content));
-				this.trackWrite(
-					contentWrite.catch((err) => {
-						this.onPersistError?.(err, `${id}_content`);
-					})
-				);
 				this.dirtyContentNotes.delete(id);
 
 				// Update search index incrementally

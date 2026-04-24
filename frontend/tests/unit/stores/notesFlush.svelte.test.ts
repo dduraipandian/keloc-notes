@@ -9,6 +9,7 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	foldersRepository: { list: vi.fn(), save: vi.fn() },
 	notesRepository: { 
 		list: vi.fn(), 
+		save: vi.fn().mockResolvedValue(undefined),
 		saveMeta: vi.fn().mockResolvedValue(undefined),
 		saveContent: vi.fn().mockResolvedValue(undefined)
 	},
@@ -53,22 +54,28 @@ describe('NotesStore flushAllPendingWrites', () => {
 
 	it('flushes a pending debounced write and waits for the save to settle', async () => {
 		let resolveSave!: () => void;
-		(notesRepository.saveContent as any).mockReturnValue(
+		(notesRepository.save as any).mockReturnValue(
 			new Promise<void>((resolve) => {
 				resolveSave = resolve;
 			})
 		);
 
 		mockNotesStore.updateNote('n1', { content: 'Flushed content' });
+		expect(notesRepository.save).not.toHaveBeenCalled();
 		expect(notesRepository.saveMeta).not.toHaveBeenCalled();
 		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 
 		const flushPromise = mockNotesStore.flushAllPendingWrites();
 		await vi.advanceTimersByTimeAsync(400);
 
-		expect(notesRepository.saveMeta).toHaveBeenCalledTimes(1);
-		expect(notesRepository.saveContent).toHaveBeenCalledTimes(1);
-		expect((notesRepository.saveContent as any).mock.calls[0][1]).toBe('Flushed content');
+		expect(notesRepository.save).toHaveBeenCalledTimes(1);
+		expect((notesRepository.save as any).mock.calls[0][0]).toMatchObject({
+			id: 'n1',
+			content: 'Flushed content',
+			summary: 'Flushed content'
+		});
+		expect(notesRepository.saveMeta).not.toHaveBeenCalled();
+		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 		expect(mockNotesStore.getNote('n1')?.summary).toBe('Flushed content');
 
 		let settled = false;
@@ -85,6 +92,7 @@ describe('NotesStore flushAllPendingWrites', () => {
 
 	it('resolves immediately when there are no pending writes', async () => {
 		await expect(mockNotesStore.flushAllPendingWrites()).resolves.toBeUndefined();
+		expect(notesRepository.save).not.toHaveBeenCalled();
 		expect(notesRepository.saveMeta).not.toHaveBeenCalled();
 		expect(notesRepository.saveContent).not.toHaveBeenCalled();
 	});

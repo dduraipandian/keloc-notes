@@ -18,6 +18,7 @@ import {
 vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	notesRepository: {
 		getBulkContents: vi.fn(),
+		save: vi.fn(),
 		saveMeta: vi.fn(),
 		saveContent: vi.fn(),
 		list: vi.fn(),

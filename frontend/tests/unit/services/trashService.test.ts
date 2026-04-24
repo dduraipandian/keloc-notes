@@ -21,6 +21,7 @@ vi.mock('../../../src/lib/infrastructure/repositories', () => ({
 	},
 	notesRepository: {
 		list: vi.fn(),
+		save: vi.fn(),
 		saveMeta: vi.fn(),
 		saveContent: vi.fn()
 	},

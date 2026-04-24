@@ -1,6 +1,6 @@
 import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 import type { FolderItem } from '../stores/folders.svelte';
-import type { NoteItem } from '../stores/notes.svelte';
+import type { NoteItem, NoteMeta } from '../stores/notes.svelte';
 import type { UIStore } from '../stores/dialog.svelte';
 
 const DEFAULT_DB_NAME = 'kelocnotes-db';
@@ -196,6 +196,17 @@ export async function getNoteMeta(id: string) {
 export async function putNoteContent(id: string, content: string) {
 	const db = await getDB();
 	return db.put('notes_contents', { id, content });
+}
+
+export async function saveNoteTransactionally(
+	note: NoteMeta & {
+		content: string;
+	}
+) {
+	return await withTransaction(['notes_meta', 'notes_contents'], 'readwrite', async (tx) => {
+		await tx.objectStore('notes_meta').put(note);
+		await tx.objectStore('notes_contents').put({ id: note.id, content: note.content });
+	});
 }
 
 export async function getNoteContent(id: string) {

@@ -4,6 +4,7 @@ import {
 	getAllSettings,
 	getBulkNoteContents,
 	getNoteContent,
+	saveNoteTransactionally,
 	permanentDeleteFolderTransactionally,
 	permanentDeleteNoteTransactionally,
 	putFolder,
@@ -33,6 +34,9 @@ export const foldersRepository = {
 export const notesRepository = {
 	list(): Promise<NoteMeta[]> {
 		return getAllNotesMeta();
+	},
+	save(note: NoteMeta & { content: string }) {
+		return saveNoteTransactionally(note);
 	},
 	saveMeta(meta: NoteMeta) {
 		return putNoteMeta(meta);

@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { foldersRepository, notesRepository, settingsRepository, trashRepository } from '../../../src/lib/infrastructure/repositories';
+import {
+	foldersRepository,
+	notesRepository,
+	settingsRepository,
+	trashRepository
+} from '../../../src/lib/infrastructure/repositories';
 import * as idbr from '../../../src/lib/infrastructure/idbr';
 
 // Mock idbr to verify wiring without actually calling IndexedDB again
@@ -7,6 +12,7 @@ vi.mock('../../../src/lib/infrastructure/idbr', () => ({
 	getAllFolders: vi.fn(),
 	putFolder: vi.fn(),
 	getAllNotesMeta: vi.fn(),
+	saveNoteTransactionally: vi.fn(),
 	putNoteMeta: vi.fn(),
 	putNoteContent: vi.fn(),
 	getNoteContent: vi.fn(),
@@ -37,6 +43,12 @@ describe('Repositories (Wiring Tests)', () => {
 		const meta = { id: 'n1' } as any;
 		await notesRepository.saveMeta(meta);
 		expect(idbr.putNoteMeta).toHaveBeenCalledWith(meta);
+	});
+
+	it('notesRepository.save should call saveNote Transactionally', async () => {
+		const note = { id: 'n1', content: 'content' } as any;
+		await notesRepository.save(note);
+		expect(idbr.saveNoteTransactionally).toHaveBeenCalledWith(note);
 	});
 
 	it('notesRepository.saveContent should call putNoteContent', async () => {
