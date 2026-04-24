@@ -1,6 +1,6 @@
 # keloc-notes
 
-A local-first desktop notes app for people who like the shape of Apple Notes or Bear, but want their data to stay local and export cleanly.
+A local-first desktop notes app for people who like the general shape of Apple Notes or Bear, but want local storage, a native desktop shell, and straightforward export options.
 
 ## Why This Exists
 
@@ -10,9 +10,9 @@ Most note apps force a tradeoff:
 - markdown files, but the UX feels like a text editor instead of a notes app
 - sync-first products, but you lose the speed and privacy of local storage
 
-That is the gap `keloc-notes` is trying to fill. It uses a three-pane notes UI, keeps data on the machine, and gives you import/export paths that are actually useful.
+That is what `keloc-notes` is trying to do. It keeps the familiar three-pane layout, stores data locally, and makes import/export part of the product instead of an afterthought.
 
-It is mainly aimed at:
+Right now it is mainly aimed at:
 
 - developers who want a local-first notes app they can hack on
 - users who want a native-feeling desktop app without mandatory accounts
@@ -23,6 +23,7 @@ It is mainly aimed at:
 - Local-first storage. Notes, folders, and settings are stored on-device in IndexedDB.
 - Native desktop shell. Built with Wails, so the app runs as a desktop window instead of a browser tab.
 - Three-pane note workflow. Browse folders, scan note lists, and edit the selected note side by side.
+- Rich text editor. Notes are edited in a Tiptap-based editor instead of a plain textarea.
 - Folder-scoped full-text search. Search matches note titles and note content inside the active folder subtree.
 - Favorites and trash views. Keep important notes close and recover deleted notes before permanent removal.
 - Folder hierarchy. Create nested folders and move through a structured note library.
@@ -72,23 +73,11 @@ Repo layout at a glance:
     └── tests/                # Unit and E2E coverage
 ```
 
-## Quick Start
-
 ## Install
 
 ### macOS
 
-The intended install path is a macOS `.dmg`.
-
-Maintainers can package that release artifact with:
-
-```bash
-./scripts/build-icon.sh frontend/src/lib/assets/app-icon.svg build/appicon
-wails build
-./scripts/create-dmg.sh
-```
-
-More detail is in [docs/macos-release.md](docs/macos-release.md).
+If you just want to use the app, the intended install path is a macOS `.dmg`.
 
 Once that release artifact is published, the install flow should be:
 
@@ -114,7 +103,17 @@ You can also use the Finder shortcut:
 
 This is not the long-term goal. A polished public release should be signed and notarized so this extra step is not needed.
 
-### Run From Source
+## Release Channel
+
+For now, the planned release channel is simple:
+
+- end users download the latest macOS `.dmg` from GitHub Releases
+- updates are manual, not automatic
+- release notes should call out platform support clearly: `macOS supported`, `Windows preview`, `Linux preview`
+
+There is no auto-update system yet. When a new version is available, users will need to download the new `.dmg` and replace the app manually.
+
+## Run From Source
 
 If you want to run it from source:
 
@@ -166,6 +165,16 @@ wails build
 The built desktop app is emitted by Wails using the repo's root configuration.
 That produces the app bundle used for packaging. It is still a maintainer/developer step, not the end-user install flow.
 
+Maintainers can package the macOS release artifact with:
+
+```bash
+./scripts/build-icon.sh frontend/src/lib/assets/app-icon.svg build/appicon
+wails build
+./scripts/create-dmg.sh
+```
+
+More detail is in [docs/macos-release.md](docs/macos-release.md).
+
 ## Use Cases
 
 - Personal knowledge base you want to keep fully local.
@@ -173,6 +182,21 @@ That produces the app bundle used for packaging. It is still a maintainer/develo
 - Offline-first writing, meeting notes, and idea capture.
 - Prototyping a native-feeling desktop app with Svelte 5 and Wails.
 - Studying a local-first architecture that keeps most product logic in the frontend.
+
+## Who This Is For
+
+`keloc-notes` is a better fit if you want:
+
+- a notes app, not a Markdown IDE
+- local storage first, without mandatory accounts or sync
+- a desktop app that still gives you practical export paths
+
+It is probably not the right fit if you need:
+
+- collaboration or sharing
+- mobile clients
+- cloud sync
+- a mature multi-platform release story today
 
 ## Configuration
 
@@ -189,6 +213,18 @@ Important assumptions:
 - This is a local-first app. There is no built-in sync service.
 - The frontend owns almost all app logic. Go mainly provides desktop capabilities and native dialogs.
 - On Linux and Windows, the menu package is currently a stub, so those platforms should be treated as preview rather than fully supported.
+
+## Security And Storage
+
+Short version:
+
+- notes are stored locally in IndexedDB inside the embedded webview runtime
+- the app does not currently implement app-level encryption at rest
+- there is no built-in sync or account system
+- import/export uses user-driven local file dialogs
+- JSON backups currently use `schemaVersion: 1`
+
+More detail is in [docs/security-and-storage.md](docs/security-and-storage.md) and the disclosure policy is in [SECURITY.md](SECURITY.md).
 
 ## Development
 
@@ -246,7 +282,6 @@ In practice, this should be fine for a personal notes library with hundreds to l
 ## Limitations
 
 - No sync, collaboration, sharing, or mobile clients.
-- The current editor is a plain textarea-based editor, not a full rich-text editor.
 - Windows and Linux are preview platforms today; native menu support is not implemented yet.
 - The macOS distribution path is a `.dmg`, but notarization is still deferred for now, so first launch may require a manual Gatekeeper override.
 - Backup/import behavior exists, but the repo would benefit from clearer guarantees around backup compatibility and restore semantics across versions.
@@ -297,4 +332,4 @@ If you try `keloc-notes`, opening an issue is useful, especially if you include:
 - what blocked you
 - what data portability or local-first feature you care about most
 
-The biggest gap right now is not the basic architecture. It is packaging, onboarding, and release polish.
+The biggest gaps right now are release polish, trust documentation, and cross-platform parity rather than basic note-taking functionality.
