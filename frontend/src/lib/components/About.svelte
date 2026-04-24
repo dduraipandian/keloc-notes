@@ -6,6 +6,7 @@
 		AlertDialogTitle
 	} from './ui/alert-dialog';
 	import appIcon from '$lib/assets/app-icon.svg';
+	import { APP_VERSION } from '$lib/appVersion';
 
 	interface Props {
 		open?: boolean;
@@ -14,7 +15,7 @@
 
 	let { open = $bindable(false), onClose }: Props = $props();
 
-	const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0';
+	const appVersion = APP_VERSION;
 </script>
 
 <AlertDialog

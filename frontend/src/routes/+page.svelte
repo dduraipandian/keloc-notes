@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import Info from '@lucide/svelte/icons/info';
 	import { getUIStore, getSelectionStore, getTrashService, getNotesStore, getFolderStore, getFolderService, getSearchService, getNoteService } from '$lib/stores/context';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
@@ -26,6 +27,7 @@
 	);
 
 	let restoreContext = $derived(noteListView.getRestoreContext(selectedNote));
+	const visibleNoteIds = $derived(noteListView.getVisibleNoteIds());
 
 	function handleRestoreInit() {
 		if (!selectedNote) return;
@@ -81,28 +83,41 @@
 	</div>
 {:else}
 	<div
-		class="flex h-full animate-in flex-col items-center justify-center bg-card/50 text-muted-foreground/20 duration-1000 zoom-in-95"
+		class="flex h-full animate-in flex-col items-center justify-center bg-card/50 duration-1000 zoom-in-95"
 		data-testid="editor-pane"
 		use:activatePaneOnClick={'editor'}
 	>
-		<div class="relative mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-accent/5">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="40"
-				height="40"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				class="opacity-10"
-			>
-				<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-				<polyline points="14 2 14 8 20 8" />
-			</svg>
-		</div>
-		<p class="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40">Select a note to view</p>
+		<Empty.Root class="min-h-0 border-transparent bg-transparent text-muted-foreground/20">
+			<Empty.Header>
+				<Empty.Media class="relative mb-2 flex h-20 w-20 items-center justify-center rounded-3xl bg-accent/5" variant="default">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="40"
+						height="40"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						class="opacity-10"
+					>
+						<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+						<polyline points="14 2 14 8 20 8" />
+					</svg>
+				</Empty.Media>
+				<Empty.Title class="text-[10px] font-bold tracking-[0.3em] uppercase opacity-40">
+					Select a note to view
+				</Empty.Title>
+				<Empty.Description class="mt-1 max-w-64 text-xs leading-relaxed text-muted-foreground/60">
+					{#if visibleNoteIds.length === 0}
+						Create a folder, add your first note, and it will open here.
+					{:else}
+						Choose a note from the list to start editing.
+					{/if}
+				</Empty.Description>
+			</Empty.Header>
+		</Empty.Root>
 	</div>
 {/if}
 

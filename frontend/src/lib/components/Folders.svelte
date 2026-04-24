@@ -4,6 +4,7 @@
 	import Sun from '@lucide/svelte/icons/sun';
 	import Moon from '@lucide/svelte/icons/moon';
 	import Monitor from '@lucide/svelte/icons/monitor';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
@@ -31,6 +32,11 @@
 	const folderSidebarView = getFolderSidebarView();
 	const uiStateStore = getUIStateStore();
 	const themeStore = getThemeStore();
+	const hasUserFolders = $derived(
+		folderSidebarView.sections.some(
+			(section) => section.id === 'folders' && section.sources.length > 0
+		)
+	);
 
 
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
@@ -84,6 +90,16 @@
 		</Sidebar.Content>
 
 		<Sidebar.Footer class="mt-auto border-t-0 p-4">
+			{#if !hasUserFolders}
+				<Empty.Root class="mb-3 min-h-0 border-transparent p-2">
+					<Empty.Header class="max-w-none gap-1.5">
+						<Empty.Title class="text-[11px] font-medium">Start here</Empty.Title>
+						<Empty.Description class="text-[11px] leading-relaxed">
+							Create your first folder, then add a note inside it.
+						</Empty.Description>
+					</Empty.Header>
+				</Empty.Root>
+			{/if}
 			<div class="flex items-center justify-between gap-1 px-2">
 				<Sidebar.Menu class="flex-1">
 					<Sidebar.MenuItem>

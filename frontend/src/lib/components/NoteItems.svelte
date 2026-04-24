@@ -3,6 +3,7 @@
 	import Star from '@lucide/svelte/icons/star';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
+	import * as Empty from '$lib/components/ui/empty/index.js';
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
@@ -36,6 +37,7 @@
 	});
 
 	const sections = $derived(noteListView.getSections());
+	const isEmptyState = $derived(sections.length === 0);
 
 	function handleNoteRestore(note: NoteItem) {
 		uiStore.confirmNoteRestore(note.title, () => {
@@ -102,51 +104,69 @@
 			</div>
 		</div>
 		<div class="custom-scrollbar flex-1 overflow-y-auto px-4 pb-8">
-			{#each sections as [label, notes]}
-				<Item.Group>
-					<Item.Header class="mt-4 px-3">
-						<span
-							class="text-[11px] font-bold tracking-[0.05em] text-foreground uppercase opacity-30"
-						>
-							{label}
-						</span>
-					</Item.Header>
-					{#each notes as note, i (note.id)}
-						{@const isSelected = noteListView.isSelectedNote(note.id)}
-						<ContextMenu.Root>
-							<ContextMenu.Trigger>
-								<Item.Root
-									class={[
-										'mx-1 mb-0.5 rounded-lg border-none shadow-none transition-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:shadow-none focus-visible:ring-0',
-										isSelected ? 'bg-accent/80' : 'bg-transparent hover:bg-accent/30'
-									]}
-									onclick={() => noteService.select(note.id)}
-								>
-									<Item.Content class="px-3 py-3">
-										<Item.Title class="mb-0.5 flex w-full items-center gap-2 overflow-hidden">
-											{#if note.isFavorite}
-												<Star size={12} class="shrink-0 fill-[#f5d04e] text-[#f5d04e]" />
-											{/if}
-											<span class="flex-1 truncate text-[13px] font-bold text-foreground">
-												{note.title || 'Untitled Note'}
-											</span>
-											<span class="shrink-0 text-[11px] text-foreground/40 tabular-nums">
-												{getTime(note.updatedAt)}
-											</span>
-										</Item.Title>
-										<Item.Description
-											class="line-clamp-1 text-[12px] leading-snug break-all text-foreground/50"
-										>
-											{note.summary || 'No additional text'}
-										</Item.Description>
-									</Item.Content>
-								</Item.Root>
-							</ContextMenu.Trigger>
-							{@render ContextMenuContentSnippet(note)}
-						</ContextMenu.Root>
-					{/each}
-				</Item.Group>
-			{/each}
+			{#if isEmptyState}
+				<Empty.Root class="mt-10 min-h-48 border-transparent px-6">
+					<Empty.Header>
+						<Empty.Media variant="icon">
+							<SquarePen size={16} />
+						</Empty.Media>
+						<Empty.Title>No notes here yet</Empty.Title>
+						<Empty.Description class="max-w-56 text-xs">
+							{#if canCreateNote}
+								Create your first note to start writing in this folder.
+							{:else}
+								Start by creating a folder, then create your first note.
+							{/if}
+						</Empty.Description>
+					</Empty.Header>
+				</Empty.Root>
+			{:else}
+				{#each sections as [label, notes]}
+					<Item.Group>
+						<Item.Header class="mt-4 px-3">
+							<span
+								class="text-[11px] font-bold tracking-[0.05em] text-foreground uppercase opacity-30"
+							>
+								{label}
+							</span>
+						</Item.Header>
+						{#each notes as note, i (note.id)}
+							{@const isSelected = noteListView.isSelectedNote(note.id)}
+							<ContextMenu.Root>
+								<ContextMenu.Trigger>
+									<Item.Root
+										class={[
+											'mx-1 mb-0.5 rounded-lg border-none shadow-none transition-none outline-none focus:outline-none focus-visible:border-transparent focus-visible:shadow-none focus-visible:ring-0',
+											isSelected ? 'bg-accent/80' : 'bg-transparent hover:bg-accent/30'
+										]}
+										onclick={() => noteService.select(note.id)}
+									>
+										<Item.Content class="px-3 py-3">
+											<Item.Title class="mb-0.5 flex w-full items-center gap-2 overflow-hidden">
+												{#if note.isFavorite}
+													<Star size={12} class="shrink-0 fill-[#f5d04e] text-[#f5d04e]" />
+												{/if}
+												<span class="flex-1 truncate text-[13px] font-bold text-foreground">
+													{note.title || 'Untitled Note'}
+												</span>
+												<span class="shrink-0 text-[11px] text-foreground/40 tabular-nums">
+													{getTime(note.updatedAt)}
+												</span>
+											</Item.Title>
+											<Item.Description
+												class="line-clamp-1 text-[12px] leading-snug break-all text-foreground/50"
+											>
+												{note.summary || 'No additional text'}
+											</Item.Description>
+										</Item.Content>
+									</Item.Root>
+								</ContextMenu.Trigger>
+								{@render ContextMenuContentSnippet(note)}
+							</ContextMenu.Root>
+						{/each}
+					</Item.Group>
+				{/each}
+			{/if}
 		</div>
 	</div>
 </aside>

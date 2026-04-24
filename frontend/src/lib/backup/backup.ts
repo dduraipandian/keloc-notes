@@ -5,6 +5,7 @@ import type { NoteService } from '$lib/stores/services/noteService';
 import { resolveProfile } from '$lib/stores/domain/profiles';
 import type { FolderItem } from '$lib/stores/folders.svelte';
 import { hasLibraryBeenUsed, withTransaction } from '$lib/infrastructure/idbr';
+import { APP_VERSION } from '$lib/appVersion';
 
 type SerializedNoteAsset = {
 	id: string;
@@ -241,7 +242,7 @@ export async function exportBackup(
 	const backup: BackupPayload = {
 		schemaVersion: 1,
 		exportedAt: new Date().toISOString(),
-		appVersion: import.meta.env.VITE_APP_VERSION || '1.0.0',
+		appVersion: APP_VERSION,
 		folders,
 		notes: fullNotesArr,
 		settings
