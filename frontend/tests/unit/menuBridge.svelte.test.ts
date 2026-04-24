@@ -231,6 +231,37 @@ describe('Menu Bridge System', () => {
 	});
 
 	describe('Backup Import/Export Errors', () => {
+		it('flushes pending note writes before backup export reads IndexedDB', async () => {
+			const exportBackupHandler = vi.fn();
+			vi.mocked(EventsOn).mockImplementation((event, handler) => {
+				if (event === 'menu:export-backup') {
+					exportBackupHandler.mockImplementation(handler);
+				}
+				return () => {};
+			});
+			const flushSpy = vi
+				.spyOn(mockNotesStore, 'flushAllPendingWrites')
+				.mockResolvedValue(undefined);
+
+			const theme = new ThemeStore();
+			const uiState = new UIStateStore();
+			initMenuBridge({
+				theme,
+				uiState,
+				ui: mockUIStore as any,
+				selection: mockSelectionStore,
+				folders: mockFolderStore,
+				notes: mockNotesStore,
+				folderService: mockFolderService as any,
+				noteService: mockNoteService as any,
+				trashService: mockTrashService as any
+			});
+
+			await exportBackupHandler();
+
+			expect(flushSpy).toHaveBeenCalledOnce();
+		});
+
 		it('surfaces a user-visible error when backup export fails', async () => {
 			const exportBackupHandler = vi.fn();
 			vi.mocked(EventsOn).mockImplementation((event, handler) => {

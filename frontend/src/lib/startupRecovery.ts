@@ -17,6 +17,8 @@ export type StartupRecoveryGuidance = {
 	appReset: boolean;
 };
 
+export type StartupRecoveryResetResult = 'cancelled' | 'reset';
+
 function getErrorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
@@ -56,7 +58,7 @@ export function buildStartupRecoveryGuidance(error: unknown): StartupRecoveryGui
 			primaryAction:
 				'Try Retry Startup first. If it fails again, copy diagnostics and restore from a known-good backup after reset.',
 			resetWarning:
-				'Reset Local Data removes the local database on this device. Use it only when you have a backup or accept local data loss.',
+				'Before reset, Keloc Notes will ask you to export a backup copy to a file. Reset Local Data removes the local database on this device if you proceed.',
 			appReset: true
 		};
 	}
@@ -74,7 +76,7 @@ export function buildStartupRecoveryGuidance(error: unknown): StartupRecoveryGui
 			primaryAction:
 				'Try Retry Startup. If the problem continues, copy diagnostics before choosing a reset option.',
 			resetWarning:
-				'Reset Local Data removes the local database on this device. Import a backup after reset when possible.',
+				'Before reset, Keloc Notes will ask you to export a backup copy to a file. Reset Local Data removes the local database on this device if you proceed.',
 			appReset: true
 		};
 	}
@@ -86,7 +88,7 @@ export function buildStartupRecoveryGuidance(error: unknown): StartupRecoveryGui
 		primaryAction:
 			'Try Retry Startup. If the problem continues, copy diagnostics before choosing a reset option.',
 		resetWarning:
-			'Reset Local Data removes the local database on this device. Import a backup after reset when possible.',
+			'Before reset, Keloc Notes will ask you to export a backup copy to a file. Reset Local Data removes the local database on this device if you proceed.',
 		appReset: true
 	};
 }
@@ -172,4 +174,36 @@ export async function resetLocalDataForRecovery({
 
 	await resetDatabaseImpl();
 	reload();
+}
+
+export async function exportBackupAndResetLocalDataForRecovery({
+	exportBackupJson,
+	saveBackupFile,
+	resetDatabase: resetDatabaseImpl = resetDatabase,
+	reload = () => window.location.reload(),
+	importBackupAfterReset = false,
+	storage = sessionStorage
+}: {
+	exportBackupJson: () => Promise<string>;
+	saveBackupFile: (content: string) => Promise<boolean>;
+	resetDatabase?: () => Promise<void>;
+	reload?: () => void;
+	importBackupAfterReset?: boolean;
+	storage?: Storage;
+}): Promise<StartupRecoveryResetResult> {
+	const backupJson = await exportBackupJson();
+	const backupSaved = await saveBackupFile(backupJson);
+
+	if (!backupSaved) {
+		return 'cancelled';
+	}
+
+	await resetLocalDataForRecovery({
+		resetDatabase: resetDatabaseImpl,
+		reload,
+		importBackupAfterReset,
+		storage
+	});
+
+	return 'reset';
 }

@@ -47,7 +47,7 @@ export function OnToggleSidebar():Promise<void>;
 
 export function ReadBackupFile():Promise<string>;
 
-export function SaveBackupFile(arg1:string):Promise<void>;
+export function SaveBackupFile(arg1:string):Promise<boolean>;
 
 export function SetMenuRefs(arg1:menu.MenuRefs):Promise<void>;
 

@@ -1,6 +1,11 @@
 import type { FolderStore } from '$lib/stores/folders.svelte';
 import type { NoteMeta, NotesStore } from '$lib/stores/notes.svelte';
-import { assetsRepository, settingsRepository } from '$lib/infrastructure/repositories';
+import {
+	assetsRepository,
+	foldersRepository,
+	notesRepository,
+	settingsRepository
+} from '$lib/infrastructure/repositories';
 import type { NoteService } from '$lib/stores/services/noteService';
 import { resolveProfile } from '$lib/stores/domain/profiles';
 import type { FolderItem } from '$lib/stores/folders.svelte';
@@ -210,32 +215,33 @@ export async function exportBackup(
 	notesStore: NotesStore
 ): Promise<string> {
 	void noteService;
-	const folders = Array.from(folderStore.folders.values())
+	void folderStore;
+	void notesStore;
+
+	const folders = (await foldersRepository.list())
 		.filter((folder) => resolveProfile(folder).section === 'folders')
 		.map((folder) => ({ ...folder }));
-	const noteIds = Array.from(notesStore.notes.keys());
-	const contents = await notesStore.getBulkNoteContents(noteIds);
+	const notes = await notesRepository.list();
+	const noteIds = notes.map((note) => note.id);
+	const contents = await notesRepository.getBulkContents(noteIds);
 	const fullNotesArr = await Promise.all(
-		noteIds
-			.map((id) => notesStore.getNote(id))
-			.filter((note): note is NonNullable<typeof note> => note != null)
-			.map(async (note) => ({
-				id: note.id,
-				folderId: note.folderId ?? null,
-				title: note.title,
-				summary: note.summary,
-				updatedAt: note.updatedAt,
-				isFavorite: note.isFavorite ?? false,
-				deletedAt: note.deletedAt ?? null,
-				deletedBatchId: note.deletedBatchId ?? null,
-				content: contents[note.id] ?? note.content ?? '',
-				...(await (async () => {
-					const assets = await Promise.all(
-						(await assetsRepository.getByNoteId(note.id)).map((asset) => serializeNoteAsset(asset))
-					);
-					return assets.length > 0 ? { assets } : {};
-				})())
-			}))
+		notes.map(async (note) => ({
+			id: note.id,
+			folderId: note.folderId ?? null,
+			title: note.title,
+			summary: note.summary,
+			updatedAt: note.updatedAt,
+			isFavorite: note.isFavorite ?? false,
+			deletedAt: note.deletedAt ?? null,
+			deletedBatchId: note.deletedBatchId ?? null,
+			content: contents[note.id] ?? '',
+			...(await (async () => {
+				const assets = await Promise.all(
+					(await assetsRepository.getByNoteId(note.id)).map((asset) => serializeNoteAsset(asset))
+				);
+				return assets.length > 0 ? { assets } : {};
+			})())
+		}))
 	);
 	const settings = await settingsRepository.getAll();
 

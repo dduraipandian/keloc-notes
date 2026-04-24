@@ -116,6 +116,33 @@ What this means in practice:
 
 Markdown ZIP import/export is available for portability, but it is a different format and should not be treated as identical to a full JSON backup.
 
+## Save And Shutdown Guarantees
+
+Current guarantees:
+
+- once a note save begins, note metadata and note content are written together in one IndexedDB transaction
+- the app does not intentionally split a single note save into separate metadata/content writes anymore
+- normal app close attempts to flush pending debounced note writes before exit
+- while that close-time flush is running, the app shows a blocking "Saving Changes" status
+
+Current limits:
+
+- the close-time flush is still best-effort and bounded by the desktop shell close timeout
+- force quit, crash, power loss, or OS-level kill can still interrupt work that has not started persisting yet
+- the app does not currently claim zero-loss guarantees for abnormal termination
+
+Practical meaning:
+
+- if a note save has already started, the note should not be left with new metadata and old content from the same save
+- if you close the app normally, it will try to flush pending writes before exit
+- if you hard-kill the app while recent edits are still only in memory or still waiting for debounce, those latest edits may be lost
+
+If you care about durability:
+
+- close the app normally instead of force quitting it
+- keep periodic JSON backups
+- test backup restore on a non-primary library before treating backups as your only recovery path
+
 ## Current Trust Gaps
 
 The project still has some trust work left:

@@ -43,7 +43,8 @@
 	import { Toaster, toast } from '$lib/components/ui/sonner';
 	import { PreferencesStore } from '$lib/stores/preferences.svelte';
 	import { hasWailsRuntime } from '$lib/wails.svelte';
-	import { OnImportBackup, UpdateMenuState } from '$lib/wailsjs/go/main/App';
+	import { OnImportBackup, SaveBackupFile, UpdateMenuState } from '$lib/wailsjs/go/main/App';
+	import { exportBackup } from '$lib/backup/backup';
 	import { menu } from '$lib/wailsjs/go/models';
 	import { setDatabaseBlockedHandler } from '$lib/infrastructure/idbr';
 	import BackupImportOverlay from '$lib/components/BackupImportOverlay.svelte';
@@ -55,7 +56,7 @@
 		buildStartupRecoveryDiagnostics,
 		consumePendingStartupRecoveryImport,
 		copyStartupRecoveryDiagnostics,
-		resetLocalDataForRecovery
+		exportBackupAndResetLocalDataForRecovery
 	} from '$lib/startupRecovery';
 	import { ClipboardSetText } from '$lib/wailsjs/runtime/runtime';
 
@@ -457,16 +458,27 @@
 						});
 				},
 				onResetLocalData: () => {
-					void resetLocalDataForRecovery().catch((resetError) => {
+					void exportBackupAndResetLocalDataForRecovery({
+						exportBackupJson: () => exportBackup(noteService, folderStore, notesStore),
+						saveBackupFile: (content) => SaveBackupFile(content)
+					}).catch((resetError) => {
 						toast.error(
-							resetError instanceof Error ? resetError.message : 'Failed to reset local data.'
+							resetError instanceof Error
+								? resetError.message
+								: 'Failed to back up and reset local data.'
 						);
 					});
 				},
 				onResetAndImportBackup: () => {
-					void resetLocalDataForRecovery({ importBackupAfterReset: true }).catch((resetError) => {
+					void exportBackupAndResetLocalDataForRecovery({
+						exportBackupJson: () => exportBackup(noteService, folderStore, notesStore),
+						saveBackupFile: (content) => SaveBackupFile(content),
+						importBackupAfterReset: true
+					}).catch((resetError) => {
 						toast.error(
-							resetError instanceof Error ? resetError.message : 'Failed to reset local data.'
+							resetError instanceof Error
+								? resetError.message
+								: 'Failed to back up and reset local data.'
 						);
 					});
 				},

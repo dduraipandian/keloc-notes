@@ -224,6 +224,13 @@ Short version:
 - import/export uses user-driven local file dialogs
 - JSON backups currently use `schemaVersion: 1`
 
+Save and shutdown guarantees today:
+
+- once a note save starts, note metadata and note content are written together in one IndexedDB transaction
+- normal app close attempts to flush pending note writes before exit and shows a blocking "Saving Changes" status while that flush is running
+- the close-time flush is still best-effort and time-bounded by the desktop shell
+- force quit, crash, or OS kill can still lose edits that have not started persisting yet
+
 More detail is in [docs/security-and-storage.md](docs/security-and-storage.md) and the disclosure policy is in [SECURITY.md](SECURITY.md).
 
 ## Development

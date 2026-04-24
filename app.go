@@ -245,8 +245,8 @@ func (a *App) ImportNotesZip() ([]exp.ImportedNoteDTO, error) {
 	return exp.ParseNotesZip(file, fi.Size())
 }
 
-// SaveBackupFile saves a JSON backup file
-func (a *App) SaveBackupFile(content string) error {
+// SaveBackupFile saves a JSON backup file and reports whether the user completed the save dialog.
+func (a *App) SaveBackupFile(content string) (bool, error) {
 	filepath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		DefaultFilename: "kelocnotes_backup.json",
 		Filters: []runtime.FileFilter{
@@ -256,11 +256,18 @@ func (a *App) SaveBackupFile(content string) error {
 			},
 		},
 	})
-	if err != nil || filepath == "" {
-		return err
+	if err != nil {
+		return false, err
+	}
+	if filepath == "" {
+		return false, nil
 	}
 
-	return os.WriteFile(filepath, []byte(content), 0644)
+	if err := os.WriteFile(filepath, []byte(content), 0644); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // ReadBackupFile opens a file dialog and returns the backup JSON contents

@@ -117,6 +117,52 @@ describe('Backup persistence', () => {
 		]);
 	});
 
+	it('exports backup from IndexedDB even when live stores are empty during startup recovery', async () => {
+		const emptyFolderStore = new FolderStore();
+		const emptyNotesStore = new NotesStore();
+		const emptySelectionStore = new SelectionStore(emptyFolderStore);
+		const emptyNoteService = new NoteService(
+			emptyFolderStore,
+			emptyNotesStore,
+			emptySelectionStore
+		);
+
+		const folder = {
+			id: 'folder-recovery',
+			title: 'Recovery Folder',
+			items: [],
+			parentId: null,
+			deletedAt: null,
+			deletedBatchId: null,
+			isFavorite: false
+		};
+		const note = {
+			id: 'note-recovery',
+			folderId: folder.id,
+			title: 'Recovered Note',
+			summary: 'durable summary',
+			updatedAt: '2026-04-25T00:00:00.000Z',
+			isFavorite: false,
+			deletedAt: null,
+			deletedBatchId: null
+		};
+
+		await putFolder(folder);
+		await putNoteMeta(note);
+		await putNoteContent(note.id, 'Content that only exists in IndexedDB');
+
+		const json = await exportBackup(emptyNoteService, emptyFolderStore, emptyNotesStore);
+		const backup = JSON.parse(json);
+
+		expect(backup.folders).toEqual([folder]);
+		expect(backup.notes).toEqual([
+			{
+				...note,
+				content: 'Content that only exists in IndexedDB'
+			}
+		]);
+	});
+
 	it('imports backups durably so a fresh store initialization can reload the restored data', async () => {
 		const backupJson = JSON.stringify({
 			schemaVersion: 1,

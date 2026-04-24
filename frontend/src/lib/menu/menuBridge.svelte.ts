@@ -235,6 +235,7 @@ export function initMenuBridge(
 			const noteId = notes.selectedNoteID;
 			if (noteId) {
 				try {
+					await notes.flushAllPendingWrites();
 					const harvested = await noteService.getNotesForExport([noteId]);
 					if (harvested.length > 0) {
 						await ExportNoteToFile(harvested[0].title, harvested[0].content);
@@ -250,6 +251,7 @@ export function initMenuBridge(
 	unsubscribers.push(
 		EventsOn('menu:export-all-markdown', async () => {
 			try {
+				await notes.flushAllPendingWrites();
 				const selectedFolderId = getSelectedRegularFolderId();
 				const activeNoteIds = collectScopedNoteIds();
 				const notesToExport = selectedFolderId
@@ -269,6 +271,7 @@ export function initMenuBridge(
 	unsubscribers.push(
 		EventsOn('menu:export-backup', async () => {
 			try {
+				await notes.flushAllPendingWrites();
 				const json = await exportBackup(noteService, folders, notes);
 				await SaveBackupFile(json);
 			} catch (err) {
