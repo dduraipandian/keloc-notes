@@ -45,6 +45,15 @@ export class NotesStore {
 		this.searchService = service;
 	}
 
+	async vacuumSearchIndex(): Promise<void> {
+		if (!this.searchService) return;
+		try {
+			await this.searchService.vacuumIndex();
+		} catch {
+			// vacuum is best-effort — never surface errors to callers
+		}
+	}
+
 	get counts() {
 		return {
 			byFolder: {

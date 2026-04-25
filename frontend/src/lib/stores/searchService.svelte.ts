@@ -17,6 +17,7 @@ export class SearchService {
 	private index = new MiniSearch({
 		fields: ['title', 'content'], // fields to index for full-text search
 		storeFields: ['title'], // fields to return with search results
+		autoVacuum: true,
 		searchOptions: {
 			boost: { title: 5 },
 			prefix: true
@@ -79,6 +80,10 @@ export class SearchService {
 			this.index.discard(id);
 			this.version++;
 		}
+	}
+
+	async vacuumIndex(): Promise<void> {
+		await this.index.vacuum();
 	}
 
 	/**

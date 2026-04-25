@@ -85,6 +85,7 @@ export class TrashService {
 			notesToDelete.forEach(({ note }) => this.notes.removeNoteLocally(note.id));
 			this.folders.applyPermanentDeleteState(foldersToDelete);
 			this.selection.clearFolderIfSelected(folderId);
+			await this.notes.vacuumSearchIndex();
 		} catch (error) {
 			console.error('Failed to permanently delete folder and children:', error);
 			throw error;
@@ -124,6 +125,7 @@ export class TrashService {
 			notesToDelete.forEach(({ note }) => this.notes.removeNoteLocally(note.id));
 			this.folders.applyPermanentDeleteState(foldersToDelete);
 			deletedFolderIds.forEach((id) => this.selection.clearFolderIfSelected(id));
+			await this.notes.vacuumSearchIndex();
 		} catch (error) {
 			console.error('Failed to empty trash:', error);
 			throw error;
