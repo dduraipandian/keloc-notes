@@ -32,25 +32,34 @@ export class FolderTreeHelper {
 	}
 
 	collectFolderSubtree(folderId: FolderID): FolderItem[] {
-		const folder = this.folders.findItemById(folderId);
-		if (!folder) return [];
-
-		return [
-			snapshotFolder(folder),
-			...(folder.items ?? []).flatMap((childId) => this.collectFolderSubtree(childId))
-		];
+		const result: FolderItem[] = [];
+		const visited = new Set<FolderID>();
+		const visit = (id: FolderID) => {
+			if (visited.has(id)) return;
+			const folder = this.folders.findItemById(id);
+			if (!folder) return;
+			visited.add(id);
+			result.push(snapshotFolder(folder));
+			for (const childId of folder.items ?? []) {
+				visit(childId);
+			}
+		};
+		visit(folderId);
+		return result;
 	}
 
 	getFolderSubtreeIds(rootId: FolderID) {
-		const ids = new Set<FolderID>([rootId]);
-		const folder = this.folders.findItemById(rootId);
-		if (!folder?.items) return ids;
-
-		for (const childId of folder.items) {
-			const childSubtree = this.getFolderSubtreeIds(childId);
-			childSubtree.forEach((id) => ids.add(id));
-		}
-
+		const ids = new Set<FolderID>();
+		const visit = (id: FolderID) => {
+			if (ids.has(id)) return;
+			const folder = this.folders.findItemById(id);
+			if (!folder) return;
+			ids.add(id);
+			for (const childId of folder.items ?? []) {
+				visit(childId);
+			}
+		};
+		visit(rootId);
 		return ids;
 	}
 

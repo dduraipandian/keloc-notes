@@ -1,4 +1,5 @@
 import { resolveProfile, SYSTEM_VIEWS } from './domain/profiles';
+import type { SearchService } from './searchService.svelte';
 
 export type FolderID = string;
 
@@ -29,6 +30,15 @@ export class FolderStore {
 	private isInitialized = false;
 	onPersistError = $state<((err: unknown, folderId: string) => void) | null>(null);
 	private rejectedRenameTimer: ReturnType<typeof setTimeout> | null = null;
+	private searchService: SearchService | null = null;
+
+	setSearchService(service: SearchService) {
+		this.searchService = service;
+	}
+
+	removeFolderFromSearchIndex(folderId: FolderID): void {
+		this.searchService?.removeFolderIndex(folderId);
+	}
 
 	trashItems = $derived.by(() => {
 		const deletedIds: string[] = [];

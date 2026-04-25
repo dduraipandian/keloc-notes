@@ -17,6 +17,7 @@ export type FolderStoreLike = {
 	rootFolderIfParentMissing(id: FolderID): void;
 	applyPermanentDeleteState(foldersToDelete: FolderItem[]): void;
 	trashItems: FolderID[];
+	removeFolderFromSearchIndex(folderId: FolderID): void;
 };
 
 export type SelectionStoreLike = {

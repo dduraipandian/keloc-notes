@@ -88,6 +88,7 @@
 
 	// Break circular dependency
 	notesStore.setSearchService(searchService);
+	folderStore.setSearchService(searchService);
 
 	setDatabaseBlockedHandler((current, blocked) => {
 		uiStore.confirmAppQuit(

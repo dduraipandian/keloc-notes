@@ -54,7 +54,7 @@ export class NotesStore {
 		}
 	}
 
-	get counts() {
+get counts() {
 		return {
 			byFolder: {
 				get: (id: string | null) => this.folderNoteCounts[id ?? 'null'] ?? 0

@@ -82,6 +82,10 @@ export class SearchService {
 		}
 	}
 
+	removeFolderIndex(folderId: string) {
+		this.indexedFolderIds.delete(folderId);
+	}
+
 	async vacuumIndex(): Promise<void> {
 		await this.index.vacuum();
 	}
@@ -113,20 +117,19 @@ export class SearchService {
 	 * Helper to gather all folder IDs in a subtree.
 	 */
 	private getFolderSubtreeIds(rootId: string | null): string[] {
-		if (!rootId) return ['root']; // Or whatever your global root is
+		if (!rootId) return ['root'];
 
-		const ids: string[] = [rootId];
-		const visit = (parentId: string) => {
-			const folder = this.folders.findItemById(parentId);
-			const children = folder?.items ?? [];
-			for (const childId of children) {
-				if (!ids.includes(childId)) {
-					ids.push(childId);
-					visit(childId);
-				}
+		const seen = new Set<string>();
+		const visit = (id: string) => {
+			if (seen.has(id)) return;
+			const folder = this.folders.findItemById(id);
+			if (!folder) return;
+			seen.add(id);
+			for (const childId of folder.items ?? []) {
+				visit(childId);
 			}
 		};
 		visit(rootId);
-		return ids;
+		return Array.from(seen);
 	}
 }
