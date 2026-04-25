@@ -34,7 +34,7 @@
 	import NoteItems from '$lib/components/NoteItems.svelte';
 	import { EventsEmit, EventsOn, Quit, WindowSetTitle } from '$lib/wailsjs/runtime/runtime';
 	import { UIStore } from '$lib/stores/dialog.svelte';
-	import { FolderService, NoteService, TrashService, SearchService } from '$lib/stores/services';
+	import { FolderService, NoteService, TrashService, SearchService, OnboardingService } from '$lib/stores/services';
 	import { FolderSidebarView } from '$lib/views/folderSidebarView.svelte';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
 	import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
@@ -80,6 +80,7 @@
 	const noteService = new NoteService(folderStore, notesStore, selectionStore);
 	const trashService = new TrashService(folderStore, notesStore, selectionStore);
 	const searchService = new SearchService(folderStore, notesStore, noteService);
+	const onboardingService = new OnboardingService(folderService, noteService, folderStore, selectionStore, notesStore);
 
 	setFolderService(folderService);
 	setNoteService(noteService);
@@ -425,6 +426,8 @@
 			};
 
 			uiStore.closeDialogs();
+
+			await onboardingService.runFirstRunOnboarding();
 
 			if (consumePendingStartupRecoveryImport() && hasWailsRuntime()) {
 				setTimeout(() => {

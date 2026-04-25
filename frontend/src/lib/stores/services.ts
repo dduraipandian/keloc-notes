@@ -9,3 +9,4 @@ export { NoteService } from './services/noteService';
 export { TrashService } from './services/trashService';
 export { SearchService } from './searchService.svelte';
 export { FolderTreeHelper } from './domain/folderTree';
+export { OnboardingService } from './services/onboardingService';
