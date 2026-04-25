@@ -28,7 +28,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: null,
-				imageProcessingConcurrency: null
+				imageProcessingConcurrency: null,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -46,7 +47,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: 'fixed',
 				enabledLanguages: null,
-				imageProcessingConcurrency: null
+				imageProcessingConcurrency: null,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -64,7 +66,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: null,
-				imageProcessingConcurrency: null
+				imageProcessingConcurrency: null,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -87,7 +90,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: null,
-				imageProcessingConcurrency: null
+				imageProcessingConcurrency: null,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -112,7 +116,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: null,
-				imageProcessingConcurrency: null
+				imageProcessingConcurrency: null,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -131,7 +136,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: languages,
-				imageProcessingConcurrency: null
+				imageProcessingConcurrency: null,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -149,7 +155,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: null,
-				imageProcessingConcurrency: null
+				imageProcessingConcurrency: null,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -173,7 +180,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: null,
-				imageProcessingConcurrency: null
+				imageProcessingConcurrency: null,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -198,7 +206,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: null,
-				imageProcessingConcurrency: null
+				imageProcessingConcurrency: null,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -216,7 +225,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: null,
-				imageProcessingConcurrency: 5
+				imageProcessingConcurrency: 5,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -234,7 +244,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: null,
-				imageProcessingConcurrency: null
+				imageProcessingConcurrency: null,
+				backupRetentionDays: null
 			});
 
 			await store.init();
@@ -257,7 +268,8 @@ describe('PreferencesStore', () => {
 				folderAccentColor: null,
 				editorToolbar: null,
 				enabledLanguages: null,
-				imageProcessingConcurrency: 999
+				imageProcessingConcurrency: 999,
+				backupRetentionDays: null
 			});
 
 			await store.init();

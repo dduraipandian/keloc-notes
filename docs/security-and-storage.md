@@ -116,6 +116,14 @@ What this means in practice:
 
 Markdown ZIP import/export is available for portability, but it is a different format and should not be treated as identical to a full JSON backup.
 
+Permanent-delete safety archives:
+
+- when a note is permanently deleted, Keloc Notes archives the note metadata, content, and note assets into the local `backups` IndexedDB store before removal
+- these archives are local recovery safety records, not user-exported backup files
+- old archive records are pruned by age during permanent-delete operations
+- the retention window is configurable in Settings
+- the default retention window is 30 days
+
 ## Save And Shutdown Guarantees
 
 Current guarantees:

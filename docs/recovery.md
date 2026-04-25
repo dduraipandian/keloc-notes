@@ -14,6 +14,8 @@ JSON backup import is only for a new or reset app library. It does not merge int
 
 A valid restore replaces the empty local database with folders, notes, note contents, settings, and note assets from the backup. If the backup is malformed, uses an unsupported schema version, or cannot fully restore, the restore fails without leaving a partial imported library.
 
+Permanent deletes also create local safety archives before notes are removed. These archives are stored in IndexedDB and are automatically pruned by age. The retention window is configurable in Settings and defaults to 30 days.
+
 ## Import And Export Failures
 
 Failed exports do not change local notes. Depending on where the failure happened, the destination Markdown, ZIP, or backup file may not have been written.

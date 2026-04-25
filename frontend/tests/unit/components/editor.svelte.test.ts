@@ -62,7 +62,8 @@ describe('Editor.svelte', () => {
 
 	const mockPreferencesStore: PreferencesStore = {
 		editorToolbar: 'fixed',
-		enabledLanguages: ['javascript', 'python']
+		enabledLanguages: ['javascript', 'python'],
+		backupRetentionDays: 30
 	} as any;
 
 	function createNote(overrides: Partial<NoteItem> = {}): NoteItem {

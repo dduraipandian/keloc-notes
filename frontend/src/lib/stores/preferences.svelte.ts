@@ -3,12 +3,18 @@ import {
 	clampImageProcessingConcurrency,
 	MAX_IMAGE_PROCESSING_CONCURRENCY
 } from '../editor/imageHandler';
+import {
+	DEFAULT_BACKUP_RETENTION_DAYS,
+	normalizeBackupRetentionDays,
+	type BackupRetentionDays
+} from '$lib/backup/retention';
 
 export class PreferencesStore {
 	#folderAccentColor = $state<string>('#007aff');
 	#editorToolbar = $state<'fixed' | 'bubble' | 'both' | null>(null);
 	#enabledLanguages = $state<string[] | null>(null);
 	#imageProcessingConcurrency = $state<number | null>(null);
+	#backupRetentionDays = $state<BackupRetentionDays>(DEFAULT_BACKUP_RETENTION_DAYS);
 
 	get folderAccentColor() {
 		return this.#folderAccentColor;
@@ -24,6 +30,10 @@ export class PreferencesStore {
 
 	get imageProcessingConcurrency() {
 		return this.#imageProcessingConcurrency;
+	}
+
+	get backupRetentionDays() {
+		return this.#backupRetentionDays;
 	}
 
 	async init(settings?: Record<string, unknown>) {
@@ -54,6 +64,10 @@ export class PreferencesStore {
 		) {
 			this.#imageProcessingConcurrency = savedSettings.imageProcessingConcurrency;
 		}
+
+		this.#backupRetentionDays = normalizeBackupRetentionDays(
+			savedSettings.backupRetentionDays
+		);
 	}
 
 	async setFolderAccentColor(color: string) {
@@ -92,5 +106,14 @@ export class PreferencesStore {
 			console.error('Failed to save image processing concurrency:', err);
 		}
 	}
-}
 
+	async setBackupRetentionDays(value: number) {
+		const normalized = normalizeBackupRetentionDays(value);
+		this.#backupRetentionDays = normalized;
+		try {
+			await settingsRepository.save('backupRetentionDays', normalized);
+		} catch (err) {
+			console.error('Failed to save backup retention setting:', err);
+		}
+	}
+}

@@ -78,7 +78,8 @@ describe('Backup restore guarantees', () => {
 			folderAccentColor: null,
 			editorToolbar: null,
 			enabledLanguages: null,
-			imageProcessingConcurrency: null
+			imageProcessingConcurrency: null,
+			backupRetentionDays: null
 		});
 	}
 

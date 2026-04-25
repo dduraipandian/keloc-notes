@@ -120,6 +120,8 @@ JSON backup behavior today:
 
 Markdown ZIP import/export is useful for portability, but it is not the same thing as a full JSON backup.
 
+Permanent deletes also create local safety archives in IndexedDB before the note is removed. Those archives are automatically trimmed by age. The retention window is configurable in Settings, with 30 days as the default.
+
 Recovery guidance is in [docs/recovery.md](docs/recovery.md).
 
 ## Save And Failure Behavior

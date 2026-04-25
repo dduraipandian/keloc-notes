@@ -163,7 +163,8 @@ describe('Backup import guard', () => {
 			folderAccentColor: null,
 			editorToolbar: null,
 			enabledLanguages: null,
-			imageProcessingConcurrency: null
+			imageProcessingConcurrency: null,
+			backupRetentionDays: null
 		});
 	});
 });

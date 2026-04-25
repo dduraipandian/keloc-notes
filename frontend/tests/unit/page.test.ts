@@ -124,7 +124,8 @@ describe('+page.svelte', () => {
 		mockPreferencesStore = {
 			editorToolbar: 'fixed',
 			enabledLanguages: ['javascript'],
-			imageProcessingConcurrency: 3
+			imageProcessingConcurrency: 3,
+			backupRetentionDays: 30
 		} as PreferencesStore;
 
 		(mockNotesStore as any).notes = new SvelteMap();

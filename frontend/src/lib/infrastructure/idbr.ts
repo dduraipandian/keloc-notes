@@ -2,6 +2,7 @@ import { openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 import type { FolderItem } from '../stores/folders.svelte';
 import type { NoteItem, NoteMeta } from '../stores/notes.svelte';
 import type { UIStore } from '../stores/dialog.svelte';
+import { normalizeBackupRetentionDays } from '$lib/backup/retention';
 
 const DEFAULT_DB_NAME = 'kelocnotes-db';
 const DB_VERSION = 5;
@@ -284,6 +285,7 @@ export type SettingsState = {
 	editorToolbar: 'fixed' | 'bubble' | 'both' | null;
 	enabledLanguages: string[] | null;
 	imageProcessingConcurrency: number | null;
+	backupRetentionDays: number | null;
 };
 
 type SettingsKey = keyof SettingsState;
@@ -329,6 +331,7 @@ export async function getAllSettings(): Promise<SettingsState> {
 		let editorToolbar: 'fixed' | 'bubble' | 'both' | null = null;
 		let enabledLanguages: string[] | null = null;
 		let imageProcessingConcurrency: number | null = null;
+		let backupRetentionDays: number | null = null;
 
 		keys.forEach((key, index) => {
 			switch (key) {
@@ -359,6 +362,9 @@ export async function getAllSettings(): Promise<SettingsState> {
 				case 'imageProcessingConcurrency':
 					imageProcessingConcurrency = (values[index] as number | null) ?? null;
 					break;
+				case 'backupRetentionDays':
+					backupRetentionDays = (values[index] as number | null) ?? null;
+					break;
 				default:
 					break;
 			}
@@ -372,7 +378,8 @@ export async function getAllSettings(): Promise<SettingsState> {
 			folderAccentColor,
 			editorToolbar,
 			enabledLanguages,
-			imageProcessingConcurrency
+			imageProcessingConcurrency,
+			backupRetentionDays
 		};
 	});
 }
@@ -520,6 +527,27 @@ export async function restoreBackupTransactionally(
 	);
 }
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+async function pruneExpiredBackups(
+	backupStore: any,
+	settingsStore: any,
+	now: number
+) {
+	const retentionDays = normalizeBackupRetentionDays(await settingsStore.get('backupRetentionDays'));
+	const cutoff = now - retentionDays * DAY_IN_MS;
+	const [keys, backups] = await Promise.all([backupStore.getAllKeys(), backupStore.getAll()]);
+
+	await Promise.all(
+		backups.map((backup: any, index: number) => {
+			if (typeof backup?.archivedAt === 'number' && backup.archivedAt < cutoff) {
+				return backupStore.delete(keys[index]);
+			}
+			return Promise.resolve();
+		})
+	);
+}
+
 // ─────────────────────────────────────────────
 // Transactional Archival/Deletion
 // ─────────────────────────────────────────────
@@ -530,7 +558,7 @@ export async function permanentDeleteFolderTransactionally(
 	archivedAt: number
 ) {
 	return await withTransaction(
-		['folders', 'notes_meta', 'notes_contents', 'backups', 'note_assets'],
+		['folders', 'notes_meta', 'notes_contents', 'backups', 'note_assets', 'settings'],
 		'readwrite',
 		async (tx) => {
 			const fStore = tx.objectStore('folders')!;
@@ -538,6 +566,7 @@ export async function permanentDeleteFolderTransactionally(
 			const cStore = tx.objectStore('notes_contents')!;
 			const bStore = tx.objectStore('backups')!;
 			const aStore = tx.objectStore('note_assets')!;
+			const sStore = tx.objectStore('settings')!;
 			const assetIndex = aStore.index('by_note');
 
 			// Backup and Delete Notes
@@ -563,6 +592,8 @@ export async function permanentDeleteFolderTransactionally(
 			for (const f of foldersToDelete) {
 				await fStore.delete!(f.id);
 			}
+
+			await pruneExpiredBackups(bStore, sStore, archivedAt);
 		}
 	);
 }
@@ -573,13 +604,14 @@ export async function permanentDeleteNoteTransactionally(
 	archivedAt: number
 ) {
 	return await withTransaction(
-		['notes_meta', 'notes_contents', 'backups', 'note_assets'],
+		['notes_meta', 'notes_contents', 'backups', 'note_assets', 'settings'],
 		'readwrite',
 		async (tx) => {
 			const mStore = tx.objectStore('notes_meta')!;
 			const cStore = tx.objectStore('notes_contents')!;
 			const bStore = tx.objectStore('backups')!;
 			const aStore = tx.objectStore('note_assets')!;
+			const sStore = tx.objectStore('settings')!;
 			const assetIndex = aStore.index('by_note');
 
 			const contentEntry = await cStore.get(note.id);
@@ -598,6 +630,7 @@ export async function permanentDeleteNoteTransactionally(
 			}
 			await mStore.delete!(note.id);
 			await cStore.delete!(note.id);
+			await pruneExpiredBackups(bStore, sStore, archivedAt);
 		}
 	);
 }

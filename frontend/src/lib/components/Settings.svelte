@@ -15,6 +15,7 @@
 		MAX_IMAGE_PROCESSING_CONCURRENCY
 	} from '$lib/editor/imageHandler';
 	import { DEFAULT_LANGUAGES } from '$lib/editor/extensions';
+	import { BACKUP_RETENTION_OPTIONS_DAYS } from '$lib/backup/retention';
 
 	interface Props {
 		open?: boolean;
@@ -133,6 +134,26 @@
 								</div>
 							</div>
 						</div>
+					</div>
+					<div class="setting-group">
+						<label for="backup-retention">Deleted Backup Retention</label>
+						<p class="description">
+							Keep permanent-delete safety archives for this many days before automatic cleanup.
+						</p>
+						<select
+							id="backup-retention"
+							aria-label="Deleted backup retention"
+							class="toolbar-select"
+							value={String(preferencesStore.backupRetentionDays)}
+							onchange={(e) =>
+								preferencesStore.setBackupRetentionDays(
+									Number.parseInt(e.currentTarget.value, 10)
+								)}
+						>
+							{#each BACKUP_RETENTION_OPTIONS_DAYS as value}
+								<option value={String(value)}>{value} days</option>
+							{/each}
+						</select>
 					</div>
 				{:else if activeTab === 'appearance'}
 					<div class="setting-group">
