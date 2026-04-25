@@ -32,6 +32,8 @@ export class NotesStore {
 	private debouncer = new KeyedDebouncer();
 	private inFlightWrites = new Set<Promise<unknown>>();
 	private dirtyContentNotes = new Set<NoteID>();
+	private contentLRU = new Map<NoteID, true>();
+	private readonly contentCacheLimit: number;
 
 	folderNoteCounts = $state<Record<string, number>>({ null: 0 });
 	folderDeletedNoteCounts = $state<Record<string, number>>({ null: 0 });
@@ -53,7 +55,8 @@ export class NotesStore {
 		};
 	}
 
-	constructor(initialNotes: (NoteMeta | NoteItem)[] = []) {
+	constructor(initialNotes: (NoteMeta | NoteItem)[] = [], contentCacheLimit = 30) {
+		this.contentCacheLimit = contentCacheLimit;
 		if (initialNotes.length > 0) {
 			initialNotes.forEach((n) => {
 				const isFull = 'isContentLoaded' in n;
@@ -74,6 +77,7 @@ export class NotesStore {
 		this.debouncer.clearAll();
 		this.inFlightWrites.clear();
 		this.dirtyContentNotes.clear();
+		this.contentLRU.clear();
 		this.folderNoteCounts = { null: 0 };
 		this.folderDeletedNoteCounts = { null: 0 };
 		this.favoriteCount = 0;
@@ -129,21 +133,43 @@ export class NotesStore {
 
 	async loadNoteContent(id: NoteID) {
 		const note = this.notes.get(id);
-		if (!note || note.isContentLoaded) return;
+		if (!note) return;
+
+		if (note.isContentLoaded) {
+			this.trackContentAccess(id);
+			return;
+		}
 
 		try {
 			const content = await notesRepository.getContent(id);
-			// Replace in map to trigger reactivity
-			this.notes.set(id, {
-				...note,
-				content,
-				isContentLoaded: true
-			});
-			// Index content once loaded
+			this.notes.set(id, { ...note, content, isContentLoaded: true });
 			this.searchService?.updateNoteIndex(id, note.title, content);
+			this.trackContentAccess(id);
 		} catch (error) {
 			console.error(`Failed to load content for note ${id}:`, error);
 		}
+	}
+
+	private trackContentAccess(id: NoteID) {
+		// Delete + re-insert moves the entry to MRU position (Map preserves insertion order)
+		this.contentLRU.delete(id);
+		this.contentLRU.set(id, true);
+		this.evictStaleContent(id);
+	}
+
+	private evictStaleContent(protectedId: NoteID) {
+		if (this.contentLRU.size <= this.contentCacheLimit) return;
+		for (const candidateId of this.contentLRU.keys()) {
+			// Never evict: the note just accessed, or notes with pending content writes
+			if (candidateId === protectedId || this.dirtyContentNotes.has(candidateId)) continue;
+			const note = this.notes.get(candidateId);
+			if (note?.isContentLoaded) {
+				this.notes.set(candidateId, { ...note, content: '', isContentLoaded: false });
+			}
+			this.contentLRU.delete(candidateId);
+			return;
+		}
+		// All candidates are the current note or have pending writes — allow temporary overcommit
 	}
 
 	private recalculateCounts() {
@@ -266,8 +292,8 @@ export class NotesStore {
 		this.persistNote(newNote.id);
 		this.persistSelection();
 
-		// Index new note
 		this.searchService?.updateNoteIndex(newNote.id, newNote.title, '');
+		this.trackContentAccess(newNote.id);
 
 		return newNote;
 	}
@@ -288,6 +314,9 @@ export class NotesStore {
 
 			if (contentChanged) {
 				this.dirtyContentNotes.add(id);
+				if (note.isContentLoaded) {
+					this.trackContentAccess(id);
+				}
 			}
 
 			if (updatedTimestamp) {
@@ -502,9 +531,9 @@ export class NotesStore {
 				if (note.isFavorite) this.favoriteCount--;
 			}
 			this.notes.delete(id);
-			// Remove from search index
 			this.searchService?.removeNoteIndex(id);
 		}
+		this.contentLRU.delete(id);
 		this.clearSelectionIfSelected(id);
 	}
 
