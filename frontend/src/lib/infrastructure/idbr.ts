@@ -43,6 +43,13 @@ export function getDBName() {
 	return typeof override === 'string' && override.length > 0 ? override : DEFAULT_DB_NAME;
 }
 
+export function isE2ETest(): boolean {
+	if (typeof window === 'undefined') return false;
+	const override = (window as any).__NOTES_DB_NAME__;
+	if (typeof override === 'string' && override.length > 0) return true;
+	return !!navigator.webdriver;
+}
+
 function ensureStores(db: IDBPDatabase<DBStore>) {
 	if (!db.objectStoreNames.contains('folders')) {
 		db.createObjectStore('folders', { keyPath: 'id' });

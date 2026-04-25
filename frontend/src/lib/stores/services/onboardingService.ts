@@ -1,4 +1,4 @@
-import { hasLibraryBeenUsed, markLibraryAsUsed } from '../../infrastructure/idbr';
+import { hasLibraryBeenUsed, markLibraryAsUsed, isE2ETest } from '../../infrastructure/idbr';
 import type { FolderService } from './folderService';
 import type { NoteService } from './noteService';
 import type { FolderStore } from '../folders.svelte';
@@ -15,6 +15,8 @@ export class OnboardingService {
 	) {}
 
 	async runFirstRunOnboarding(): Promise<void> {
+		if (isE2ETest()) return;
+
 		const isUsed = await hasLibraryBeenUsed();
 		if (isUsed) return;
 
@@ -23,7 +25,8 @@ export class OnboardingService {
 		this.folderStore.renameFolder(welcomeFolderId, 'Welcome');
 
 		// 2. Create an onboarding note inside the Welcome folder
-		const welcomeNoteId = this.noteService.create(welcomeFolderId, { silent: true });
+		const welcomeNote = this.noteService.create(welcomeFolderId, { silent: true }) as any;
+		const welcomeNoteId = welcomeNote.id;
 
 		// 3. Populate the onboarding note
 		const onboardingContent = {

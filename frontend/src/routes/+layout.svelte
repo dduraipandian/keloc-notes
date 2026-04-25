@@ -5,6 +5,7 @@
 	import { NotesStore } from '$lib/stores/notes.svelte';
 	import { SelectionStore } from '$lib/stores/selection.svelte';
 	import { settingsRepository } from '$lib/infrastructure/repositories';
+	import { isE2ETest } from '$lib/infrastructure/idbr';
 	import { ThemeStore } from '$lib/stores/theme.svelte';
 	import { UIStateStore } from '$lib/stores/uiState.svelte';
 	import {
@@ -426,8 +427,10 @@
 			};
 
 			uiStore.closeDialogs();
-
-			await onboardingService.runFirstRunOnboarding();
+			
+			if (!isE2ETest()) {
+				await onboardingService.runFirstRunOnboarding();
+			}
 
 			if (consumePendingStartupRecoveryImport() && hasWailsRuntime()) {
 				setTimeout(() => {

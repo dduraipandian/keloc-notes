@@ -3,10 +3,11 @@ import { OnboardingService } from '../../../src/lib/stores/services/onboardingSe
 
 vi.mock('../../../src/lib/infrastructure/idbr', () => ({
 	hasLibraryBeenUsed: vi.fn(),
-	markLibraryAsUsed: vi.fn()
+	markLibraryAsUsed: vi.fn(),
+	isE2ETest: vi.fn().mockReturnValue(false)
 }));
 
-import { hasLibraryBeenUsed, markLibraryAsUsed } from '../../../src/lib/infrastructure/idbr';
+import { hasLibraryBeenUsed, markLibraryAsUsed, isE2ETest } from '../../../src/lib/infrastructure/idbr';
 
 describe('OnboardingService', () => {
 	let folderService: any;
@@ -17,6 +18,7 @@ describe('OnboardingService', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.mocked(isE2ETest).mockReturnValue(false);
 		
 		folderService = {
 			create: vi.fn().mockReturnValue('welcome-folder-id'),
@@ -24,7 +26,7 @@ describe('OnboardingService', () => {
 		};
 		
 		noteService = {
-			create: vi.fn().mockReturnValue('welcome-note-id'),
+			create: vi.fn().mockReturnValue({ id: 'welcome-note-id' }),
 			update: vi.fn(),
 			select: vi.fn()
 		};
@@ -44,6 +46,16 @@ describe('OnboardingService', () => {
 
 	it('should do nothing if library has been used', async () => {
 		vi.mocked(hasLibraryBeenUsed).mockResolvedValue(true);
+		const service = new OnboardingService(folderService, noteService, folderStore, selectionStore, notesStore);
+		
+		await service.runFirstRunOnboarding();
+		
+		expect(folderService.create).not.toHaveBeenCalled();
+		expect(markLibraryAsUsed).not.toHaveBeenCalled();
+	});
+
+	it('should do nothing if in E2E test environment', async () => {
+		vi.mocked(isE2ETest).mockReturnValue(true);
 		const service = new OnboardingService(folderService, noteService, folderStore, selectionStore, notesStore);
 		
 		await service.runFirstRunOnboarding();
