@@ -59,6 +59,7 @@ func main() {
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
 		},
+
 	})
 
 	if err != nil {

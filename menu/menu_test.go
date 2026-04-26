@@ -191,13 +191,26 @@ func TestBuildMacMenuStructure(t *testing.T) {
 
 	// Check File menu
 	var hasCloseWindow bool
+	var hasNewFolder bool
 	for _, item := range fileMenu.SubMenu.Items {
-		if item != nil && item.Label == "Close Window" {
+		if item == nil {
+			continue
+		}
+		if item.Label == "Close Window" {
 			hasCloseWindow = true
+		}
+		if item.Label == "New Folder" {
+			hasNewFolder = true
+			if item.Accelerator == nil {
+				t.Error("New Folder item should have an accelerator")
+			}
 		}
 	}
 	if !hasCloseWindow {
 		t.Error("File menu missing 'Close Window' item")
+	}
+	if !hasNewFolder {
+		t.Error("File menu missing 'New Folder' item")
 	}
 
 	// Check Help menu exists

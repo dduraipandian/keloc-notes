@@ -41,7 +41,7 @@ func buildFileMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
 	fileMenuItems.Append(menu.Text("New Note", keys.CmdOrCtrl("n"), func(cd *menu.CallbackData) {
 		host.OnNewNote()
 	}))
-	fileMenuItems.Append(menu.Text("New Folder", nil, func(cd *menu.CallbackData) {
+	fileMenuItems.Append(menu.Text("New Folder", keys.Combo("n", keys.CmdOrCtrlKey, keys.ShiftKey), func(cd *menu.CallbackData) {
 		host.OnNewFolder()
 	}))
 	fileMenuItems.Append(menu.Separator())
