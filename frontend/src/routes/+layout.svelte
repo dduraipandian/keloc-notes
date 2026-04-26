@@ -75,6 +75,7 @@
 	const uiStore = new UIStore();
 	const selectionStore = new SelectionStore(folderStore);
 	const notesStore = new NotesStore();
+	const hasNativeTitlebar = hasWailsRuntime();
 
 	setFolderStore(folderStore);
 	setNotesStore(notesStore);
@@ -593,7 +594,10 @@
 	});
 </script>
 
-<div class="h-screen overflow-hidden bg-background text-foreground">
+<div
+	class="h-screen overflow-hidden bg-background text-foreground"
+	data-native-titlebar={hasNativeTitlebar ? 'macos' : undefined}
+>
 	<div
 		class="h-full w-full"
 		style={`--app-sidebar-width: ${sidebarWidth}px; --app-note-list-width: ${noteListWidth}px;`}
@@ -635,6 +639,9 @@
 					activeResizeHandle && 'pointer-events-none select-none',
 					!uiStateStore.noteListVisible && 'hidden'
 				]}
+				data-titlebar-pane={!uiStateStore.sidebarVisible && uiStateStore.noteListVisible
+					? 'first'
+					: undefined}
 				style={uiStateStore.noteListVisible
 					? 'width: var(--app-note-list-width);'
 					: 'width: 0; display: none;'}
@@ -663,6 +670,9 @@
 					'min-w-0 flex-1 border-l border-sidebar-border/10 bg-card',
 					activeResizeHandle && 'pointer-events-none select-none'
 				]}
+				data-titlebar-pane={!uiStateStore.sidebarVisible && !uiStateStore.noteListVisible
+					? 'first'
+					: undefined}
 			>
 				{@render children?.()}
 			</main>

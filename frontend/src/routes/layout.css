@@ -7,6 +7,7 @@
 @plugin '@tailwindcss/typography';
 
 :root {
+	--macos-titlebar-safe-top: 46px;
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.145 0 0);
 	--card: oklch(1 0 0);
@@ -129,6 +130,11 @@
 
 html {
 	overflow: hidden;
+}
+
+[data-native-titlebar='macos'] [data-titlebar-pane='first'] {
+	box-sizing: border-box;
+	padding-top: var(--macos-titlebar-safe-top);
 }
 
 /* Global Subtle Scrollbar */
