@@ -20,19 +20,29 @@ export class NoteService {
 		this.selection = selection;
 	}
 
-	create(folderId: FolderID | null, { silent = false }: { silent?: boolean } = {}) {
+	create(
+		folderId: FolderID | null,
+		{
+			silent = false,
+			suppressLibraryUsageMark = false
+		}: { silent?: boolean; suppressLibraryUsageMark?: boolean } = {}
+	) {
 		const actualFolderId = folderId === 'home' || folderId === null ? null : folderId;
 		const folder = actualFolderId
 			? this.folders.findItemById(actualFolderId)
 			: this.folders.findItemById('home');
+		const createNote = (targetFolderId: FolderID | null) =>
+			suppressLibraryUsageMark
+				? this.notes.createNote(targetFolderId, { suppressLibraryUsageMark })
+				: this.notes.createNote(targetFolderId);
 
 		if (!folder || !resolveProfile(folder).capabilities.createNote) {
 			const defaultId = this.folders.getDefaultFolderId();
 			if (!silent) this.selection.selectFolder(defaultId);
-			return this.notes.createNote(defaultId);
+			return createNote(defaultId);
 		} else {
 			if (!silent) this.selection.selectFolder(folderId);
-			return this.notes.createNote(folderId);
+			return createNote(folderId);
 		}
 	}
 

@@ -9,8 +9,17 @@ import {
 import type { NoteService } from '$lib/stores/services/noteService';
 import { resolveProfile } from '$lib/stores/domain/profiles';
 import type { FolderItem } from '$lib/stores/folders.svelte';
-import { hasLibraryBeenUsed, withTransaction } from '$lib/infrastructure/idbr';
+import {
+	getSetting,
+	hasLibraryBeenUsed,
+	markLibraryAsUsed,
+	markOnboardingAsDone
+} from '$lib/infrastructure/idbr';
 import { APP_VERSION } from '$lib/appVersion';
+
+const STOCK_WELCOME_FOLDER_TITLE = 'Welcome';
+const STOCK_WELCOME_NOTE_TITLE = 'Welcome to Keloc Notes';
+const STOCK_WELCOME_NOTE_TEXT = 'Welcome to Keloc Notes';
 
 type SerializedNoteAsset = {
 	id: string;
@@ -200,26 +209,44 @@ function deserializeNoteAsset(asset: SerializedNoteAsset): {
 
 async function assertImportAllowedForNewApp(): Promise<void> {
 	if (await hasLibraryBeenUsed()) {
+		if (await hasOnlyStockOnboardingData()) return;
 		throw new Error('Backup import is only allowed on a new app.');
 	}
+}
 
-	const hasExistingData = await withTransaction(
-		['folders', 'notes_meta', 'notes_contents'],
-		'readonly',
-		async (tx) => {
-			const [folderCount, noteMetaCount, noteContentCount] = await Promise.all([
-				tx.objectStore('folders').count(),
-				tx.objectStore('notes_meta').count(),
-				tx.objectStore('notes_contents').count()
-			]);
+async function hasOnlyStockOnboardingData(): Promise<boolean> {
+	if ((await getSetting('onboarding_done')) !== true) return false;
 
-			return folderCount > 0 || noteMetaCount > 0 || noteContentCount > 0;
-		}
-	);
+	const folders = await foldersRepository.list();
+	const notes = await notesRepository.list();
 
-	if (hasExistingData) {
-		throw new Error('Backup import is only allowed on a new app.');
+	if (folders.length > 1 || notes.length > 1) return false;
+
+	const welcomeFolder = folders[0];
+	if (
+		welcomeFolder &&
+		(welcomeFolder.title !== STOCK_WELCOME_FOLDER_TITLE ||
+			welcomeFolder.parentId !== null ||
+			welcomeFolder.deletedAt != null)
+	) {
+		return false;
 	}
+
+	const welcomeNote = notes[0];
+	if (!welcomeNote) return true;
+	if (
+		welcomeNote.folderId !== (welcomeFolder?.id ?? null) ||
+		(welcomeNote.title !== STOCK_WELCOME_NOTE_TITLE && welcomeNote.title !== 'Untitled Note') ||
+		welcomeNote.deletedAt != null
+	) {
+		return false;
+	}
+
+	const assets = await assetsRepository.getByNoteId(welcomeNote.id);
+	if (assets.length > 0) return false;
+
+	const content = await notesRepository.getContent(welcomeNote.id);
+	return content === '' || content.includes(STOCK_WELCOME_NOTE_TEXT);
 }
 
 export async function exportBackup(
@@ -304,11 +331,9 @@ export async function importBackup(
 			assets: (note.assets ?? []).map((asset) => deserializeNoteAsset(asset))
 		}));
 
-		await settingsRepository.restore(
-			folders,
-			restoredNotes,
-			settings
-		);
+		await settingsRepository.restore(folders, restoredNotes, settings);
+		await markOnboardingAsDone();
+		await markLibraryAsUsed();
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		throw new Error(`Failed to import backup: ${message}`);

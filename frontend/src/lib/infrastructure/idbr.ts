@@ -74,6 +74,7 @@ function ensureStores(db: IDBPDatabase<DBStore>) {
 
 let blockedHandler: ((current: number | undefined, blocked: number | null) => void) | null = null;
 const LIBRARY_HISTORY_KEY = 'libraryHasUserData';
+const ONBOARDING_DONE_KEY = 'onboarding_done';
 
 export function setDatabaseBlockedHandler(handler: typeof blockedHandler) {
 	blockedHandler = handler;
@@ -321,6 +322,19 @@ export async function markLibraryAsUsed(): Promise<void> {
 export async function hasLibraryBeenUsed(): Promise<boolean> {
 	if (typeof indexedDB === 'undefined') return false;
 	const db = await getDB();
+	return (await db.get('settings', LIBRARY_HISTORY_KEY)) === true;
+}
+
+export async function markOnboardingAsDone(): Promise<void> {
+	if (typeof indexedDB === 'undefined') return;
+	const db = await getDB();
+	await db.put('settings', true, ONBOARDING_DONE_KEY);
+}
+
+export async function hasOnboardingBeenDone(): Promise<boolean> {
+	if (typeof indexedDB === 'undefined') return false;
+	const db = await getDB();
+	if ((await db.get('settings', ONBOARDING_DONE_KEY)) === true) return true;
 	return (await db.get('settings', LIBRARY_HISTORY_KEY)) === true;
 }
 

@@ -1,4 +1,4 @@
-import { hasLibraryBeenUsed, markLibraryAsUsed, isE2ETest } from '../../infrastructure/idbr';
+import { hasOnboardingBeenDone, markOnboardingAsDone, isE2ETest } from '../../infrastructure/idbr';
 import type { FolderService } from './folderService';
 import type { NoteService } from './noteService';
 import type { FolderStore } from '../folders.svelte';
@@ -21,26 +21,27 @@ export class OnboardingService {
 	async runFirstRunOnboarding(): Promise<OnboardingResult> {
 		if (isE2ETest()) return { isFirstRun: false };
 
-		const isUsed = await hasLibraryBeenUsed();
+		const isUsed = await hasOnboardingBeenDone();
 		if (isUsed) return { isFirstRun: false };
 
 		// 1. Create a Welcome folder
-		const welcomeFolderId = this.folderService.create(null) as string;
+		const welcomeFolderId = this.folderService.create(null, {
+			silent: true,
+			suppressLibraryUsageMark: true
+		}) as string;
 		this.folderStore.renameFolder(welcomeFolderId, 'Welcome');
 
 		// 2. Create an onboarding note inside the Welcome folder
-		const welcomeNote = this.noteService.create(welcomeFolderId, { silent: true }) as any;
+		const welcomeNote = this.noteService.create(welcomeFolderId, {
+			silent: true,
+			suppressLibraryUsageMark: true
+		}) as any;
 		const welcomeNoteId = welcomeNote.id;
 
 		// 3. Populate the onboarding note
 		const onboardingContent = {
 			type: 'doc',
 			content: [
-				{
-					type: 'heading',
-					attrs: { level: 1 },
-					content: [{ type: 'text', text: 'Welcome to keloc-notes' }]
-				},
 				{
 					type: 'paragraph',
 					content: [
@@ -93,7 +94,10 @@ export class OnboardingService {
 									type: 'paragraph',
 									content: [
 										{ type: 'text', marks: [{ type: 'bold' }], text: 'Start writing' },
-										{ type: 'text', text: ' — content saves automatically as you type. No save button needed.' }
+										{
+											type: 'text',
+											text: ' — content saves automatically as you type. No save button needed.'
+										}
 									]
 								}
 							]
@@ -220,9 +224,7 @@ export class OnboardingService {
 				},
 				{
 					type: 'paragraph',
-					content: [
-						{ type: 'text', text: 'Feel free to delete this note anytime. Happy writing!' }
-					]
+					content: [{ type: 'text', text: 'Feel free to delete this note anytime. Happy writing!' }]
 				}
 			]
 		};
@@ -238,7 +240,7 @@ export class OnboardingService {
 		this.noteService.select(welcomeNoteId);
 
 		// 5. Mark library as used
-		await markLibraryAsUsed();
+		await markOnboardingAsDone();
 
 		return { isFirstRun: true };
 	}

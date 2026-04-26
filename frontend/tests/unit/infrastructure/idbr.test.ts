@@ -20,7 +20,9 @@ import {
 	putNoteAsset,
 	getNoteAsset,
 	deleteNoteAsset,
-	deleteNoteAssetsByNoteId
+	deleteNoteAssetsByNoteId,
+	hasOnboardingBeenDone,
+	markOnboardingAsDone
 } from '../../../src/lib/infrastructure/idbr';
 import { UIStore } from '../../../src/lib/stores/dialog.svelte';
 import { setDatabaseBlockedHandler } from '../../../src/lib/infrastructure/idbr';
@@ -251,6 +253,25 @@ describe('IndexedDB Wrapper (idbr.ts)', () => {
 			const db = await initDB();
 			const storeNames = Array.from(db.objectStoreNames);
 			expect(storeNames).toContain('note_assets');
+		});
+	});
+
+	describe('Onboarding flags', () => {
+		it('returns false when onboarding has not been marked done', async () => {
+			const result = await hasOnboardingBeenDone();
+			expect(result).toBe(false);
+		});
+
+		it('returns true after markOnboardingAsDone is called', async () => {
+			await markOnboardingAsDone();
+			const result = await hasOnboardingBeenDone();
+			expect(result).toBe(true);
+		});
+
+		it('returns true via migration fallback when only LIBRARY_HISTORY_KEY is set', async () => {
+			await putSetting('libraryHasUserData', true);
+			const result = await hasOnboardingBeenDone();
+			expect(result).toBe(true);
 		});
 	});
 

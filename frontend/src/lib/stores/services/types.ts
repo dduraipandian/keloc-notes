@@ -6,7 +6,10 @@ export type FolderStoreLike = {
 	folders: Map<FolderID, FolderItem>;
 	findItemById(id: FolderID): FolderItem | null;
 	getDefaultFolderId(): FolderID;
-	createFolder(parentId?: FolderID | null): FolderID;
+	createFolder(
+		parentId?: FolderID | null,
+		options?: { suppressLibraryUsageMark?: boolean }
+	): FolderID;
 	startRename(id: FolderID): void;
 	cancelRename(): void;
 	renameFolder(id: FolderID, newTitle: string): void;
@@ -28,7 +31,7 @@ export type SelectionStoreLike = {
 };
 
 export type NotesStoreLike = {
-	createNote(folderId: FolderID | null): NoteItem;
+	createNote(folderId: FolderID | null, options?: { suppressLibraryUsageMark?: boolean }): NoteItem;
 	updateNote(
 		id: NoteID,
 		updates: Partial<Omit<NoteItem, 'id'>>,

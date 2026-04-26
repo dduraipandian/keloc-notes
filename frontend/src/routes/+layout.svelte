@@ -680,7 +680,7 @@
 	description={uiStateStore.shutdownFlushStatus?.description ?? ''}
 />
 <MarkdownImportConflictDialog uiState={uiStateStore} />
-<WelcomeDialog bind:open={showWelcomeDialog} onclose={() => (showWelcomeDialog = false)} />
+<WelcomeDialog bind:open={showWelcomeDialog} onclose={() => { showWelcomeDialog = false; }} />
 <Toaster />
 
 <style>

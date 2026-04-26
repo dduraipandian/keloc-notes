@@ -16,7 +16,13 @@ export class FolderService {
 		this.selection = selection;
 	}
 
-	create(parentId?: FolderID | null, { silent = false }: { silent?: boolean } = {}) {
+	create(
+		parentId?: FolderID | null,
+		{
+			silent = false,
+			suppressLibraryUsageMark = false
+		}: { silent?: boolean; suppressLibraryUsageMark?: boolean } = {}
+	) {
 		let parentFolderId: FolderID | null;
 
 		if (parentId !== undefined) {
@@ -32,7 +38,9 @@ export class FolderService {
 		// Normalize root parent to null
 		if (parentFolderId === 'home') parentFolderId = null;
 
-		const newFolderId = this.folders.createFolder(parentFolderId);
+		const newFolderId = suppressLibraryUsageMark
+			? this.folders.createFolder(parentFolderId, { suppressLibraryUsageMark })
+			: this.folders.createFolder(parentFolderId);
 		if (!silent) this.selection.selectFolder(newFolderId ?? null);
 		return newFolderId;
 	}

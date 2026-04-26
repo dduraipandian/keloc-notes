@@ -153,8 +153,11 @@ export class FolderStore {
 		this.editingId = null;
 	}
 
-	createFolder(parentId: FolderID | null = null) {
-		void markLibraryAsUsed();
+	createFolder(
+		parentId: FolderID | null = null,
+		{ suppressLibraryUsageMark = false }: { suppressLibraryUsageMark?: boolean } = {}
+	) {
+		if (!suppressLibraryUsageMark) void markLibraryAsUsed();
 
 		const newFolder: FolderItem = $state({
 			id: crypto.randomUUID(),

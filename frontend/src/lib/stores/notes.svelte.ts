@@ -274,8 +274,11 @@ get counts() {
 		return this.notes.get(id) || null;
 	}
 
-	createNote(folderId: FolderID | null) {
-		void markLibraryAsUsed();
+	createNote(
+		folderId: FolderID | null,
+		{ suppressLibraryUsageMark = false }: { suppressLibraryUsageMark?: boolean } = {}
+	) {
+		if (!suppressLibraryUsageMark) void markLibraryAsUsed();
 
 		const targetFolderId = folderId === 'home' ? null : folderId;
 		const newNote: NoteItem = {

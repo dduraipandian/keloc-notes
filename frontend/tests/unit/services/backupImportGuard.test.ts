@@ -8,7 +8,10 @@ import {
 	getAllNotesMeta,
 	getAllSettings,
 	getNoteContent,
+	hasLibraryBeenUsed,
+	hasOnboardingBeenDone,
 	markLibraryAsUsed,
+	markOnboardingAsDone,
 	putFolder,
 	putNoteContent,
 	putNoteMeta,
@@ -64,10 +67,10 @@ describe('Backup import guard', () => {
 		);
 	});
 
-	it('rejects backup import when the app already has persisted note data', async () => {
+	it('allows import when only onboarding content exists but library not marked as used', async () => {
 		await putFolder({
-			id: 'existing-folder',
-			title: 'Existing Folder',
+			id: 'welcome-folder',
+			title: 'Welcome',
 			items: [],
 			parentId: null,
 			deletedAt: null,
@@ -75,25 +78,23 @@ describe('Backup import guard', () => {
 			isFavorite: false
 		});
 		await putNoteMeta({
-			id: 'existing-note',
-			folderId: 'existing-folder',
-			title: 'Existing Note',
-			summary: 'Existing summary',
-			updatedAt: '2025-03-01T00:00:00.000Z',
+			id: 'welcome-note',
+			folderId: 'welcome-folder',
+			title: 'Welcome to Keloc Notes',
+			summary: 'Onboarding summary',
+			updatedAt: '2025-04-01T00:00:00.000Z',
 			isFavorite: false,
 			deletedAt: null,
 			deletedBatchId: null
 		});
-		await putNoteContent('existing-note', 'Existing content');
+		await putNoteContent('welcome-note', 'Onboarding content');
 
-		await expect(importBackup(backupJson, new FolderStore(), new NotesStore())).rejects.toThrow(
-			'Failed to import backup: Backup import is only allowed on a new app.'
-		);
+		await importBackup(backupJson, new FolderStore(), new NotesStore());
 
 		expect(await getAllFolders()).toEqual([
 			{
-				id: 'existing-folder',
-				title: 'Existing Folder',
+				id: 'folder-1',
+				title: 'Imported Projects',
 				items: [],
 				parentId: null,
 				deletedAt: null,
@@ -101,19 +102,47 @@ describe('Backup import guard', () => {
 				isFavorite: false
 			}
 		]);
-		expect(await getAllNotesMeta()).toEqual([
+		expect(await getNoteContent('note-1')).toBe('Imported content');
+	});
+
+	it('allows import when old onboarding marked the stock welcome content as used', async () => {
+		await markOnboardingAsDone();
+		await markLibraryAsUsed();
+		await putFolder({
+			id: 'welcome-folder',
+			title: 'Welcome',
+			items: [],
+			parentId: null,
+			deletedAt: null,
+			deletedBatchId: null,
+			isFavorite: false
+		});
+		await putNoteMeta({
+			id: 'welcome-note',
+			folderId: 'welcome-folder',
+			title: 'Welcome to Keloc Notes',
+			summary: 'Onboarding summary',
+			updatedAt: '2025-04-01T00:00:00.000Z',
+			isFavorite: false,
+			deletedAt: null,
+			deletedBatchId: null
+		});
+		await putNoteContent('welcome-note', 'Welcome to keloc-notes');
+
+		await importBackup(backupJson, new FolderStore(), new NotesStore());
+
+		expect(await getAllFolders()).toEqual([
 			{
-				id: 'existing-note',
-				folderId: 'existing-folder',
-				title: 'Existing Note',
-				summary: 'Existing summary',
-				updatedAt: '2025-03-01T00:00:00.000Z',
-				isFavorite: false,
+				id: 'folder-1',
+				title: 'Imported Projects',
+				items: [],
+				parentId: null,
 				deletedAt: null,
-				deletedBatchId: null
+				deletedBatchId: null,
+				isFavorite: false
 			}
 		]);
-		expect(await getNoteContent('existing-note')).toBe('Existing content');
+		expect(await getNoteContent('note-1')).toBe('Imported content');
 	});
 
 	it('rejects backup import when the library was previously used even if current data is empty', async () => {
@@ -166,5 +195,7 @@ describe('Backup import guard', () => {
 			imageProcessingConcurrency: null,
 			backupRetentionDays: null
 		});
+		expect(await hasOnboardingBeenDone()).toBe(true);
+		expect(await hasLibraryBeenUsed()).toBe(true);
 	});
 });
