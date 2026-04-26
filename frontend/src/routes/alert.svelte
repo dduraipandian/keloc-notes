@@ -137,6 +137,7 @@
 					data-alert-dialog-primary={index === 0 ? 'true' : undefined}
 					class={[
 						hasExtendedActions() && 'w-full sm:w-auto',
+						'flex items-center justify-center gap-2',
 						'focus:ring-[3px] focus:ring-ring/50 focus:outline-none',
 						action.variant === 'destructive' && 'bg-destructive hover:bg-destructive/90'
 					]}
@@ -147,7 +148,10 @@
 						}
 					}}
 				>
-					{action.label}
+					{#if action.icon}
+						<action.icon size={16} class="shrink-0" />
+					{/if}
+					<span>{action.label}</span>
 				</AlertDialog.Action>
 			{/each}
 			{#if dialog.canCancel}
@@ -156,10 +160,14 @@
 					data-alert-dialog-button="true"
 					class={[
 						hasExtendedActions() && 'w-full sm:w-auto',
+						'flex items-center justify-center gap-2',
 						'focus:ring-[3px] focus:ring-ring/50 focus:outline-none'
 					]}
 				>
-					{dialog.cancelLabel ?? 'Cancel'}
+					{#if dialog.cancelIcon}
+						<dialog.cancelIcon size={16} class="shrink-0" />
+					{/if}
+					<span>{dialog.cancelLabel ?? 'Cancel'}</span>
 				</AlertDialog.Cancel>
 			{/if}
 			<AlertDialog.Action
@@ -167,6 +175,7 @@
 				data-alert-dialog-primary={getActions().length === 0 ? 'true' : undefined}
 				class={[
 					hasExtendedActions() && 'w-full sm:w-auto',
+					'flex items-center justify-center gap-2',
 					'focus:ring-[3px] focus:ring-ring/50 focus:outline-none',
 					dialog.type === 'destroy' && 'bg-destructive hover:bg-destructive/90'
 				]}
@@ -175,7 +184,10 @@
 					dialog.open = false;
 				}}
 			>
-				{dialog.confirmLabel}
+				{#if dialog.confirmIcon}
+					<dialog.confirmIcon size={16} class="shrink-0" />
+				{/if}
+				<span>{dialog.confirmLabel}</span>
 			</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>

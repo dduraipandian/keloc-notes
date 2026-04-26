@@ -1,4 +1,11 @@
 import { buildStartupRecoveryGuidance, type StartupRecoveryGuidance } from '$lib/startupRecovery';
+import type { Component } from 'svelte';
+import Trash2 from '@lucide/svelte/icons/trash-2';
+import History from '@lucide/svelte/icons/history';
+import LogOut from '@lucide/svelte/icons/log-out';
+import Check from '@lucide/svelte/icons/check';
+import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+import Copy from '@lucide/svelte/icons/copy';
 
 export type DialogType = 'destroy' | 'restore';
 
@@ -7,6 +14,7 @@ export interface DialogAction {
 	onSelect: () => void;
 	variant?: 'default' | 'secondary' | 'destructive';
 	closeDialog?: boolean;
+	icon?: Component<any>;
 }
 
 export interface ConfirmOptions {
@@ -19,6 +27,8 @@ export interface ConfirmOptions {
 	onConfirm: () => void;
 	confirmLabel?: string;
 	cancelLabel?: string;
+	confirmIcon?: Component<any>;
+	cancelIcon?: Component<any>;
 	actions?: DialogAction[];
 }
 
@@ -62,6 +72,7 @@ export class UIStore {
 			title: 'Delete Note',
 			description: `Are you sure you want to delete "${noteTitle}"?`,
 			confirmLabel: 'Delete Note',
+			confirmIcon: Trash2,
 			onConfirm
 		};
 	}
@@ -74,6 +85,7 @@ export class UIStore {
 			title: 'Delete Note Permanently',
 			description: `Are you sure you want to permanently delete "${noteTitle}"?`,
 			confirmLabel: 'Delete Note',
+			confirmIcon: Trash2,
 			onConfirm
 		};
 	}
@@ -86,6 +98,7 @@ export class UIStore {
 			title: 'Restore Note',
 			description: `Are you sure you want to restore '${noteTitle}'?`,
 			confirmLabel: 'Restore',
+			confirmIcon: History,
 			onConfirm
 		};
 	}
@@ -98,6 +111,7 @@ export class UIStore {
 			title: 'Delete Folder Permanently',
 			description: `Permanently delete '${folderTitle}' and all its notes? This cannot be undone.`,
 			confirmLabel: 'Delete Permanently',
+			confirmIcon: Trash2,
 			onConfirm
 		};
 	}
@@ -110,6 +124,7 @@ export class UIStore {
 			title: 'Delete Folder',
 			description: `Are you sure you want to delete '${folderTitle}' and all its contents?.`,
 			confirmLabel: 'Delete Folder',
+			confirmIcon: Trash2,
 			onConfirm
 		};
 	}
@@ -125,6 +140,7 @@ export class UIStore {
 				<span class="font-mono text-xs text-destructive">${initError}</span>`,
 			allowHtml: true,
 			confirmLabel: 'Quit Application',
+			confirmIcon: LogOut,
 			onConfirm
 		};
 	}
@@ -136,6 +152,7 @@ export class UIStore {
 			title: 'Empty Trash',
 			description: `Are you sure you want to permanently delete all folders and notes in the trash?`,
 			confirmLabel: 'Empty Trash',
+			confirmIcon: Trash2,
 			canCancel: true,
 			onConfirm
 		};
@@ -149,6 +166,7 @@ export class UIStore {
 			title,
 			description: errorMessage,
 			confirmLabel: 'OK',
+			confirmIcon: Check,
 			onConfirm: () => {}
 		};
 	}
@@ -190,18 +208,21 @@ export class UIStore {
 			description: descriptionParts.join('<br/>'),
 			allowHtml: true,
 			confirmLabel: 'Quit Application',
+			confirmIcon: LogOut,
 			onConfirm: onQuit,
 			actions: [
 				{
 					label: 'Retry Startup',
 					onSelect: onRetry,
-					closeDialog: false
+					closeDialog: false,
+					icon: RefreshCw
 				},
 				{
 					label: 'Copy Diagnostics',
 					onSelect: onCopyDiagnostics,
 					variant: 'secondary',
-					closeDialog: false
+					closeDialog: false,
+					icon: Copy
 				}
 			]
 		};
@@ -209,12 +230,14 @@ export class UIStore {
 			this.appDialog.actions?.push({
 				label: 'Reset Local Data',
 				onSelect: onResetLocalData,
-				variant: 'destructive'
+				variant: 'destructive',
+				icon: Trash2
 			});
 			this.appDialog.actions?.push({
 				label: 'Reset And Import Backup',
 				onSelect: onResetAndImportBackup,
-				variant: 'destructive'
+				variant: 'destructive',
+				icon: Trash2
 			});
 		}
 	}
