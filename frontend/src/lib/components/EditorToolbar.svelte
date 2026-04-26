@@ -221,7 +221,7 @@
 		align-items: center;
 		gap: 0.2rem;
 		width: 100%;
-		padding: 0.5rem 3rem;
+		padding: 0.25rem 3rem;
 		background: color-mix(in srgb, var(--muted) 82%, var(--card));
 		flex-wrap: wrap;
 	}

@@ -97,9 +97,7 @@ function buildDefaultSidebarActionDeps(
 		folderCreate: () => folderQueries.create(),
 		folderStartRename: (id) => folderQueries.startRename(id),
 		folderDelete: (id) =>
-			ui.confirmFolderDelete(folders.folders.get(id)?.title ?? '', () =>
-				folderQueries.delete(id)
-			),
+			ui.confirmFolderDelete(folders.folders.get(id)?.title ?? '', () => folderQueries.delete(id)),
 		folderSetFavorite: (id, isFav) => folderQueries.setFavorite(id, isFav),
 		trashRecover: (id) => trashQueries.recoverFolder(id),
 		trashPermanentDelete: (title, id) =>
@@ -121,7 +119,8 @@ export class FolderSidebarView {
 		actions?: SidebarActionDeps
 	) {
 		this.selection = stores.selection;
-		this.actions = actions ?? buildDefaultSidebarActionDeps(stores.ui, folders, folderQueries, trashQueries);
+		this.actions =
+			actions ?? buildDefaultSidebarActionDeps(stores.ui, folders, folderQueries, trashQueries);
 	}
 
 	sections = $derived.by((): SidebarSourceSection[] => {
@@ -304,5 +303,3 @@ export class FolderSidebarView {
 		return items;
 	}
 }
-
-

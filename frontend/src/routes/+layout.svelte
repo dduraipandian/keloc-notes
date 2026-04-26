@@ -35,7 +35,13 @@
 	import NoteItems from '$lib/components/NoteItems.svelte';
 	import { EventsEmit, EventsOn, Quit, WindowSetTitle } from '$lib/wailsjs/runtime/runtime';
 	import { UIStore } from '$lib/stores/dialog.svelte';
-	import { FolderService, NoteService, TrashService, SearchService, OnboardingService } from '$lib/stores/services';
+	import {
+		FolderService,
+		NoteService,
+		TrashService,
+		SearchService,
+		OnboardingService
+	} from '$lib/stores/services';
 	import { FolderSidebarView } from '$lib/views/folderSidebarView.svelte';
 	import { NoteListView } from '$lib/views/noteListView.svelte';
 	import { initMenuBridge, initMenuStateEffect } from '$lib/menu/menuBridge.svelte';
@@ -82,7 +88,13 @@
 	const noteService = new NoteService(folderStore, notesStore, selectionStore);
 	const trashService = new TrashService(folderStore, notesStore, selectionStore);
 	const searchService = new SearchService(folderStore, notesStore, noteService);
-	const onboardingService = new OnboardingService(folderService, noteService, folderStore, selectionStore, notesStore);
+	const onboardingService = new OnboardingService(
+		folderService,
+		noteService,
+		folderStore,
+		selectionStore,
+		notesStore
+	);
 
 	setFolderService(folderService);
 	setNoteService(noteService);
@@ -122,7 +134,7 @@
 
 	let { children } = $props();
 
-	const DEFAULT_SIDEBAR_WIDTH = 256;
+	const DEFAULT_SIDEBAR_WIDTH = 300;
 	const DEFAULT_NOTE_LIST_WIDTH = 350;
 	const MIN_SIDEBAR_WIDTH = 220;
 	const MAX_SIDEBAR_WIDTH = 512;
@@ -429,7 +441,7 @@
 			};
 
 			uiStore.closeDialogs();
-			
+
 			if (!isE2ETest()) {
 				const { isFirstRun } = await onboardingService.runFirstRunOnboarding();
 				if (isFirstRun) showWelcomeDialog = true;
@@ -680,7 +692,12 @@
 	description={uiStateStore.shutdownFlushStatus?.description ?? ''}
 />
 <MarkdownImportConflictDialog uiState={uiStateStore} />
-<WelcomeDialog bind:open={showWelcomeDialog} onclose={() => { showWelcomeDialog = false; }} />
+<WelcomeDialog
+	bind:open={showWelcomeDialog}
+	onclose={() => {
+		showWelcomeDialog = false;
+	}}
+/>
 <Toaster />
 
 <style>
