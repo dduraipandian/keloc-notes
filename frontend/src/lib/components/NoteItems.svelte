@@ -3,6 +3,7 @@
 	import Star from '@lucide/svelte/icons/star';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import SquarePen from '@lucide/svelte/icons/square-pen';
+	import History from '@lucide/svelte/icons/history';
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { Input } from '$lib/components/ui/input/index.js';
@@ -192,25 +193,42 @@
 {#snippet ContextMenuContentSnippet(note: NoteItem)}
 	<ContextMenu.Content class="w-48">
 		{#if note.deletedAt != null}
-			<ContextMenu.Item class="text-[13px]" onSelect={() => handleNoteRestore(note)}
-				>Restore</ContextMenu.Item
+			<ContextMenu.Item
+				class="flex items-center gap-2 text-[13px]"
+				onSelect={() => handleNoteRestore(note)}
 			>
-			<ContextMenu.Item class="text-[13px]" onSelect={() => handleNotePermanentDelete(note)}
-				>Delete Permanently</ContextMenu.Item
+				<History size={14} class="shrink-0" />
+				<span class="flex-1">Restore</span>
+			</ContextMenu.Item>
+			<ContextMenu.Item
+				class="flex items-center gap-2 text-[13px] text-destructive focus:text-destructive"
+				onSelect={() => handleNotePermanentDelete(note)}
 			>
+				<Trash2 size={14} class="shrink-0" />
+				<span class="flex-1">Delete Permanently</span>
+			</ContextMenu.Item>
 		{:else}
 			<ContextMenu.Item
-				class="text-[13px]"
+				class="flex items-center gap-2 text-[13px]"
 				onSelect={() => noteService.setFavorite(note.id, note.isFavorite !== true)}
 			>
-				{note.isFavorite ? 'Remove From Favorites' : 'Add To Favorites'}
+				<Star
+					size={14}
+					class={[
+						'shrink-0',
+						note.isFavorite ? 'fill-[#f5d04e] text-[#f5d04e]' : 'text-muted-foreground'
+					]}
+				/>
+				<span class="flex-1">{note.isFavorite ? 'Remove From Favorites' : 'Add To Favorites'}</span>
 			</ContextMenu.Item>
 			<ContextMenu.Separator />
 			<ContextMenu.Item
-				class="text-[13px] text-destructive focus:text-destructive"
+				class="flex items-center gap-2 text-[13px] text-destructive focus:text-destructive"
 				onSelect={() => uiStore.confirmNoteDelete(note.title, () => noteService.delete(note.id))}
-				>Delete</ContextMenu.Item
 			>
+				<Trash2 size={14} class="shrink-0" />
+				<span class="flex-1">Delete</span>
+			</ContextMenu.Item>
 		{/if}
 	</ContextMenu.Content>
 {/snippet}

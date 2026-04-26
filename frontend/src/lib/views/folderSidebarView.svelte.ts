@@ -7,6 +7,9 @@ import Home from '@lucide/svelte/icons/home';
 import Folder from '@lucide/svelte/icons/folder';
 import Star from '@lucide/svelte/icons/star';
 import Trash2 from '@lucide/svelte/icons/trash-2';
+import FolderPlus from '@lucide/svelte/icons/folder-plus';
+import Pencil from '@lucide/svelte/icons/pencil';
+import History from '@lucide/svelte/icons/history';
 import type { FolderProfileConfig, SidebarCapabilities } from '$lib/stores/domain/profiles';
 import { resolveProfile, getProfileId, SYSTEM_VIEWS } from '$lib/stores/domain/profiles';
 
@@ -21,6 +24,7 @@ export type ContextMenuItem = {
 	action: () => void;
 	variant: ContextMenuItemVariant;
 	separatorAfter: boolean;
+	icon?: Component<any>;
 };
 
 export type SidebarSourceItem = {
@@ -240,13 +244,15 @@ export class FolderSidebarView {
 				label: 'Recover Folder',
 				action: () => this.actions.trashRecover(item.id),
 				variant: 'default',
-				separatorAfter: true
+				separatorAfter: true,
+				icon: History
 			});
 			items.push({
 				label: 'Delete Permanently',
 				action: () => this.actions.trashPermanentDelete(item.title, item.id),
 				variant: 'destructive',
-				separatorAfter: false
+				separatorAfter: false,
+				icon: Trash2
 			});
 			return items;
 		}
@@ -256,7 +262,8 @@ export class FolderSidebarView {
 				label: 'Empty Trash',
 				action: () => this.actions.trashEmpty(),
 				variant: 'destructive',
-				separatorAfter: false
+				separatorAfter: false,
+				icon: Trash2
 			});
 			return items;
 		}
@@ -266,7 +273,8 @@ export class FolderSidebarView {
 				label: 'New Folder',
 				action: () => this.actions.folderCreate(),
 				variant: 'default',
-				separatorAfter: false
+				separatorAfter: false,
+				icon: FolderPlus
 			});
 		}
 
@@ -275,7 +283,8 @@ export class FolderSidebarView {
 				label: item.isFavorite ? 'Remove From Favorites' : 'Add To Favorites',
 				action: () => this.actions.folderSetFavorite(item.id, item.isFavorite !== true),
 				variant: 'default',
-				separatorAfter: false
+				separatorAfter: false,
+				icon: Star
 			});
 		}
 
@@ -284,7 +293,8 @@ export class FolderSidebarView {
 				label: 'Rename',
 				action: () => this.actions.folderStartRename(item.id),
 				variant: 'default',
-				separatorAfter: false
+				separatorAfter: false,
+				icon: Pencil
 			});
 		}
 
@@ -296,7 +306,8 @@ export class FolderSidebarView {
 				label: 'Delete',
 				action: () => this.actions.folderDelete(item.id),
 				variant: 'destructive',
-				separatorAfter: false
+				separatorAfter: false,
+				icon: Trash2
 			});
 		}
 

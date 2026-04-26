@@ -265,16 +265,19 @@
 {/snippet}
 
 {#snippet ContextMenuContentSnippet(source: SidebarSourceItem)}
-	<ContextMenu.Content class="w-36">
+	<ContextMenu.Content class="w-44">
 		{#each source.contextMenuItems as menuItem}
 			<ContextMenu.Item
 				class={[
-					'text-[13px]',
+					'flex items-center gap-2 text-[13px]',
 					menuItem.variant === 'destructive' && 'text-destructive focus:text-destructive'
 				]}
 				onSelect={menuItem.action}
 			>
-				{menuItem.label}
+				{#if menuItem.icon}
+					<menuItem.icon size={14} class="shrink-0" />
+				{/if}
+				<span class="flex-1">{menuItem.label}</span>
 			</ContextMenu.Item>
 			{#if menuItem.separatorAfter}
 				<ContextMenu.Separator />
