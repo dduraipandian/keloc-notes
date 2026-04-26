@@ -1,3 +1,2 @@
 - ingest standard instructions from /Users/dduraipandian/.gemini/GEMINI.md and acknowledge in one line.
 - ingest project instructions from current project root .llm/lib-context and acknowledge in one line.
-- ingest checklist.md and update me about the task status completed, in progress, pending.
