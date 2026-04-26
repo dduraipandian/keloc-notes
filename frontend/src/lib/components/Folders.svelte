@@ -8,15 +8,16 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
+	import * as Kbd from '$lib/components/ui/kbd/index.js';
 	import { activatePaneOnClick } from '$lib/actions/activatePaneOnClick';
 	import { type FolderItem } from '$lib/stores/folders.svelte';
-	import { 
-		getUIStateStore, 
-		getThemeStore, 
-		getUIStore, 
-		getSelectionStore, 
-		getFolderService, 
-		getTrashService, 
+	import {
+		getUIStateStore,
+		getThemeStore,
+		getUIStore,
+		getSelectionStore,
+		getFolderService,
+		getTrashService,
 		getFolderSidebarView,
 		getFolderStore
 	} from '$lib/stores/context';
@@ -38,7 +39,6 @@
 		)
 	);
 
-
 	function handleRenameKeyDown(e: KeyboardEvent, item: FolderItem) {
 		if (e.key === 'Enter') {
 			folderService.rename(item.id, folderStore.editingTitle);
@@ -53,12 +53,8 @@
 	}
 </script>
 
-<div
-	class="h-full w-full"
-	data-testid="folders-pane"
-	use:activatePaneOnClick={'folders'}
->
-	<Sidebar.Root collapsible="none" class="h-full w-full select-none border-r-0 bg-sidebar">
+<div class="h-full w-full" data-testid="folders-pane" use:activatePaneOnClick={'folders'}>
+	<Sidebar.Root collapsible="none" class="h-full w-full border-r-0 bg-sidebar select-none">
 		{@const sections = folderSidebarView.sections}
 		<Sidebar.Header>
 			{#if sections.find((section) => section.id === 'views')?.sources.length}
@@ -91,18 +87,18 @@
 
 		<Sidebar.Footer class="mt-auto border-t-0 p-4">
 			{#if !hasUserFolders}
-				<Empty.Root class="mb-3 min-h-0 border-transparent p-2">
+				<Empty.Root class="min-h-0 border-transparent p-2">
 					<Empty.Header class="max-w-none gap-1.5">
 						<Empty.Title class="text-[11px] font-medium">Start here</Empty.Title>
 						<Empty.Description class="text-[11px] leading-relaxed">
 							Create your first folder, then add a note inside it.
 						</Empty.Description>
 					</Empty.Header>
-					<Empty.Content class="items-start">
+					<Empty.Content class="items-center">
 						<div class="flex items-center gap-1.5 text-[11px] text-muted-foreground/50">
-							<kbd
-								class="inline-flex h-5 items-center rounded border border-border bg-muted px-1 font-mono text-[10px] font-medium text-foreground/60"
-							>⌘⇧N</kbd>
+							<Kbd.Group>
+								<Kbd.Root>⌘⇧N</Kbd.Root>
+							</Kbd.Group>
 							<span>or use the button below</span>
 						</div>
 					</Empty.Content>
@@ -245,7 +241,7 @@
 			<input
 				bind:value={folderStore.editingTitle}
 				class={[
-					'ml-2 h-6 min-w-0 flex-1 select-text rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none',
+					'ml-2 h-6 min-w-0 flex-1 rounded-sm bg-background/50 px-1 text-[13px] font-medium text-foreground ring-1 ring-ring/20 outline-none select-text',
 					isRenameRejected && 'ring-destructive/60'
 				]}
 				use:focusAndSelect
@@ -258,8 +254,7 @@
 				class={[
 					'notes-folder-label ml-2 truncate text-left text-[13px] font-medium',
 					isRenameRejected && 'text-destructive'
-				]}
-				>{item.title}</span
+				]}>{item.title}</span
 			>
 		{/if}
 	</Sidebar.MenuButton>

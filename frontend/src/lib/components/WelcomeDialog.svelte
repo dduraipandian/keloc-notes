@@ -1,5 +1,6 @@
 <script lang="ts">
 	import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
+	import * as Kbd from '$lib/components/ui/kbd/index.js';
 
 	interface Props {
 		open: boolean;
@@ -28,23 +29,17 @@
 		<div class="my-2 flex flex-col gap-1.5">
 			{#each [['⌘N', 'New note'], ['⌘⇧N', 'New folder'], ['/', 'Focus search']] as [key, label]}
 				<div class="flex items-center gap-3 rounded-md px-1 py-1">
-					<kbd
-						class="inline-flex h-6 min-w-[1.75rem] items-center justify-center rounded border border-border bg-muted px-1.5 font-mono text-[11px] font-medium text-foreground"
-					>
-						{key}
-					</kbd>
+					<Kbd.Group>
+						<Kbd.Root>{key}</Kbd.Root>
+					</Kbd.Group>
 					<span class="text-sm text-muted-foreground">{label}</span>
 				</div>
 			{/each}
 		</div>
 
 		<AlertDialog.Footer class="mt-2 flex-row gap-2 sm:flex-row">
-			<AlertDialog.Cancel onclick={dismiss} class="flex-1">
-				Skip for now
-			</AlertDialog.Cancel>
-			<AlertDialog.Action onclick={dismiss} class="flex-1">
-				Get Started
-			</AlertDialog.Action>
+			<AlertDialog.Cancel onclick={dismiss} class="flex-1">Skip for now</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={dismiss} class="flex-1">Get Started</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>

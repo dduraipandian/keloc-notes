@@ -8,8 +8,15 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as ContextMenu from '$lib/components/ui/context-menu/index.js';
+	import * as Kbd from '$lib/components/ui/kbd/index.js';
 	import type { NoteItem } from '$lib/stores/notes.svelte';
-	import { getUIStore, getSelectionStore, getNoteService, getTrashService, getNoteListView } from '$lib/stores/context';
+	import {
+		getUIStore,
+		getSelectionStore,
+		getNoteService,
+		getTrashService,
+		getNoteListView
+	} from '$lib/stores/context';
 	import { ICON_REGISTRY } from '$lib/views/folderSidebarView.svelte';
 
 	const uiStore = getUIStore();
@@ -17,7 +24,6 @@
 	const noteService = getNoteService();
 	const trashService = getTrashService();
 	const noteListView = getNoteListView();
-
 
 	let searchQuery = $state('');
 	const selectedFolderTitle = $derived(noteListView.getSelectedFolderTitle());
@@ -109,9 +115,6 @@
 			{#if isEmptyState}
 				<Empty.Root class="mt-10 min-h-48 border-transparent px-6">
 					<Empty.Header>
-						<Empty.Media variant="icon">
-							<SquarePen size={16} />
-						</Empty.Media>
 						<Empty.Title>{emptyStateTitle}</Empty.Title>
 						<Empty.Description class="max-w-56 text-xs">
 							{emptyStateDescription}
@@ -127,10 +130,10 @@
 								New Note
 							</button>
 							<div class="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
-								<kbd
-									class="inline-flex h-5 items-center rounded border border-border bg-muted px-1 font-mono text-[10px] font-medium text-foreground/50"
-								>⌘N</kbd>
 								<span>quick shortcut</span>
+								<Kbd.Group>
+									<Kbd.Root>⌘⇧N</Kbd.Root>
+								</Kbd.Group>
 							</div>
 						</Empty.Content>
 					{/if}
