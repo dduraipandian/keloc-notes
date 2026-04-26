@@ -67,9 +67,9 @@ describe('OnboardingService', () => {
 	it('should create onboarding data if library is new', async () => {
 		vi.mocked(hasLibraryBeenUsed).mockResolvedValue(false);
 		const service = new OnboardingService(folderService, noteService, folderStore, selectionStore, notesStore);
-		
+
 		await service.runFirstRunOnboarding();
-		
+
 		expect(folderService.create).toHaveBeenCalledWith(null);
 		expect(folderStore.renameFolder).toHaveBeenCalledWith('welcome-folder-id', 'Welcome');
 		expect(noteService.create).toHaveBeenCalledWith('welcome-folder-id', { silent: true });
@@ -77,9 +77,36 @@ describe('OnboardingService', () => {
 			title: 'Welcome to Keloc Notes',
 			content: expect.any(String)
 		}), { updatedTimestamp: true });
-		
+
 		expect(folderService.select).toHaveBeenCalledWith('welcome-folder-id');
 		expect(noteService.select).toHaveBeenCalledWith('welcome-note-id');
 		expect(markLibraryAsUsed).toHaveBeenCalled();
+	});
+
+	it('should return isFirstRun: false when library has been used', async () => {
+		vi.mocked(hasLibraryBeenUsed).mockResolvedValue(true);
+		const service = new OnboardingService(folderService, noteService, folderStore, selectionStore, notesStore);
+
+		const result = await service.runFirstRunOnboarding();
+
+		expect(result.isFirstRun).toBe(false);
+	});
+
+	it('should return isFirstRun: false in E2E test environment', async () => {
+		vi.mocked(isE2ETest).mockReturnValue(true);
+		const service = new OnboardingService(folderService, noteService, folderStore, selectionStore, notesStore);
+
+		const result = await service.runFirstRunOnboarding();
+
+		expect(result.isFirstRun).toBe(false);
+	});
+
+	it('should return isFirstRun: true on first run', async () => {
+		vi.mocked(hasLibraryBeenUsed).mockResolvedValue(false);
+		const service = new OnboardingService(folderService, noteService, folderStore, selectionStore, notesStore);
+
+		const result = await service.runFirstRunOnboarding();
+
+		expect(result.isFirstRun).toBe(true);
 	});
 });

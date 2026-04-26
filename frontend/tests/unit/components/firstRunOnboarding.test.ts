@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import Folders from '$lib/components/Folders.svelte';
 import NoteItems from '$lib/components/NoteItems.svelte';
 import { FolderStore } from '$lib/stores/folders.svelte';
@@ -155,5 +155,150 @@ describe('First-run onboarding copy', () => {
 
 		expect(screen.getByText('No notes here yet')).toBeTruthy();
 		expect(screen.getByText('Start by creating a folder, then create your first note.')).toBeTruthy();
+	});
+
+	it('shows "New Folder" button in sidebar empty state when there are no user folders', () => {
+		const view = new FolderSidebarView(
+			{ selection: selectionStore, ui: uiStore },
+			folderStore,
+			mockFolderService as any,
+			mockNoteService as any,
+			mockTrashService as any
+		);
+
+		render(Folders, {
+			context: new Map<any, any>([
+				[STORE_KEYS.UI_STATE, uiStateStore],
+				[STORE_KEYS.THEME, themeStore],
+				[STORE_KEYS.UI, uiStore],
+				[STORE_KEYS.SELECTION, selectionStore],
+				[STORE_KEYS.FOLDERS, folderStore],
+				[STORE_KEYS.FOLDER_SERVICE, mockFolderService],
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.TRASH_SERVICE, mockTrashService],
+				[STORE_KEYS.FOLDER_SIDEBAR_VIEW, view]
+			])
+		});
+
+		expect(screen.getByText('New Folder')).toBeTruthy();
+	});
+
+	it('shows ⌘⇧N shortcut hint in sidebar empty state', () => {
+		const view = new FolderSidebarView(
+			{ selection: selectionStore, ui: uiStore },
+			folderStore,
+			mockFolderService as any,
+			mockNoteService as any,
+			mockTrashService as any
+		);
+
+		render(Folders, {
+			context: new Map<any, any>([
+				[STORE_KEYS.UI_STATE, uiStateStore],
+				[STORE_KEYS.THEME, themeStore],
+				[STORE_KEYS.UI, uiStore],
+				[STORE_KEYS.SELECTION, selectionStore],
+				[STORE_KEYS.FOLDERS, folderStore],
+				[STORE_KEYS.FOLDER_SERVICE, mockFolderService],
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.TRASH_SERVICE, mockTrashService],
+				[STORE_KEYS.FOLDER_SIDEBAR_VIEW, view]
+			])
+		});
+
+		expect(screen.getByText('⌘⇧N')).toBeTruthy();
+	});
+
+	it('"New Folder" button in sidebar calls folderService.create()', async () => {
+		const view = new FolderSidebarView(
+			{ selection: selectionStore, ui: uiStore },
+			folderStore,
+			mockFolderService as any,
+			mockNoteService as any,
+			mockTrashService as any
+		);
+
+		render(Folders, {
+			context: new Map<any, any>([
+				[STORE_KEYS.UI_STATE, uiStateStore],
+				[STORE_KEYS.THEME, themeStore],
+				[STORE_KEYS.UI, uiStore],
+				[STORE_KEYS.SELECTION, selectionStore],
+				[STORE_KEYS.FOLDERS, folderStore],
+				[STORE_KEYS.FOLDER_SERVICE, mockFolderService],
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.TRASH_SERVICE, mockTrashService],
+				[STORE_KEYS.FOLDER_SIDEBAR_VIEW, view]
+			])
+		});
+
+		await fireEvent.click(screen.getByText('New Folder'));
+
+		expect(mockFolderService.create).toHaveBeenCalled();
+	});
+
+	it('shows "New Note" button in note list empty state when canCreateNote is true', () => {
+		mockNoteListView.canCreateNote.mockReturnValue(true);
+		mockNoteListView.getCreateNoteFolderId.mockReturnValue('folder-id');
+
+		render(NoteItems, {
+			context: new Map<any, any>([
+				[STORE_KEYS.UI_STATE, uiStateStore],
+				[STORE_KEYS.THEME, themeStore],
+				[STORE_KEYS.UI, uiStore],
+				[STORE_KEYS.SELECTION, selectionStore],
+				[STORE_KEYS.FOLDERS, folderStore],
+				[STORE_KEYS.NOTES, notesStore],
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.TRASH_SERVICE, mockTrashService],
+				[STORE_KEYS.NOTE_LIST_VIEW, mockNoteListView]
+			])
+		});
+
+		expect(screen.getByText('New Note')).toBeTruthy();
+	});
+
+	it('shows ⌘N shortcut hint in note list empty state', () => {
+		mockNoteListView.canCreateNote.mockReturnValue(true);
+		mockNoteListView.getCreateNoteFolderId.mockReturnValue('folder-id');
+
+		render(NoteItems, {
+			context: new Map<any, any>([
+				[STORE_KEYS.UI_STATE, uiStateStore],
+				[STORE_KEYS.THEME, themeStore],
+				[STORE_KEYS.UI, uiStore],
+				[STORE_KEYS.SELECTION, selectionStore],
+				[STORE_KEYS.FOLDERS, folderStore],
+				[STORE_KEYS.NOTES, notesStore],
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.TRASH_SERVICE, mockTrashService],
+				[STORE_KEYS.NOTE_LIST_VIEW, mockNoteListView]
+			])
+		});
+
+		expect(screen.getByText('⌘N')).toBeTruthy();
+	});
+
+	it('"New Note" button in note list calls noteService.create() with the folder id', async () => {
+		mockNoteListView.canCreateNote.mockReturnValue(true);
+		mockNoteListView.getCreateNoteFolderId.mockReturnValue('folder-id');
+
+		render(NoteItems, {
+			context: new Map<any, any>([
+				[STORE_KEYS.UI_STATE, uiStateStore],
+				[STORE_KEYS.THEME, themeStore],
+				[STORE_KEYS.UI, uiStore],
+				[STORE_KEYS.SELECTION, selectionStore],
+				[STORE_KEYS.FOLDERS, folderStore],
+				[STORE_KEYS.NOTES, notesStore],
+				[STORE_KEYS.NOTE_SERVICE, mockNoteService],
+				[STORE_KEYS.TRASH_SERVICE, mockTrashService],
+				[STORE_KEYS.NOTE_LIST_VIEW, mockNoteListView]
+			])
+		});
+
+		await fireEvent.click(screen.getByText('New Note'));
+
+		expect(mockNoteService.create).toHaveBeenCalledWith('folder-id');
 	});
 });

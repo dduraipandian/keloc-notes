@@ -117,6 +117,23 @@
 							{emptyStateDescription}
 						</Empty.Description>
 					</Empty.Header>
+					{#if canCreateNote}
+						<Empty.Content>
+							<button
+								class="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground/80 shadow-sm transition-colors hover:bg-accent hover:text-foreground"
+								onclick={() => noteService.create(noteListView.getCreateNoteFolderId())}
+							>
+								<SquarePen size={12} />
+								New Note
+							</button>
+							<div class="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
+								<kbd
+									class="inline-flex h-5 items-center rounded border border-border bg-muted px-1 font-mono text-[10px] font-medium text-foreground/50"
+								>⌘N</kbd>
+								<span>quick shortcut</span>
+							</div>
+						</Empty.Content>
+					{/if}
 				</Empty.Root>
 			{:else}
 				{#each sections as [label, notes]}

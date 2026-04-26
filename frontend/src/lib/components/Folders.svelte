@@ -98,6 +98,14 @@
 							Create your first folder, then add a note inside it.
 						</Empty.Description>
 					</Empty.Header>
+					<Empty.Content class="items-start">
+						<div class="flex items-center gap-1.5 text-[11px] text-muted-foreground/50">
+							<kbd
+								class="inline-flex h-5 items-center rounded border border-border bg-muted px-1 font-mono text-[10px] font-medium text-foreground/60"
+							>⌘⇧N</kbd>
+							<span>or use the button below</span>
+						</div>
+					</Empty.Content>
 				</Empty.Root>
 			{/if}
 			<div class="flex items-center justify-between gap-1 px-2">

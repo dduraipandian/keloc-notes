@@ -50,6 +50,7 @@
 	import { setDatabaseBlockedHandler } from '$lib/infrastructure/idbr';
 	import BackupImportOverlay from '$lib/components/BackupImportOverlay.svelte';
 	import MarkdownImportConflictDialog from '$lib/components/MarkdownImportConflictDialog.svelte';
+	import WelcomeDialog from '$lib/components/WelcomeDialog.svelte';
 	import { runShutdownFlush } from '$lib/shutdownFlush';
 	import {
 		buildDatabaseBlockedMessage,
@@ -140,6 +141,7 @@
 	let paneLayoutRef = $state<HTMLDivElement | null>(null);
 	let showAbout = $state(false);
 	let showSettings = $state(false);
+	let showWelcomeDialog = $state(false);
 	let liveSidebarWidth = DEFAULT_SIDEBAR_WIDTH;
 	let liveNoteListWidth = DEFAULT_NOTE_LIST_WIDTH;
 	let resizeStartPointerX: number | null = null;
@@ -429,7 +431,8 @@
 			uiStore.closeDialogs();
 			
 			if (!isE2ETest()) {
-				await onboardingService.runFirstRunOnboarding();
+				const { isFirstRun } = await onboardingService.runFirstRunOnboarding();
+				if (isFirstRun) showWelcomeDialog = true;
 			}
 
 			if (consumePendingStartupRecoveryImport() && hasWailsRuntime()) {
@@ -677,6 +680,7 @@
 	description={uiStateStore.shutdownFlushStatus?.description ?? ''}
 />
 <MarkdownImportConflictDialog uiState={uiStateStore} />
+<WelcomeDialog bind:open={showWelcomeDialog} onclose={() => (showWelcomeDialog = false)} />
 <Toaster />
 
 <style>
