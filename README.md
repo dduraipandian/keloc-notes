@@ -89,18 +89,26 @@ On a fresh library, the app guides you through the basic flow:
 
 The app is designed around repeated daily use: open it, write, search, organize, and leave without thinking about accounts or network state.
 
-## Data Ownership
+## Data Privacy Promise
 
-Keloc Notes is local-first in the practical sense:
+Keloc Notes is built on the principle that your thoughts should remain yours.
 
-- notes, folders, settings, and note assets are stored on the local machine
-- the app does not require a network connection to work
-- there is no built-in sync service
-- import and export use user-chosen local files
+- **Zero Telemetry**: No tracking, no analytics, no crash reports sent to servers. The app never "calls home."
+- **Offline First**: Works fully without an internet connection. There is no account system and no cloud sync.
+- **Local Storage**: All notes, folders, and assets are stored exclusively on your machine.
+- **User-Controlled Portability**: You decide when and where to export your data via Markdown or JSON backups.
 
-The current storage layer is IndexedDB inside the embedded desktop webview runtime. The app does not currently add its own encryption before writing notes to local storage.
+### Where is my data?
+
+On macOS, your notes are stored in the application's local database (IndexedDB) located within your home directory:
+
+`~/Library/Application Support/Keloc Notes/`
+
+> [!NOTE]
+> The app does not currently encrypt data at rest. While storage is local, anyone with access to your machine's filesystem can technically read the database files. We recommend using full-disk encryption (like FileVault on macOS) for maximum security.
 
 More detail is in [docs/security-and-storage.md](docs/security-and-storage.md).
+
 
 ## Backup And Restore
 

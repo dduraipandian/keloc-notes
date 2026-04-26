@@ -8,6 +8,7 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 )
 
 //go:embed all:frontend/build
@@ -41,6 +42,22 @@ func main() {
 		OnBeforeClose:    app.beforeClose,
 		Bind: []interface{}{
 			app,
+		},
+		Mac: &mac.Options{
+			// Custom title bar: visually transparent + full-size content, but
+			// NOT using a toolbar — macOS only sends the double-click-to-zoom
+			// gesture to a native title bar, not a toolbar.
+			// TitleBarHiddenInset() sets UseToolbar:true which breaks zoom.
+			TitleBar: &mac.TitleBar{
+				TitlebarAppearsTransparent: true,
+				HideTitle:                  true,
+				HideTitleBar:               false, // keep native title bar for double-click zoom
+				FullSizeContent:            true,  // webview fills edge-to-edge
+				UseToolbar:                 false, // must be false to preserve zoom gesture
+				HideToolbarSeparator:       true,
+			},
+			WebviewIsTransparent: false,
+			WindowIsTranslucent:  false,
 		},
 	})
 
