@@ -132,7 +132,7 @@
 							<div class="flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
 								<span>quick shortcut</span>
 								<Kbd.Group>
-									<Kbd.Root>⌘⇧N</Kbd.Root>
+									<Kbd.Root>⌘N</Kbd.Root>
 								</Kbd.Group>
 							</div>
 						</Empty.Content>

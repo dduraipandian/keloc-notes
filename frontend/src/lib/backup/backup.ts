@@ -19,8 +19,6 @@ import { APP_VERSION } from '$lib/appVersion';
 
 const STOCK_WELCOME_FOLDER_TITLE = 'Welcome';
 const STOCK_WELCOME_NOTE_TITLE = 'Welcome to Keloc Notes';
-const STOCK_WELCOME_NOTE_TEXT = 'Welcome to Keloc Notes';
-
 type SerializedNoteAsset = {
 	id: string;
 	noteId: string;
@@ -245,8 +243,7 @@ async function hasOnlyStockOnboardingData(): Promise<boolean> {
 	const assets = await assetsRepository.getByNoteId(welcomeNote.id);
 	if (assets.length > 0) return false;
 
-	const content = await notesRepository.getContent(welcomeNote.id);
-	return content === '' || content.includes(STOCK_WELCOME_NOTE_TEXT);
+	return true;
 }
 
 export async function exportBackup(

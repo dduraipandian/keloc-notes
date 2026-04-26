@@ -25,7 +25,9 @@ vi.mock('@lucide/svelte/icons/square-pen', () => ({ default: vi.fn() }));
 
 vi.mock('$lib/components/ui/input/index.js', () => ({
 	Input: vi.fn().mockImplementation((props) => ({
-		render: () => ({ html: `<input value="${props.value || ''}" placeholder="${props.placeholder || ''}" />` })
+		render: () => ({
+			html: `<input value="${props.value || ''}" placeholder="${props.placeholder || ''}" />`
+		})
 	}))
 }));
 
@@ -154,7 +156,9 @@ describe('First-run onboarding copy', () => {
 		});
 
 		expect(screen.getByText('No notes here yet')).toBeTruthy();
-		expect(screen.getByText('Start by creating a folder, then create your first note.')).toBeTruthy();
+		expect(
+			screen.getByText('Start by creating a folder, then create your first note.')
+		).toBeTruthy();
 	});
 
 	it('shows "New Folder" button in sidebar empty state when there are no user folders', () => {

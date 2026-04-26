@@ -127,7 +127,18 @@ describe('Backup import guard', () => {
 			deletedAt: null,
 			deletedBatchId: null
 		});
-		await putNoteContent('welcome-note', 'Welcome to keloc-notes');
+		await putNoteContent(
+			'welcome-note',
+			JSON.stringify({
+				type: 'doc',
+				content: [
+					{
+						type: 'paragraph',
+						content: [{ type: 'text', text: 'A local-first, privacy-focused notes app built for speed.' }]
+					}
+				]
+			})
+		);
 
 		await importBackup(backupJson, new FolderStore(), new NotesStore());
 
