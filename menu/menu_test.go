@@ -33,6 +33,7 @@ func (m *mockMenuHost) OnDeleteNote()          {}
 func (m *mockMenuHost) OnEmptyTrash()          {}
 func (m *mockMenuHost) OnToggleSidebar()       {}
 func (m *mockMenuHost) OnToggleNoteList()      {}
+func (m *mockMenuHost) OnToggleFocusEditor()     {}
 func (m *mockMenuHost) OnToggleFullscreen()    { m.onToggleFullscreenCalled = true }
 func (m *mockMenuHost) OnSetTheme(theme string) {}
 func (m *mockMenuHost) OnFocusSearch()         {}
@@ -126,6 +127,7 @@ func TestBuildMacMenuStructure(t *testing.T) {
 	var (
 		hasToggleSidebar   bool
 		hasToggleNoteList  bool
+		hasFocusEditor     bool
 		hasAppearance      bool
 		hasFullScreen      bool
 		hasFind            bool
@@ -136,10 +138,12 @@ func TestBuildMacMenuStructure(t *testing.T) {
 			continue
 		}
 		switch item.Label {
-		case "Toggle Sidebar":
+		case "Sidebar":
 			hasToggleSidebar = true
-		case "Toggle Note List":
+		case "Note List":
 			hasToggleNoteList = true
+		case "Focus Editor":
+			hasFocusEditor = true
 		case "Appearance":
 			hasAppearance = true
 			if item.SubMenu == nil {
@@ -159,10 +163,13 @@ func TestBuildMacMenuStructure(t *testing.T) {
 		t.Error("View menu missing 'Find' item")
 	}
 	if !hasToggleSidebar {
-		t.Error("View menu missing 'Toggle Sidebar' item")
+		t.Error("View menu missing 'Sidebar' item")
 	}
 	if !hasToggleNoteList {
-		t.Error("View menu missing 'Toggle Note List' item")
+		t.Error("View menu missing 'Note List' item")
+	}
+	if !hasFocusEditor {
+		t.Error("View menu missing 'Focus Editor' item")
 	}
 	if !hasAppearance {
 		t.Error("View menu missing 'Appearance' item")
@@ -388,5 +395,37 @@ func TestMenuStateApply(t *testing.T) {
 	}
 	if !refs.AppearanceSystem.Checked {
 		t.Error("AppearanceSystem should be checked when theme is 'system'")
+	}
+
+	// Test visibility checkmarks
+	state = MenuState{SidebarVisible: true, NoteListVisible: false}
+	refs.Apply(state, nil)
+	if !refs.SidebarVisible.Checked {
+		t.Error("SidebarVisible should be checked when state.SidebarVisible is true")
+	}
+	if refs.NoteListVisible.Checked {
+		t.Error("NoteListVisible should not be checked when state.NoteListVisible is false")
+	}
+
+	state = MenuState{SidebarVisible: false, NoteListVisible: true}
+	refs.Apply(state, nil)
+	if refs.SidebarVisible.Checked {
+		t.Error("SidebarVisible should not be checked when state.SidebarVisible is false")
+	}
+	if !refs.NoteListVisible.Checked {
+		t.Error("NoteListVisible should be checked when state.NoteListVisible is true")
+	}
+
+	// Test FocusEditor checkmark
+	state = MenuState{FocusEditor: true}
+	refs.Apply(state, nil)
+	if !refs.FocusEditor.Checked {
+		t.Error("FocusEditor should be checked when state.FocusEditor is true")
+	}
+
+	state = MenuState{FocusEditor: false}
+	refs.Apply(state, nil)
+	if refs.FocusEditor.Checked {
+		t.Error("FocusEditor should not be checked when state.FocusEditor is false")
 	}
 }

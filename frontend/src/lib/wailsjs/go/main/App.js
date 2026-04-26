@@ -74,6 +74,10 @@ export function OnSetTheme(arg1) {
   return window['go']['main']['App']['OnSetTheme'](arg1);
 }
 
+export function OnToggleFocusEditor() {
+  return window['go']['main']['App']['OnToggleFocusEditor']();
+}
+
 export function OnToggleFullscreen() {
   return window['go']['main']['App']['OnToggleFullscreen']();
 }

@@ -339,7 +339,8 @@ describe('Menu Bridge System', () => {
 
 		it('calls UpdateMenuState with HasSelectedNote false when no note selected', async () => {
 			const theme = new ThemeStore();
-		cleanup = initMenuStateEffect({ theme, notes: mockNotesStore });
+			const uiState = new UIStateStore();
+			cleanup = initMenuStateEffect({ theme, notes: mockNotesStore, uiState });
 			flushSync();
 
 			expect(AppModule.UpdateMenuState).toHaveBeenCalled();
@@ -354,7 +355,8 @@ describe('Menu Bridge System', () => {
 			mockNotesStore.selectedNoteID = 'note-1';
 
 			const theme = new ThemeStore();
-		cleanup = initMenuStateEffect({ theme, notes: mockNotesStore });
+			const uiState = new UIStateStore();
+			cleanup = initMenuStateEffect({ theme, notes: mockNotesStore, uiState });
 			flushSync();
 
 			expect(AppModule.UpdateMenuState).toHaveBeenCalled();
@@ -371,7 +373,8 @@ describe('Menu Bridge System', () => {
 			mockNotesStore.trashCount = 1;
 
 			const theme = new ThemeStore();
-		cleanup = initMenuStateEffect({ theme, notes: mockNotesStore });
+			const uiState = new UIStateStore();
+			cleanup = initMenuStateEffect({ theme, notes: mockNotesStore, uiState });
 			flushSync();
 
 			const calls = (AppModule.UpdateMenuState as any).mock.calls;
@@ -383,24 +386,45 @@ describe('Menu Bridge System', () => {
 			mockNotesStore.trashCount = 2;
 
 			const theme = new ThemeStore();
-		cleanup = initMenuStateEffect({ theme, notes: mockNotesStore });
+			const uiState = new UIStateStore();
+			cleanup = initMenuStateEffect({ theme, notes: mockNotesStore, uiState });
 			flushSync();
 
 			const calls = (AppModule.UpdateMenuState as any).mock.calls;
 			const menuState = calls[calls.length - 1][0];
 			expect(menuState.TrashHasItems).toBe(true);
 		});
-
 		it('calls UpdateMenuState with correct theme', async () => {
 			const theme = new ThemeStore();
 			theme.init('dark');
+			const uiState = new UIStateStore();
 
-			cleanup = initMenuStateEffect({ theme, notes: mockNotesStore });
+			cleanup = initMenuStateEffect({ theme, notes: mockNotesStore, uiState });
 			flushSync();
 
 			const calls = (AppModule.UpdateMenuState as any).mock.calls;
 			const menuState = calls[calls.length - 1][0];
 			expect(menuState.Theme).toBe('dark');
+		});
+
+		it('calls UpdateMenuState with correct pane visibility', async () => {
+			const theme = new ThemeStore();
+			const uiState = new UIStateStore();
+			uiState.sidebarVisible = true;
+			uiState.noteListVisible = false;
+
+			cleanup = initMenuStateEffect({ theme, notes: mockNotesStore, uiState });
+			flushSync();
+
+			const calls = (AppModule.UpdateMenuState as any).mock.calls;
+			const menuState = calls[calls.length - 1][0];
+			expect(menuState.SidebarVisible).toBe(true);
+			expect(menuState.NoteListVisible).toBe(false);
+
+			uiState.sidebarVisible = false;
+			flushSync();
+			const menuStateUpdated = (AppModule.UpdateMenuState as any).mock.calls.at(-1)[0];
+			expect(menuStateUpdated.SidebarVisible).toBe(false);
 		});
 	});
 });

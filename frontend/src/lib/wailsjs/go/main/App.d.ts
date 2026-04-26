@@ -39,6 +39,8 @@ export function OnOpenPreferences():Promise<void>;
 
 export function OnSetTheme(arg1:string):Promise<void>;
 
+export function OnToggleFocusEditor():Promise<void>;
+
 export function OnToggleFullscreen():Promise<void>;
 
 export function OnToggleNoteList():Promise<void>;

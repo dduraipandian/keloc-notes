@@ -564,7 +564,11 @@
 			: () => {};
 
 		const offMenuState = hasWailsRuntime()
-			? initMenuStateEffect({ theme: themeStore, notes: notesStore })
+			? initMenuStateEffect({
+					theme: themeStore,
+					notes: notesStore,
+					uiState: uiStateStore
+				})
 			: () => {};
 
 		void initializeApplication();

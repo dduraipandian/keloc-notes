@@ -107,6 +107,10 @@ func (a *App) OnToggleNoteList() {
 	runtime.EventsEmit(a.ctx, "menu:toggle-note-list")
 }
 
+func (a *App) OnToggleFocusEditor() {
+	runtime.EventsEmit(a.ctx, "menu:toggle-focus-editor")
+}
+
 func (a *App) OnToggleFullscreen() {
 	if a.ctx == nil {
 		return

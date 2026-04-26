@@ -215,6 +215,11 @@ export function initMenuBridge(
 			uiState.toggleNoteList();
 		})
 	);
+	unsubscribers.push(
+		EventsOn('menu:toggle-focus-editor', () => {
+			uiState.toggleFocusEditor();
+		})
+	);
 
 	unsubscribers.push(
 		EventsOn('menu:set-theme', (themeMode: string) => {
@@ -390,8 +395,12 @@ export function initMenuBridge(
  * Monitors store state and updates the native menu dynamically.
  * Returns a cleanup function to destroy the effect.
  */
-export function initMenuStateEffect(stores: { theme: ThemeStore; notes: NotesStore }): () => void {
-	const { theme, notes } = stores;
+export function initMenuStateEffect(stores: {
+	theme: ThemeStore;
+	notes: NotesStore;
+	uiState: UIStateStore;
+}): () => void {
+	const { theme, notes, uiState } = stores;
 	return $effect.root(() => {
 		$effect(() => {
 			// Explicitly access reactive states to ensure tracking
@@ -402,6 +411,9 @@ export function initMenuStateEffect(stores: { theme: ThemeStore; notes: NotesSto
 				HasSelectedNote: hasSelected,
 				SelectedNoteInTrash: selectedNote?.deletedAt != null,
 				TrashHasItems: notes.trashCount > 0,
+				SidebarVisible: uiState.sidebarVisible,
+				NoteListVisible: uiState.noteListVisible,
+				FocusEditor: !uiState.sidebarVisible && !uiState.noteListVisible,
 				Theme: theme.theme
 			});
 

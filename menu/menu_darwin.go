@@ -8,38 +8,6 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/menu/keys"
 )
 
-// MenuHost defines the interface for Go methods that the menu calls.
-type MenuHost interface {
-	OnOpenAbout()
-	OnOpenPreferences()
-	OnCloseWindow()
-	OnNewNote()
-	OnNewFolder()
-	OnDeleteNote()
-	OnEmptyTrash()
-	OnToggleSidebar()
-	OnToggleNoteList()
-	OnToggleFullscreen()
-	OnSetTheme(theme string)
-	OnFocusSearch()
-	OnExportCurrentNote()
-	OnExportAllMarkdown()
-	OnExportBackup()
-	OnImportMarkdown()
-	OnImportBackup()
-	OnHelp(topic string)
-}
-
-// MenuRefs holds pointers to menu items that need dynamic state updates.
-type MenuRefs struct {
-	MoveToTrash       *menu.MenuItem
-	EmptyTrash        *menu.MenuItem
-	ExportCurrentNote *menu.MenuItem
-	AppearanceLight   *menu.MenuItem
-	AppearanceDark    *menu.MenuItem
-	AppearanceSystem  *menu.MenuItem
-}
-
 // BuildMacMenu constructs the macOS menu bar for keloc-notes and returns menu + item references for dynamic updates.
 func BuildMacMenu(host MenuHost) (*menu.Menu, *MenuRefs) {
 	refs := &MenuRefs{}
@@ -134,12 +102,21 @@ func buildEditMenu(host MenuHost) *menu.MenuItem {
 func buildViewMenu(host MenuHost, refs *MenuRefs) *menu.MenuItem {
 	viewMenuItems := menu.NewMenu()
 
-	viewMenuItems.Append(menu.Text("Toggle Sidebar", nil, func(cd *menu.CallbackData) {
+	viewMenuItems.Append(menu.Checkbox("Sidebar", true, keys.CmdOrCtrl("1"), func(cd *menu.CallbackData) {
 		host.OnToggleSidebar()
 	}))
-	viewMenuItems.Append(menu.Text("Toggle Note List", nil, func(cd *menu.CallbackData) {
+	refs.SidebarVisible = viewMenuItems.Items[len(viewMenuItems.Items)-1]
+
+	viewMenuItems.Append(menu.Checkbox("Note List", true, keys.CmdOrCtrl("2"), func(cd *menu.CallbackData) {
 		host.OnToggleNoteList()
 	}))
+	refs.NoteListVisible = viewMenuItems.Items[len(viewMenuItems.Items)-1]
+
+	viewMenuItems.Append(menu.Checkbox("Focus Editor", false, keys.CmdOrCtrl("3"), func(cd *menu.CallbackData) {
+		host.OnToggleFocusEditor()
+	}))
+	refs.FocusEditor = viewMenuItems.Items[len(viewMenuItems.Items)-1]
+
 	viewMenuItems.Append(menu.Separator())
 	viewMenuItems.Append(menu.Text("Find", keys.CmdOrCtrl("f"), func(cd *menu.CallbackData) {
 		host.OnFocusSearch()

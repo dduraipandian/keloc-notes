@@ -48,6 +48,17 @@ export class UIStateStore {
 		this.noteListVisible = !this.noteListVisible;
 	}
 
+	toggleFocusEditor() {
+		const isFocusMode = !this.sidebarVisible && !this.noteListVisible;
+		if (isFocusMode) {
+			this.sidebarVisible = true;
+			this.noteListVisible = true;
+		} else {
+			this.sidebarVisible = false;
+			this.noteListVisible = false;
+		}
+	}
+
 	showBackupImportStatus(title: string, description: string) {
 		this.backupImportStatus = {
 			active: true,

@@ -191,6 +191,9 @@ export namespace menu {
 	    MoveToTrash?: MenuItem;
 	    EmptyTrash?: MenuItem;
 	    ExportCurrentNote?: MenuItem;
+	    SidebarVisible?: MenuItem;
+	    NoteListVisible?: MenuItem;
+	    FocusEditor?: MenuItem;
 	    AppearanceLight?: MenuItem;
 	    AppearanceDark?: MenuItem;
 	    AppearanceSystem?: MenuItem;
@@ -204,6 +207,9 @@ export namespace menu {
 	        this.MoveToTrash = this.convertValues(source["MoveToTrash"], MenuItem);
 	        this.EmptyTrash = this.convertValues(source["EmptyTrash"], MenuItem);
 	        this.ExportCurrentNote = this.convertValues(source["ExportCurrentNote"], MenuItem);
+	        this.SidebarVisible = this.convertValues(source["SidebarVisible"], MenuItem);
+	        this.NoteListVisible = this.convertValues(source["NoteListVisible"], MenuItem);
+	        this.FocusEditor = this.convertValues(source["FocusEditor"], MenuItem);
 	        this.AppearanceLight = this.convertValues(source["AppearanceLight"], MenuItem);
 	        this.AppearanceDark = this.convertValues(source["AppearanceDark"], MenuItem);
 	        this.AppearanceSystem = this.convertValues(source["AppearanceSystem"], MenuItem);
@@ -231,6 +237,9 @@ export namespace menu {
 	    HasSelectedNote: boolean;
 	    SelectedNoteInTrash: boolean;
 	    TrashHasItems: boolean;
+	    SidebarVisible: boolean;
+	    NoteListVisible: boolean;
+	    FocusEditor: boolean;
 	    Theme: string;
 	
 	    static createFrom(source: any = {}) {
@@ -242,6 +251,9 @@ export namespace menu {
 	        this.HasSelectedNote = source["HasSelectedNote"];
 	        this.SelectedNoteInTrash = source["SelectedNoteInTrash"];
 	        this.TrashHasItems = source["TrashHasItems"];
+	        this.SidebarVisible = source["SidebarVisible"];
+	        this.NoteListVisible = source["NoteListVisible"];
+	        this.FocusEditor = source["FocusEditor"];
 	        this.Theme = source["Theme"];
 	    }
 	}

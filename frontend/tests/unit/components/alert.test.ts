@@ -71,7 +71,7 @@ describe('Alert route', () => {
 		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 		await tick();
 
-		const confirmButton = screen.getByText('Delete Note');
+		const confirmButton = screen.getByText('Delete Note').closest('button');
 		expect(document.activeElement).toBe(confirmButton);
 	});
 
